@@ -1,0 +1,56 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build (in container)",
+            "type": "shell",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./build-unix.sh",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ],
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }
+            }
+        },
+        // {
+        //     "label": "clean (in container)",
+        //     "type": "shell",
+        //     "command": "docker run --privileged -v c:/vsc_docker_cc_gdb/:/root vsc_docker_cc_gdb make clean",
+        //     "group": "build",
+        //     "problemMatcher": []
+        // },
+        {
+            "label": "remove containers",
+            "type": "shell",
+            "command": "docker rm -f $(docker ps -a -q)",
+            "problemMatcher": []
+        },
+        {
+            "label": "run the code",
+            "type": "shell",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./bin/ome2_tn_matching --c /usr/local/src/tn_matching/data/config/epg_parameters.ini --e road_link_w --l cl_road_table_final --cc fr",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "prepare to debug",
+            "type": "shell",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching --name tn_matching_container -it tn_matching ",
+            "group": "build",
+            "problemMatcher": []
+        }
+    ]
+}

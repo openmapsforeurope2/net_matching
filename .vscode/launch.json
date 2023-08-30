@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+        "name": "(gdb) Pipe Launch",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "/usr/local/src/tn_matching/bin/ome2_tn_matchingd",
+        "cwd": "/usr/local/src/tn_matching",
+        "args": ["--c", "/usr/local/src/tn_matching/data/config/epg_parameters.ini", "--e", "road_link_w", "--p", "cp_road_table_final", "--l", "cl_road_table_final", "--cc", "fr"],
+        "stopAtEntry": true,
+        "environment": [{ "name": "config", "value": "Debug" }],
+        "externalConsole": true,
+        "sourceFileMap": {
+            "/usr/local/src/tn_matching/src":"${workspaceRoot}/src",
+            "/usr/local/src/libepg/src":"${workspaceRoot}/../libepg/src",
+            "/usr/local/src/sd-socle/src":"${workspaceRoot}/../sd-socle/src",
+            "/usr/local/src/tn_matching/include":"${workspaceRoot}/include",
+            "/usr/local/src/libepg/include":"${workspaceRoot}/../libepg/include",
+            "/usr/local/src/sd-socle/include":"${workspaceRoot}/../sd-socle/include"
+        },
+        "pipeTransport": {
+            "debuggerPath": "/usr/bin/gdb",
+            "pipeProgram": "docker",
+            "pipeArgs": ["exec", "-i", "tn_matching_container", "sh", "-c"],
+            "pipeCwd": "${workspaceRoot}"
+        },
+        "MIMode": "gdb",
+        "setupCommands": [{
+            "description": "Enable pretty-printing for gdb",
+            "text": "-enable-pretty-printing",
+            "ignoreFailures": true
+        }]
+    }, ]
+}

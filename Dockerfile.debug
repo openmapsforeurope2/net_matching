@@ -1,0 +1,10 @@
+FROM libepg
+
+RUN apt-get -y update
+RUN apt-get -y install gdb
+
+ENV APP_DIR_SRC=/usr/local/src/cp_connection/                                                     
+
+WORKDIR $APP_DIR_SRC
+
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/sd-externs/unix-gxx/shapelib-1.3.0b3/lib:/usr/local/src/sd-externs/unix-gxx/qt-5.14.1/lib/:/usr/local/src/sd-externs/unix-gxx/sqlite-3.32.3/lib

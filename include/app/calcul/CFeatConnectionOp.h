@@ -115,7 +115,8 @@ namespace calcul{
 			ign::geometry::Geometry const& refGeom,
             std::string countryCodeName,
             std::string edgeLinkName,
-            std::string edgeLink
+            std::string edgeLink,
+			std::set<std::string> const& sEdge2Delete
 		) const;
 
 		//--

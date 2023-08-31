@@ -214,9 +214,10 @@ void app::calcul::CFeatGenerationOp::_init( bool verbose)
 
 	///Create tmp_cp table
 	std::string cpTableName = epg::utils::replaceTableName(themeParameters->getValue(CP_TABLE).toString());
-	if (!context->getDataBaseManager().tableExists(cpTableName)) {
+	// if (!context->getDataBaseManager().tableExists(cpTableName)) {
+	{
 		std::ostringstream ss;
-		//ss << "DROP TABLE IF EXISTS " << cpTableName << " ;"
+		ss << "DROP TABLE IF EXISTS " << cpTableName << " ;";
 		ss << "CREATE TABLE " << cpTableName
 			<< " AS TABLE " << edgeTableName
 			<< " WITH NO DATA;"
@@ -238,9 +239,10 @@ void app::calcul::CFeatGenerationOp::_init( bool verbose)
 	}
 	// Create tmp_cl table
 	std::string clTableName = epg::utils::replaceTableName(themeParameters->getValue(CL_TABLE).toString());
-	if (!context->getDataBaseManager().tableExists(clTableName)) {
+	// if (!context->getDataBaseManager().tableExists(clTableName)) {
+	{
 		std::ostringstream ss;
-		//ss << "DROP TABLE IF EXISTS " << clTableName << " ;"
+		ss << "DROP TABLE IF EXISTS " << clTableName << " ;";
 		ss << "CREATE TABLE " << clTableName
 			<< " AS TABLE " << edgeTableName
 			<< " WITH NO DATA;"

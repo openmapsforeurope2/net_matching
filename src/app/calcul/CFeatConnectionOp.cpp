@@ -527,12 +527,12 @@ namespace app
                 if (bCreateNewFeature)
                 {
                     fEdge.setId("");
-                    // _fsEdge->createFeature(fEdge);
+                     _fsEdge->createFeature(fEdge);
                     _shapeLogger->writeFeature("created_edges", fEdge);
                 }
                 else
                 {
-                    // _fsEdge->modifyFeature(fEdge);
+                     _fsEdge->modifyFeature(fEdge);
                 }
 
                 ign::feature::Feature featLog;
@@ -542,10 +542,10 @@ namespace app
                 ++display;
             }
 
-            // std::set< std::string >::const_iterator sit;
-            // for( sit = sEdge2Delete.begin() ; sit != sEdge2Delete.end() ; ++sit ) {
-            //     _fsEdge->deleteFeature(*sit);
-            // }
+             std::set< std::string >::const_iterator sit;
+             for( sit = sEdge2Delete.begin() ; sit != sEdge2Delete.end() ; ++sit ) {
+                 _fsEdge->deleteFeature(*sit);
+             }
 
             std::map<ign::geometry::Point, ign::math::Vec2d>::const_iterator mit;
             for (mit = mDisplacements.begin(); mit != mDisplacements.end(); ++mit)

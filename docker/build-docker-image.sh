@@ -1,4 +1,4 @@
-PROJECT_NAME=cp_connection
+PROJECT_NAME=tn_matching
 
 if [ $# -eq 0 ]
     #Si il n'y a pas d'argument

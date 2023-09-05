@@ -1,6 +1,7 @@
 #ifndef _APP_CALCUL_CFEATGENERATIONOP_H_
 #define _APP_CALCUL_CFEATGENERATIONOP_H_
 
+#include <ign/geometry/graph/GeometryGraph.h>
 
 #include <epg/log/EpgLogger.h>
 #include <epg/log/ShapeLogger.h>
@@ -16,8 +17,11 @@ namespace calcul{
 		CFeatGenerationOp(bool verbose = false);
 		~CFeatGenerationOp();
 
-		//static void compute(std::string countryCode, bool verbose);
+		typedef ign::geometry::graph::GeometryGraph< ign::geometry::graph::PunctualVertexProperties, ign::geometry::graph::LinearEdgeProperties >  GraphType;
+		typedef typename GraphType::edge_descriptor edge_descriptor;
+		typedef typename GraphType::vertex_descriptor vertex_descriptor;
 
+		//static void compute(std::string countryCode, bool verbose);
 		void computeCL(std::string countryCodeDouble);
 		void computeCP(std::string countryCodeDouble);
 
@@ -27,50 +31,58 @@ namespace calcul{
 
 		void _init(bool verbose);
 
-		void getCLfromBorder(ign::geometry::LineString & lsBorder, ign::geometry::GeometryPtr& buffBorder,  double distBuffer, double thresholdNoCL, double angleMax, double ratioInBuff, double snapOnVertexBorder);
+		void _getCLfromBorder(ign::geometry::LineString & lsBorder, ign::geometry::GeometryPtr& buffBorder,  double distBuffer, double thresholdNoCL, double angleMax, double ratioInBuff, double snapOnVertexBorder);
 
-		double getAngleEdgeWithBorder(ign::geometry::LineString& lsEdge, ign::geometry::LineString& lsBorder);
+		double _getAngleEdgeWithBorder(ign::geometry::LineString& lsEdge, ign::geometry::LineString& lsBorder);
 
-		void getGeomCL(ign::geometry::LineString& lsCL, ign::geometry::LineString& lsBorder, ign::geometry::Point ptStartToProject, ign::geometry::Point ptEndToProject, double snapOnVertexBorder);
+		void _getGeomCL(ign::geometry::LineString& lsCL, ign::geometry::LineString& lsBorder, ign::geometry::Point ptStartToProject, ign::geometry::Point ptEndToProject, double snapOnVertexBorder);
 	
 
-		void addToUndershootNearBorder(ign::geometry::LineString & lsBorder, ign::geometry::GeometryPtr& buffBorder, double distUnderShoot);
+		void _addToUndershootNearBorder(ign::geometry::LineString & lsBorder, ign::geometry::GeometryPtr& buffBorder, double distUnderShoot);
 
-		void getCPfromIntersectBorder(ign::geometry::LineString & lsBorder, double distCLIntersected);
+		void _getCPfromIntersectBorder(ign::geometry::LineString & lsBorder, double distCLIntersected);
 
 
 
-		bool isEdgeIntersectedPtWithCL(ign::feature::Feature& fEdge, ign::geometry::Point ptIntersectBorder, double distCLIntersected);
+		bool _isEdgeIntersectedPtWithCL(ign::feature::Feature& fEdge, ign::geometry::Point ptIntersectBorder, double distCLIntersected);
 
 
 		//void mergeCPNearBy(double distMergeCP, double snapOnVertexBorder);
-		void snapCPNearBy(std::string countryCodeDouble,double distMergeCP, double snapOnVertexBorder);
+		void _snapCPNearBy(std::string countryCodeDouble,double distMergeCP, double snapOnVertexBorder);
 
-		bool getNearestCP(ign::feature::Feature fCP,double distMergeCP, std::map < std::string, ign::feature::Feature>& mCPNear);
+		bool _getNearestCP(ign::feature::Feature fCP,double distMergeCP, std::map < std::string, ign::feature::Feature>& mCPNear);
 
-		void addFeatAttributeMergingOnBorder(ign::feature::Feature& featMergedAttr, ign::feature::Feature& featAttrToAdd, std::string separator);
+		void _addFeatAttributeMergingOnBorder(ign::feature::Feature& featMergedAttr, ign::feature::Feature& featAttrToAdd, std::string separator);
 
 
 
 		//void mergeCL(double distMergeCL, double snapOnVertexBorder);
-		void mergeIntersectingCL(std::string countryCodeDouble, double distMergeCL, double snapOnVertexBorder);
+		void _mergeIntersectingCL(std::string countryCodeDouble, double distMergeCL, double snapOnVertexBorder);
 
-		bool getCLToMerge(ign::feature::Feature fCL, double distMergeCL, std::map < std::string, ign::feature::Feature>& mCL2merge, std::set<std::string>& sCountryCode);
+		bool _getCLToMerge(ign::feature::Feature fCL, double distMergeCL, std::map < std::string, ign::feature::Feature>& mCL2merge, std::set<std::string>& sCountryCode);
 
 
-		void getBorderFromEdge(ign::geometry::LineString& lsEdgeOnBorder, ign::geometry::LineString& lsBorder);
+		void _getBorderFromEdge(ign::geometry::LineString& lsEdgeOnBorder, ign::geometry::LineString& lsBorder);
 
-		void cleanEdgesOutOfCountry(std::string countryCC);
+		//void _cleanEdgesOutOfCountry(std::string countryCC);
 
-		void cleanAntennasOutOfCountry(std::string countryCC);
+		//void _cleanAntennasOutOfCountry(std::string countryCC);
 
-		bool isNextEdgeInAntennas(ign::feature::Feature& fEdge, ign::geometry::Point& ptCurr, ign::feature::Feature&  edgeNext, ign::geometry::Point& ptNext);
+		bool _isNextEdgeInAntennas(ign::feature::Feature& fEdge, ign::geometry::Point& ptCurr, ign::feature::Feature&  edgeNext, ign::geometry::Point& ptNext);
 
-		void updateGeomCL(std::string countryCodeDouble, double snapOnVertexBorder);
+		void _updateGeomCL(std::string countryCodeDouble, double snapOnVertexBorder);
 
-		void deleteCLUnderThreshold(std::string countryCodeDouble);
+		void _getClDoublonGeom(std::string countryCodeDouble);
 
-		void getGeomCountry(std::string countryCodeSimple, ign::geometry::MultiPolygon& geomCountry);
+		void _loadGraphCL(std::string countryCodeDouble, GraphType& graphCL);
+
+		void _setContinuityCl(GraphType& graphCL);
+		//void _getClContinuity(std::map<std::string, std::vector<std::pair<std::string, bool>>>& mClConnect);
+		//void _getEdgesConnectedOnPoint(ign::geometry::Point ptConnect, std::vector<std::pair<std::string, bool>>& vEdgesConnection);
+
+		void _deleteCLUnderThreshold(std::string countryCodeDouble);
+
+		void _getGeomCountry(std::string countryCodeSimple, ign::geometry::MultiPolygon& geomCountry);
 		
 	private:
 		ign::feature::sql::FeatureStorePostgis* _fsEdge;

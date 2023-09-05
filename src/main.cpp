@@ -90,11 +90,10 @@ int main(int argc, char *argv[])
 		epg::tools::StringTools::Split(countryCode, "#", vCountriesCodeName);
 
 		app::calcul::CFeatGenerationOp cFeatGenerationOp;
-		cFeatGenerationOp.computeCL(countryCode);	
+		cFeatGenerationOp.computeCL(countryCode);
 		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
 			app::calcul::CFeatConnectionOp::computeCl(edgeTableName, clTableName, *vit, verbose);
 		}
-		return 0;
 		cFeatGenerationOp.computeCP(countryCode);
 		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
 			app::calcul::CFeatConnectionOp::computeCp(edgeTableName, cpTableName, *vit, verbose);

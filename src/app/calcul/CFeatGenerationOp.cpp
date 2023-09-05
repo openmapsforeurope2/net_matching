@@ -8,6 +8,7 @@
 #include <ign/geometry/algorithm/BufferOpGeos.h>
 #include <ign/math/Line2T.h>
 #include <ign/math/LineT.h>
+#include <ign/geometry/graph/builder/SimpleGraphBuilder.h>
 //#include <ign/geometry/tools/LengthIndexedLineString.h>
 
 //EPG
@@ -78,16 +79,22 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 		fBuff.setGeometry(buffBorder->clone());
 		//_shapeLogger->writeFeature("getCLfromBorder_buffers", fBuff);
 
-		getCLfromBorder(lsBoundary, buffBorder, distBuffer, thresholdNoCL, angleMaxBorder, ratioInBuff, snapOnVertexBorder);
+		_getCLfromBorder(lsBoundary, buffBorder, distBuffer, thresholdNoCL, angleMaxBorder, ratioInBuff, snapOnVertexBorder);
 
 
 	}
 
-	mergeIntersectingCL(countryCodeDouble, distMergeCL, snapOnVertexBorder);
+	_mergeIntersectingCL(countryCodeDouble, distMergeCL, snapOnVertexBorder);
 
-	deleteCLUnderThreshold(countryCodeDouble);
+	_deleteCLUnderThreshold(countryCodeDouble);
 
-	updateGeomCL(countryCodeDouble, snapOnVertexBorder);
+	//boucle sur CC?
+	GraphType graphCL;
+	_loadGraphCL(countryCodeDouble,graphCL);
+
+	_updateGeomCL(countryCodeDouble, snapOnVertexBorder);
+
+	_setContinuityCl(graphCL);
 
 	_logger->log(epg::log::TITLE, "[ END CL GENERATION FOR " + countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
@@ -125,12 +132,12 @@ void app::calcul::CFeatGenerationOp::computeCP(std::string countryCodeDouble)
 		ign::geometry::algorithm::BufferOpGeos buffOp;
 		ign::geometry::GeometryPtr buffBorder(buffOp.buffer(lsBoundary, distBuffer, 0, ign::geometry::algorithm::BufferOpGeos::CAP_FLAT));
 
-		getCPfromIntersectBorder(lsBoundary, distCLIntersected);
+		_getCPfromIntersectBorder(lsBoundary, distCLIntersected);
 
-		addToUndershootNearBorder(lsBoundary, buffBorder, distUnderShoot);
+		_addToUndershootNearBorder(lsBoundary, buffBorder, distUnderShoot);
 	}
 
-	snapCPNearBy(countryCodeDouble, distMergeCP, 0);
+	_snapCPNearBy(countryCodeDouble, distMergeCP, 0);
 
 	_logger->log(epg::log::TITLE, "[ END CP GENERATION FOR " + countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 }
@@ -279,7 +286,7 @@ void app::calcul::CFeatGenerationOp::_init( bool verbose)
 
 
 
-void app::calcul::CFeatGenerationOp::getCLfromBorder(
+void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 	ign::geometry::LineString & lsBorder,
 	ign::geometry::GeometryPtr& buffBorder,
 	double distBuffer,
@@ -321,11 +328,11 @@ void app::calcul::CFeatGenerationOp::getCLfromBorder(
 
 		//pas d'intersection par le buffer
 		if (subEdgesBorder.size() == 1) {			
-			double angleEdgBorder = getAngleEdgeWithBorder(lsEdge,lsBorder);		
+			double angleEdgBorder = _getAngleEdgeWithBorder(lsEdge,lsBorder);		
 			//si l'edge est "proche" on considere qu'il est entierement dans le buffer et longe la frontiere
 			if (lsEdge.distance(lsBorder) < distBuffer && (angleEdgBorder < angleMax || angleEdgBorder > (M_PI - angleMax) ) ) {
 				ign::geometry::LineString lsCL;
-				getGeomCL(lsCL, lsBorder, lsEdge.startPoint(), lsEdge.endPoint(), snapOnVertexBorder);
+				_getGeomCL(lsCL, lsBorder, lsEdge.startPoint(), lsEdge.endPoint(), snapOnVertexBorder);
 				if (lsCL.numPoints() >= 2) {
 					vLsProjectedOnBorder.push_back(lsCL);
 				}
@@ -341,7 +348,7 @@ void app::calcul::CFeatGenerationOp::getCLfromBorder(
 			for (size_t i = 0; i < subEdgesBorder.size(); ++i) {
 				ign::geometry::LineString lsSubEdgeCurr = subEdgesBorder[i];
 
-				double angleSubEdgBorder = getAngleEdgeWithBorder(lsSubEdgeCurr, lsBorder);
+				double angleSubEdgBorder = _getAngleEdgeWithBorder(lsSubEdgeCurr, lsBorder);
 
 				int numSeg = static_cast<int>(std::floor(lsSubEdgeCurr.numSegments() / 2.));
 				ign::geometry::Point interiorPointSEC = epg::tools::geometry::interpolate(lsSubEdgeCurr, numSeg, 0.5);
@@ -364,7 +371,7 @@ void app::calcul::CFeatGenerationOp::getCLfromBorder(
 						//recup ptStart, ptFin et proj des pt sur la border
 						//recup de la border entre ces points pour recup de la geom CL
 						ign::geometry::LineString lsCL;
-						getGeomCL(lsCL, lsBorder, subEdgesBorder[numfirstSubInBuff].startPoint(), subEdgesBorder[numlastSubInBuff].endPoint(), snapOnVertexBorder);
+						_getGeomCL(lsCL, lsBorder, subEdgesBorder[numfirstSubInBuff].startPoint(), subEdgesBorder[numlastSubInBuff].endPoint(), snapOnVertexBorder);
 						if (lsCL.numPoints() >= 2 ) {
 							vLsProjectedOnBorder.push_back(lsCL);
 						}
@@ -411,7 +418,7 @@ void app::calcul::CFeatGenerationOp::getCLfromBorder(
 }
 
 
-void app::calcul::CFeatGenerationOp::addToUndershootNearBorder(
+void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 	ign::geometry::LineString & lsBorder,
 	ign::geometry::GeometryPtr& buffBorder,
 	double distUnderShoot
@@ -495,7 +502,7 @@ void app::calcul::CFeatGenerationOp::addToUndershootNearBorder(
 		if (ptClosestBorder.distance(projPt) > distUnderShoot )
 			continue;
 		double distCLIntersected = distUnderShoot;
-		if (isEdgeIntersectedPtWithCL(fEdge, projPt, distCLIntersected))
+		if (_isEdgeIntersectedPtWithCL(fEdge, projPt, distCLIntersected))
 			continue;
 
 		projPt.setZ(0);
@@ -524,7 +531,7 @@ void app::calcul::CFeatGenerationOp::addToUndershootNearBorder(
 }
 
 
-void app::calcul::CFeatGenerationOp::getCPfromIntersectBorder(
+void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 	ign::geometry::LineString & lsBorder,
 	double distCLIntersected
 )
@@ -568,7 +575,7 @@ void app::calcul::CFeatGenerationOp::getCPfromIntersectBorder(
 		if (geomPtr->isPoint())
 		{
 			//si l'edge sert à une CL et, ne pas créer de CP?
-			bool isConnectedToCL = isEdgeIntersectedPtWithCL(fToMatch, geomPtr->asPoint(), distCLIntersected);
+			bool isConnectedToCL = _isEdgeIntersectedPtWithCL(fToMatch, geomPtr->asPoint(), distCLIntersected);
 			if (!isConnectedToCL) {
 				fCF.setGeometry(geomPtr->asPoint());
 				std::string idCP = _idGeneratorCP->next();
@@ -586,7 +593,7 @@ void app::calcul::CFeatGenerationOp::getCPfromIntersectBorder(
 				{
 					ign::geometry::Point ptIntersect = geomCollect.geometryN(i).asPoint();
 					
-					bool isConnectedToCL = isEdgeIntersectedPtWithCL(fToMatch, ptIntersect, distCLIntersected);
+					bool isConnectedToCL = _isEdgeIntersectedPtWithCL(fToMatch, ptIntersect, distCLIntersected);
 					if (!isConnectedToCL) {
 						fCF.setGeometry(ptIntersect);
 						std::string idCP = _idGeneratorCP->next();
@@ -599,7 +606,7 @@ void app::calcul::CFeatGenerationOp::getCPfromIntersectBorder(
 
 }
 
-double app::calcul::CFeatGenerationOp::getAngleEdgeWithBorder(
+double app::calcul::CFeatGenerationOp::_getAngleEdgeWithBorder(
 	ign::geometry::LineString& lsEdge,
 	ign::geometry::LineString& lsBorder)
 {
@@ -618,7 +625,7 @@ double app::calcul::CFeatGenerationOp::getAngleEdgeWithBorder(
 }
 
 
-void app::calcul::CFeatGenerationOp::getGeomCL(
+void app::calcul::CFeatGenerationOp::_getGeomCL(
 	ign::geometry::LineString& lsCL,
 	ign::geometry::LineString& lsBorder,
 	ign::geometry::Point ptStartToProject,
@@ -635,7 +642,7 @@ void app::calcul::CFeatGenerationOp::getGeomCL(
 
 
 
-bool app::calcul::CFeatGenerationOp::isEdgeIntersectedPtWithCL(
+bool app::calcul::CFeatGenerationOp::_isEdgeIntersectedPtWithCL(
 	ign::feature::Feature& fEdge,
 	ign::geometry::Point ptIntersectBorder,
 	double distCLIntersected 
@@ -658,7 +665,7 @@ bool app::calcul::CFeatGenerationOp::isEdgeIntersectedPtWithCL(
 
 
 
-void app::calcul::CFeatGenerationOp::snapCPNearBy(
+void app::calcul::CFeatGenerationOp::_snapCPNearBy(
 	std::string countryCodeDouble,
 	double distMergeCP,
 	double snapOnVertexBorder
@@ -693,7 +700,7 @@ void app::calcul::CFeatGenerationOp::snapCPNearBy(
 			continue;
 
 		std::map<std::string, ign::feature::Feature> mCPNear;
-		bool hasNearestCP = getNearestCP(fCPCurr, distMergeCP, mCPNear);
+		bool hasNearestCP = _getNearestCP(fCPCurr, distMergeCP, mCPNear);
 		if (hasNearestCP) {
 			ign::geometry::MultiPoint multiPtCP;
 			for (std::map<std::string, ign::feature::Feature>::iterator mit = mCPNear.begin(); mit != mCPNear.end(); ++mit) {
@@ -733,7 +740,7 @@ void app::calcul::CFeatGenerationOp::snapCPNearBy(
 
 }
 
-bool app::calcul::CFeatGenerationOp::getNearestCP(
+bool app::calcul::CFeatGenerationOp::_getNearestCP(
 	ign::feature::Feature fCP,
 	double distMergeCP,
 	std::map<std::string,ign::feature::Feature>& mCPNear
@@ -754,13 +761,13 @@ bool app::calcul::CFeatGenerationOp::getNearestCP(
 	while (itArroundCP->hasNext())
 	{
 		ign::feature::Feature fCPArround = itArroundCP->next();
-		getNearestCP(fCPArround, distMergeCP, mCPNear);
+		_getNearestCP(fCPArround, distMergeCP, mCPNear);
 		mCPNear[fCPArround.getId()] = fCPArround;
 	}
 	return true;
 }
 
-void app::calcul::CFeatGenerationOp::addFeatAttributeMergingOnBorder(
+void app::calcul::CFeatGenerationOp::_addFeatAttributeMergingOnBorder(
 	ign::feature::Feature& featMerged,
 	ign::feature::Feature& featAttrToAdd,
 	std::string separator
@@ -791,7 +798,7 @@ void app::calcul::CFeatGenerationOp::addFeatAttributeMergingOnBorder(
 }
 
 
-void app::calcul::CFeatGenerationOp::mergeIntersectingCL(
+void app::calcul::CFeatGenerationOp::_mergeIntersectingCL(
 	std::string countryCodeDouble,
 	double distMergeCL,
 	double snapOnVertexBorder
@@ -835,7 +842,7 @@ void app::calcul::CFeatGenerationOp::mergeIntersectingCL(
 		sCL2Merged.insert(idCLCurr);
 
 		ign::geometry::LineString lsBorder;
-		getBorderFromEdge(lsCurr, lsBorder);
+		_getBorderFromEdge(lsCurr, lsBorder);
 
 		ign::feature::FeatureFilter filterArroundCL;
 		filterArroundCL.setPropertyConditions(countryCodeName + " != '" + countryCodeCLCurr + "'");
@@ -889,10 +896,10 @@ void app::calcul::CFeatGenerationOp::mergeIntersectingCL(
 
 			ign::geometry::LineString lsIntersectedCL, lsSE, lsSS, lsES, lsEE;;
 
-			getGeomCL(lsSE, lsBorder, lsCurr.startPoint(), lsClArround.endPoint(), snapOnVertexBorder);
-			getGeomCL(lsSS, lsBorder, lsCurr.startPoint(), lsClArround.startPoint(), snapOnVertexBorder);
-			getGeomCL(lsES, lsBorder, lsCurr.endPoint(), lsClArround.startPoint(), snapOnVertexBorder);
-			getGeomCL(lsEE, lsBorder, lsCurr.endPoint(), lsClArround.endPoint(), snapOnVertexBorder);
+			_getGeomCL(lsSE, lsBorder, lsCurr.startPoint(), lsClArround.endPoint(), snapOnVertexBorder);
+			_getGeomCL(lsSS, lsBorder, lsCurr.startPoint(), lsClArround.startPoint(), snapOnVertexBorder);
+			_getGeomCL(lsES, lsBorder, lsCurr.endPoint(), lsClArround.startPoint(), snapOnVertexBorder);
+			_getGeomCL(lsEE, lsBorder, lsCurr.endPoint(), lsClArround.endPoint(), snapOnVertexBorder);
 			
 			lsIntersectedCL = lsCurr;
 			double lengthMin = lsIntersectedCL.length();
@@ -943,11 +950,11 @@ void app::calcul::CFeatGenerationOp::mergeIntersectingCL(
 
 			if (countryCodeCLArround < countryCodeCLCurr) {
 				fCLNew = fCLArround;
-				addFeatAttributeMergingOnBorder(fCLNew, fCLCurr, separator);
+				_addFeatAttributeMergingOnBorder(fCLNew, fCLCurr, separator);
 			}
 			else {
 				fCLNew = fCLCurr;
-				addFeatAttributeMergingOnBorder(fCLNew, fCLArround, separator);
+				_addFeatAttributeMergingOnBorder(fCLNew, fCLArround, separator);
 			}
 
 			std::string idCLNew = _idGeneratorCL->next();
@@ -978,7 +985,7 @@ void app::calcul::CFeatGenerationOp::mergeIntersectingCL(
 
 
 
-bool app::calcul::CFeatGenerationOp::getCLToMerge(
+bool app::calcul::CFeatGenerationOp::_getCLToMerge(
 	ign::feature::Feature fCL,
 	double distMergeCL,
 	std::map < std::string, ign::feature::Feature>& mCL2merge,
@@ -1007,14 +1014,14 @@ bool app::calcul::CFeatGenerationOp::getCLToMerge(
 			continue;
 		std::string countryCodeCL = fCLArround.getAttribute(countryCodeName).toString();
 		sCountryCode.insert(countryCodeCL);
-		getCLToMerge(fCLArround, distMergeCL, mCL2merge, sCountryCode);
+		_getCLToMerge(fCLArround, distMergeCL, mCL2merge, sCountryCode);
 		mCL2merge[fCLArround.getId()] = fCLArround;
 	}
 	return true;
 }
 
 
-void app::calcul::CFeatGenerationOp::getBorderFromEdge(
+void app::calcul::CFeatGenerationOp::_getBorderFromEdge(
 	ign::geometry::LineString& lsEdgeOnBorder,
 	ign::geometry::LineString& lsBorder
 )
@@ -1037,7 +1044,7 @@ void app::calcul::CFeatGenerationOp::getBorderFromEdge(
 
 
 
-bool app::calcul::CFeatGenerationOp::isNextEdgeInAntennas(ign::feature::Feature& fEdgeCurr, ign::geometry::Point& ptCurr, ign::feature::Feature&  edgeNext, ign::geometry::Point& ptNext)
+bool app::calcul::CFeatGenerationOp::_isNextEdgeInAntennas(ign::feature::Feature& fEdgeCurr, ign::geometry::Point& ptCurr, ign::feature::Feature&  edgeNext, ign::geometry::Point& ptNext)
 {
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const idName = context->getEpgParameters().getValue(ID).toString();
@@ -1066,7 +1073,7 @@ bool app::calcul::CFeatGenerationOp::isNextEdgeInAntennas(ign::feature::Feature&
 }
 
 
-void app::calcul::CFeatGenerationOp::updateGeomCL(std::string countryCodeDouble, double snapOnVertexBorder)
+void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble, double snapOnVertexBorder)
 {
 	_logger->log(epg::log::TITLE, "[ BEGIN UPDATE GEOM CL " + countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 	epg::Context* context = epg::ContextS::getInstance();
@@ -1087,11 +1094,12 @@ void app::calcul::CFeatGenerationOp::updateGeomCL(std::string countryCodeDouble,
 	std::string countryCode2 = vCountriesCodeName[1];
 
 	ign::geometry::MultiPolygon mPolyCountry1, mPolyCountry2;
-	getGeomCountry(countryCode1, mPolyCountry1);
-	getGeomCountry(countryCode2, mPolyCountry2);
+	_getGeomCountry(countryCode1, mPolyCountry1);
+	_getGeomCountry(countryCode2, mPolyCountry2);
 
-	ign::feature::FeatureIteratorPtr it = _fsCL->getFeatures(ign::feature::FeatureFilter());
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, ign::feature::FeatureFilter());
+	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + countryCodeDouble + "'");
+	ign::feature::FeatureIteratorPtr it = _fsCL->getFeatures(filterCLCountryCode);
+	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCLCountryCode);
 	boost::progress_display display(numFeatures, std::cout, "[  UPDATE GEOM CL ]\n");
 
 	std::set<std::string> sCL2delete;
@@ -1193,9 +1201,9 @@ void app::calcul::CFeatGenerationOp::updateGeomCL(std::string countryCodeDouble,
 		bool isLs1InCountry2 = lsEdg1.intersects(mPolyCountry2);
 		bool isLs2InCountry2 = lsEdg2.intersects(mPolyCountry2);
 		if (isLs1InCountry1 && !isLs1InCountry2 && isLs2InCountry1 && !isLs2InCountry2)
-			getGeomCL(lsCLUpdated, lsEdg1, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertexBorder);
+			_getGeomCL(lsCLUpdated, lsEdg1, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertexBorder);
 		else if (isLs1InCountry2 && !isLs1InCountry1 && isLs2InCountry2 && !isLs2InCountry1)
-			getGeomCL(lsCLUpdated, lsEdg2, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertexBorder);
+			_getGeomCL(lsCLUpdated, lsEdg2, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertexBorder);
 		else {
 			std::set<double> sAbsCurv;
 			geometry::tools::LengthIndexedLineString lsIndex1(lsEdg1);
@@ -1242,7 +1250,8 @@ void app::calcul::CFeatGenerationOp::updateGeomCL(std::string countryCodeDouble,
 	_logger->log(epg::log::TITLE, "[ BEGIN UPDATE GEOM CL " + countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
 }
-void app::calcul::CFeatGenerationOp::deleteCLUnderThreshold(std::string countryCodeDouble)
+
+void app::calcul::CFeatGenerationOp::_deleteCLUnderThreshold(std::string countryCodeDouble)
 {
 
 	_logger->log(epg::log::TITLE, "[ BEGIN CLEAN CL UNDER THRESHOLD " + countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
@@ -1291,7 +1300,7 @@ void app::calcul::CFeatGenerationOp::deleteCLUnderThreshold(std::string countryC
 
 }
 
-void app::calcul::CFeatGenerationOp::getGeomCountry(std::string countryCodeSimple, ign::geometry::MultiPolygon& geomCountry)
+void app::calcul::CFeatGenerationOp::_getGeomCountry(std::string countryCodeSimple, ign::geometry::MultiPolygon& geomCountry)
 {
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
@@ -1311,4 +1320,112 @@ void app::calcul::CFeatGenerationOp::getGeomCountry(std::string countryCodeSimpl
 	}
 
 	
+}
+
+
+void app::calcul::CFeatGenerationOp::_loadGraphCL(std::string countryCodeDouble, GraphType& graphCL)
+{
+	epg::Context* context = epg::ContextS::getInstance();
+	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + countryCodeDouble + "'");
+	ign::feature::FeatureIteratorPtr it = _fsCL->getFeatures(filterCLCountryCode);
+	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCLCountryCode);
+	boost::progress_display display(numFeatures, std::cout, "[ LOAD GRAPH CL ]\n");
+	ign::geometry::graph::builder::SimpleGraphBuilder<GraphType> graphBuilder(graphCL, 0.01);
+	while (it->hasNext()) {
+		++display;
+		ign::feature::Feature fCL = it->next();
+		graphBuilder.addEdge(fCL.getGeometry().asLineString(), fCL.getId());
+	}
+}
+
+void app::calcul::CFeatGenerationOp::_setContinuityCl(GraphType& graphCL)
+{
+	_logger->log(epg::log::TITLE, "[ BEGIN SET CL CONTINUITY ] : " + epg::tools::TimeTools::getTime());
+
+	GraphType::vertex_iterator vit, vitEnd;
+	graphCL.vertices(vit, vitEnd);
+
+	boost::progress_display display(graphCL.numVertices(), std::cout, "[ SET CL CONTINUITY ]\n");
+	std::map<std::string, ign::feature::Feature> mClModified;
+
+	while (vit != vitEnd) {
+		++display;
+		if (graphCL.degree(*vit) < 2 ) {
+			++vit;
+			continue;
+		}
+		std::vector< GraphType::oriented_edge_descriptor > vClsIncident;
+		graphCL.incidentEdges(*vit, vClsIncident);
+
+		//on recalcule la nouvelle geometrie du point
+		ign::geometry::MultiPoint multiPtToConnect;
+		for (size_t i = 0; i < vClsIncident.size(); ++i) {
+			GraphType::edge_descriptor edCl = vClsIncident[i].descriptor;
+			std::string idClToModify = graphCL.origins(edCl)[0];
+			ign::feature::Feature fClToModify;
+			if (mClModified.find(idClToModify) != mClModified.end())
+				fClToModify = mClModified.find(idClToModify)->second;
+			else {
+				_fsCL->getFeatureById(idClToModify, fClToModify);
+				//patch tant que les doublons ne sont pas suppr
+				if (fClToModify.getId().empty())
+					continue;
+				mClModified[idClToModify] = fClToModify;
+			}
+
+			ign::geometry::LineString ls = fClToModify.getGeometry().asLineString();
+			if (graphCL.source(edCl) == *vit)
+				multiPtToConnect.addGeometry(ls.startPoint());
+			else 
+				multiPtToConnect.addGeometry(ls.endPoint());
+		}
+		ign::geometry::Point ptUpdated = multiPtToConnect.asMultiPoint().getCentroid();
+		//on modifie la geom des cl avec celle du nouveau point
+		for (size_t i = 0; i < vClsIncident.size(); ++i) {
+			GraphType::edge_descriptor edCl = vClsIncident[i].descriptor;
+			std::string idClToModify = graphCL.origins(edCl)[0];
+			// patch tant que les doublons ne sont pas suppr
+			if (mClModified.find(idClToModify) == mClModified.end())
+				continue;
+			ign::feature::Feature fClToModify = mClModified.find(idClToModify)->second;
+			ign::geometry::LineString lsClToModify = fClToModify.getGeometry().asLineString();
+			if (graphCL.source(edCl) == *vit )
+				lsClToModify.setPointN(ptUpdated, 0);
+			else
+				lsClToModify.setPointN(ptUpdated, lsClToModify.numPoints()-1);
+			fClToModify.setGeometry(lsClToModify);
+			mClModified[idClToModify] = fClToModify;
+		}
+		++vit;
+	}
+
+	//on modifie les feature dans postgis et on log
+	for(std::map<std::string, ign::feature::Feature>::iterator mit = mClModified.begin(); mit != mClModified.end();++mit ) {
+		_fsCL->modifyFeature(mit->second);
+	}
+	_logger->log(epg::log::TITLE, "[ END SET CL CONTINUITY ] : " + epg::tools::TimeTools::getTime());
+}
+
+
+
+void app::calcul::CFeatGenerationOp::_getClDoublonGeom(std::string countryCodeDouble)
+{
+
+	GraphType graphClDoublon;
+	_loadGraphCL(countryCodeDouble, graphClDoublon);
+
+	GraphType::edge_iterator eit, eitEnd;
+	graphClDoublon.edges(eit, eitEnd);
+
+	boost::progress_display display(graphClDoublon.numEdges(), std::cout, "[ DELETE CL DOUBLON ]\n");
+
+	while (eit != eitEnd) {
+		++display;
+
+		if (graphClDoublon.origins(*eit).size() == 1)
+			continue;
+		++eit;
+	}
+
 }

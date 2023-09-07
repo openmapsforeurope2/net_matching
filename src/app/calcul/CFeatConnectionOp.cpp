@@ -254,7 +254,8 @@ namespace app
                     }
                     mDisplacements.insert(std::make_pair(startPoint, clGeom.startPoint().toVec2d() - startPoint.toVec2d()));
 
-                    size_t minId2 = vDist[2] < vDist[3] ? 2 : 3;
+                    // size_t minId2 = vDist[2] < vDist[3] ? 2 : 3;
+                    size_t minId2 = minId == 0  ? 3 : 2;
                     if (vDist[minId2] <= snapDistance)
                     {
                         startPoint = (minId2 == 2) ? edgeGeom.startPoint() : edgeGeom.endPoint();
@@ -282,7 +283,8 @@ namespace app
                     }
                     mDisplacements.insert(std::make_pair(startPoint, clGeom.endPoint().toVec2d() - startPoint.toVec2d()));
 
-                    size_t minId2 = vDist[0] < vDist[1] ? 0 : 1;
+                    // size_t minId2 = vDist[0] < vDist[1] ? 0 : 1;
+                    size_t minId2 = minId == 2  ? 1 : 0;
                     if (vDist[minId2] <= snapDistance)
                     {
                         startPoint = (minId2 == 0) ? edgeGeom.startPoint() : edgeGeom.endPoint();
@@ -787,7 +789,7 @@ namespace app
             }
 
             // patience
-            boost::progress_display display1(mReferences.size(), std::cout, "[ applyDisplacement (1/2) % complete ]\n");
+            boost::progress_display display1(mVertexRefs.size(), std::cout, "[ applyDisplacement (1/2) % complete ]\n");
 
             std::map<vertex_descriptor, ign::math::Vec2d>::const_iterator mit;
             for (mit = mVertexRefs.begin(); mit != mVertexRefs.end(); ++mit, ++display1)

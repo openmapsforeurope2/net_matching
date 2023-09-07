@@ -69,9 +69,14 @@ int main(int argc, char *argv[])
             }
         }
 
+        //epg logger
         epg::log::EpgLogger* logger = epg::log::EpgLoggerS::getInstance();
         // logger->setProdOfstream( logDirectory+"/au_merging.log" );
         logger->setDevOfstream( logDirectory+"/tn_matching.log" );
+
+        //shape logger
+        epg::log::ShapeLogger* shapeLogger = epg::log::ShapeLoggerS::getInstance();
+	    shapeLogger->setDataDirectory(context->getLogDirectory()+"/shape");
         
         //repertoire de travail
         context->setLogDirectory( logDirectory );
@@ -91,18 +96,18 @@ int main(int argc, char *argv[])
 
 		app::calcul::CFeatGenerationOp cFeatGenerationOp;
 		cFeatGenerationOp.computeCL(countryCode);
-		//
-		//return 0;
+
 		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
 			app::calcul::CFeatConnectionOp::computeCl(edgeTableName, clTableName, *vit, verbose);
 		}
-		//
-		//return 0;
+		
+		return 0;
+
 		cFeatGenerationOp.computeCP(countryCode);
+
 		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
 			app::calcul::CFeatConnectionOp::computeCp(edgeTableName, cpTableName, *vit, verbose);
 		}
-
     }
     catch( ign::Exception &e )
     {
@@ -122,8 +127,9 @@ int main(int argc, char *argv[])
     logFile << "[END] " << epg::tools::TimeTools::getTime() << std::endl;
 
     epg::ContextS::kill();
-    epg::log::EpgLoggerS::kill();;
-    app::params::ThemeParametersS::kill();;
+    epg::log::EpgLoggerS::kill();
+    epg::log::ShapeLoggerS::kill();
+    app::params::ThemeParametersS::kill();
     
     logFile.close();
 

@@ -158,10 +158,6 @@ app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 	_shapeLogger->closeShape("ClMergedBeforeUpdate");
 	_shapeLogger->closeShape("ClDeletedNoCandidatefound");
 	_shapeLogger->closeShape("ClDoublon");
-
-
-
-	epg::log::ShapeLoggerS::kill();
 }
 	
 ///
@@ -180,8 +176,6 @@ void app::calcul::CFeatGenerationOp::_init( bool verbose)
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 
 
-	_shapeLogger = epg::log::ShapeLoggerS::getInstance();
-	_shapeLogger->setDataDirectory(context->getLogDirectory()+"/shapeLog");
 	_shapeLogger->addShape("CLBeforeMerge", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClMergedBeforeUpdate", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDeletedNoCandidatefound", epg::log::ShapeLogger::LINESTRING);

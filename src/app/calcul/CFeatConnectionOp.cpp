@@ -94,8 +94,6 @@ namespace app
             _shapeLogger->closeShape("cl_displacements");
             _shapeLogger->closeShape("cl_created_features");
             _shapeLogger->closeShape("cl_deleted_features");
-
-            epg::log::ShapeLoggerS::kill();
         }
 
         ///
@@ -325,8 +323,6 @@ namespace app
                         fEdge.setGeometry(vNewGeom[i]);
                         _fsEdge->createFeature(fEdge);
 
-                        vNewGeom[i].clearZ();
-                        fEdge.setGeometry(vNewGeom[i]);
                         _shapeLogger->writeFeature("cl_created_features", fEdge);
                     }
                 }
@@ -337,10 +333,6 @@ namespace app
             for( sit = sEdge2Delete.begin() ; sit != sEdge2Delete.end() ; ++sit ) {
                 ign::feature::Feature dFeat;
                 _fsEdge->getFeatureById(*sit, dFeat);
-
-                ign::geometry::LineString tempLs = dFeat.getGeometry().asLineString();
-                tempLs.clearZ();
-                dFeat.setGeometry(tempLs);
                 _shapeLogger->writeFeature("cl_deleted_features", dFeat);
 
                 _fsEdge->deleteFeature(*sit);
@@ -351,7 +343,6 @@ namespace app
             {
                 ign::feature::Feature feat;
                 ign::geometry::Point p = mit->first;
-                p.clearZ();
                 feat.setGeometry(ign::geometry::LineString(p, ign::geometry::Point(mit->first.x() + mit->second.x(), mit->first.y() + mit->second.y())));
                 _shapeLogger->writeFeature("cl_displacements", feat);
             }
@@ -452,7 +443,7 @@ namespace app
                 //     continue;
                 // }
 
-                ign::geometry::LineString const &edgeGeom = fEdge.getGeometry().asLineString();
+                ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
 
                 // On recupere la (les) partie(s) qui touche(nt) le pays
                 ign::geometry::GeometryPtr intersectionGeom(mpLandmask.Intersection(edgeGeom));
@@ -466,18 +457,16 @@ namespace app
                 else if (intersectionGeom->isGeometryCollection())
                 {
                     double distanceMax = std::numeric_limits<double>::infinity();
-                    ign::geometry::GeometryCollection const &collectGeom = intersectionGeom->asGeometryCollection();
+                    ign::geometry::GeometryCollection const& collectGeom = intersectionGeom->asGeometryCollection();
                     for (size_t i = 0; i < collectGeom.numGeometries(); ++i)
                     {
                         if (collectGeom.geometryN(i).isLineString())
                         {
                             ++nbResultingEdges;
-                            ign::geometry::LineString const &ls = collectGeom.geometryN(i).asLineString();
+                            ign::geometry::LineString const& ls = collectGeom.geometryN(i).asLineString();
 
                             ign::feature::Feature feat = fCp;
-                            ign::geometry::LineString lsNoZ = ls;
-                            lsNoZ.clearZ();
-                            feat.setGeometry(lsNoZ);
+                            feat.setGeometry(ls);
                             _shapeLogger->writeFeature("multiple_result", feat);
 
                             double distance = ls.distance(cpGeom);
@@ -509,14 +498,13 @@ namespace app
                 epg::tools::geometry::projectZ(intersectedEdgeGeom, cpGeom, projectedPoint);
 
                 ign::feature::Feature feat = fEdge;
-                ign::geometry::Point projectedPointNoZ = projectedPoint;
-                projectedPointNoZ.clearZ();
-                feat.setGeometry(projectedPointNoZ);
+                feat.setGeometry(projectedPoint);
                 _shapeLogger->writeFeature("projected_cp", feat);
 
                 lsSplitter.addCuttingGeometry(projectedPoint);
                 ign::geometry::LineString newEdgeGeom = lsSplitter.truncAtEnds();
 
+                // TODO : a virer ?
                 newEdgeGeom.clearZ();
 
                 ign::geometry::Point displacementStart = newEdgeGeom.startPoint().distance(cpGeom) < newEdgeGeom.endPoint().distance(cpGeom) ? newEdgeGeom.startPoint() : newEdgeGeom.endPoint();
@@ -870,9 +858,8 @@ namespace app
                     if (_verbose)
                     {
                         ign::feature::Feature feat;
-                        ign::geometry::LineString lsNoZ = graph.getGeometry(*eit);
-                        lsNoZ.clearZ();
-                        feat.setGeometry(lsNoZ);
+                        ign::geometry::LineString const& ls = graph.getGeometry(*eit);
+                        feat.setGeometry(ls);
                         shapeLogger->writeFeature("applyDisplacements_edgesBeforeDeformation", feat);
                     }
 
@@ -891,7 +878,6 @@ namespace app
                     if (_verbose)
                     {
                         ign::feature::Feature feat;
-                        ls.clearZ();
                         feat.setGeometry(ls);
                         shapeLogger->writeFeature("applyDisplacements_deformedEdges", feat);
                     }

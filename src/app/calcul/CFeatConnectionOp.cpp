@@ -254,8 +254,7 @@ namespace app
                     }
                     mDisplacements.insert(std::make_pair(startPoint, clGeom.startPoint().toVec2d() - startPoint.toVec2d()));
 
-                    // size_t minId2 = vDist[2] < vDist[3] ? 2 : 3;
-                    size_t minId2 = minId == 0  ? 3 : 2;
+                    size_t minId2 = vDist[2] < vDist[3] ? 2 : 3;
                     if (vDist[minId2] <= snapDistance)
                     {
                         startPoint = (minId2 == 2) ? edgeGeom.startPoint() : edgeGeom.endPoint();
@@ -283,8 +282,7 @@ namespace app
                     }
                     mDisplacements.insert(std::make_pair(startPoint, clGeom.endPoint().toVec2d() - startPoint.toVec2d()));
 
-                    // size_t minId2 = vDist[0] < vDist[1] ? 0 : 1;
-                    size_t minId2 = minId == 2  ? 1 : 0;
+                    size_t minId2 = vDist[0] < vDist[1] ? 0 : 1;
                     if (vDist[minId2] <= snapDistance)
                     {
                         startPoint = (minId2 == 0) ? edgeGeom.startPoint() : edgeGeom.endPoint();

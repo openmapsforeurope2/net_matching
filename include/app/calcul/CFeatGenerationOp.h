@@ -57,7 +57,7 @@ namespace calcul{
 
 
 		//void mergeCL(double distMergeCL, double snapOnVertexBorder);
-		void _mergeIntersectingCL(std::string countryCodeDouble, double distMergeCL, double snapOnVertexBorder);
+		void _mergeIntersectingCL(std::string countryCodeDouble, double distMergeCL, double angleMax, double snapOnVertexBorder);
 
 		bool _getCLToMerge(ign::feature::Feature fCL, double distMergeCL, std::map < std::string, ign::feature::Feature>& mCL2merge, std::set<std::string>& sCountryCode);
 
@@ -70,7 +70,9 @@ namespace calcul{
 
 		bool _isNextEdgeInAntennas(ign::feature::Feature& fEdge, ign::geometry::Point& ptCurr, ign::feature::Feature&  edgeNext, ign::geometry::Point& ptNext);
 
-		void _updateGeomCL(std::string countryCodeDouble, double snapOnVertexBorder);
+		void _updateGeomCL(std::string countryCodeDouble, double snapOnVertex);
+
+		void _getGeomProjClOnEdge(ign::geometry::LineString& lsCl, ign::geometry::LineString& lsEdge, ign::geometry::LineString& lsprojClOnEdg, double snapOnVertex);
 
 		void _getClDoublonGeom(std::string countryCodeDouble);
 

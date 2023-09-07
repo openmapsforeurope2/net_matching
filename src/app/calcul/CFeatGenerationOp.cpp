@@ -9,6 +9,7 @@
 #include <ign/math/Line2T.h>
 #include <ign/math/LineT.h>
 #include <ign/geometry/graph/builder/SimpleGraphBuilder.h>
+#include <ign/geometry/graph/tools/SnapRoundPlanarizer.h>
 //#include <ign/geometry/tools/LengthIndexedLineString.h>
 
 //EPG
@@ -84,9 +85,11 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 
 	}
 
-	_mergeIntersectingCL(countryCodeDouble, distMergeCL, snapOnVertexBorder);
+	_mergeIntersectingCL(countryCodeDouble, distMergeCL, angleMaxBorder, snapOnVertexBorder);
 
 	_deleteCLUnderThreshold(countryCodeDouble);
+
+	_getClDoublonGeom(countryCodeDouble);
 
 	//boucle sur CC?
 	GraphType graphCL;
@@ -154,6 +157,7 @@ app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 	_shapeLogger->closeShape("CLBeforeMerge");
 	_shapeLogger->closeShape("ClMergedBeforeUpdate");
 	_shapeLogger->closeShape("ClDeletedNoCandidatefound");
+	_shapeLogger->closeShape("ClDoublon");
 
 
 
@@ -181,6 +185,7 @@ void app::calcul::CFeatGenerationOp::_init( bool verbose)
 	_shapeLogger->addShape("CLBeforeMerge", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClMergedBeforeUpdate", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDeletedNoCandidatefound", epg::log::ShapeLogger::LINESTRING);
+	_shapeLogger->addShape("ClDoublon", epg::log::ShapeLogger::LINESTRING);
 
 	_verbose = verbose;
 
@@ -801,6 +806,7 @@ void app::calcul::CFeatGenerationOp::_addFeatAttributeMergingOnBorder(
 void app::calcul::CFeatGenerationOp::_mergeIntersectingCL(
 	std::string countryCodeDouble,
 	double distMergeCL,
+	double angleMax,
 	double snapOnVertexBorder
 )
 {
@@ -808,6 +814,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL(
 	epg::Context* context = epg::ContextS::getInstance();
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
 
 	ign::feature::FeatureFilter filterCL;
 	std::vector<std::string> vCountriesCodeName;
@@ -946,6 +953,26 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL(
 			if (lsIntersectedCL.numPoints() < 2)
 				continue;		
 
+
+			//on verifie l'angle entre la projection de la cl sur les portions d'edges
+
+			std::string idEdgLinkedCurr = fCLCurr.getAttribute(linkedFeatIdName).toString();
+			std::string idEdgLinkedArround = fCLArround.getAttribute(linkedFeatIdName).toString();
+			ign::feature::Feature fEdg1, fEdg2;
+			_fsEdge->getFeatureById(idEdgLinkedCurr, fEdg1);
+			_fsEdge->getFeatureById(idEdgLinkedArround, fEdg2);
+			ign::geometry::LineString lsEdg1 = fEdg1.getGeometry().asLineString();
+			ign::geometry::LineString lsEdg2 = fEdg2.getGeometry().asLineString();
+			ign::geometry::LineString lsProjClEdg1, lsProjClEdg2;
+			_getGeomProjClOnEdge(lsIntersectedCL, lsEdg1, lsProjClEdg1, snapOnVertexBorder);
+			_getGeomProjClOnEdge(lsIntersectedCL, lsEdg2, lsProjClEdg2, snapOnVertexBorder);
+			ign::math::Vec2d vec1(lsEdg1.endPoint().x() - lsEdg1.startPoint().x(), lsEdg1.endPoint().y() - lsEdg1.startPoint().y());
+			ign::math::Vec2d vec2(lsEdg2.endPoint().x() - lsEdg2.startPoint().x(), lsEdg2.endPoint().y() - lsEdg2.startPoint().y());
+			double angleEdgesLinked = epg::tools::geometry::angle(vec1, vec2);
+			//si angle trop important entre les deux edges on ne crée pas de Cl
+			if (angleEdgesLinked > angleMax && angleEdgesLinked <(M_PI - angleMax))
+				continue;
+
 			ign::feature::Feature fCLNew = _fsCL->newFeature();
 
 			if (countryCodeCLArround < countryCodeCLCurr) {
@@ -1073,7 +1100,7 @@ bool app::calcul::CFeatGenerationOp::_isNextEdgeInAntennas(ign::feature::Feature
 }
 
 
-void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble, double snapOnVertexBorder)
+void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble, double snapOnVertex )
 {
 	_logger->log(epg::log::TITLE, "[ BEGIN UPDATE GEOM CL " + countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 	epg::Context* context = epg::ContextS::getInstance();
@@ -1127,30 +1154,10 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble
 		ign::geometry::LineString lsEdgInit2 = fEdg2.getGeometry().asLineString();
 		ign::geometry::LineString lsEdg1, lsEdg2;
 
-		//on coupe les edges au niveau de la projection des extremites des CLs sur ces edges, pour ne prendre que la portion d'edge que l'on apparie à la CL
-		ign::geometry::Point startLsProj1 = epg::tools::geometry::project(lsEdgInit1, lsCLCurr.startPoint(), snapOnVertexBorder);
-		startLsProj1.setZ(0);
-		ign::geometry::Point startLsProj2 = epg::tools::geometry::project(lsEdgInit2, lsCLCurr.startPoint(), snapOnVertexBorder);
-		startLsProj2.setZ(0);
-		ign::geometry::Point endLsProj1 = epg::tools::geometry::project(lsEdgInit1, lsCLCurr.endPoint(), snapOnVertexBorder);
-		endLsProj1.setZ(0);
-		ign::geometry::Point endLsProj2 = epg::tools::geometry::project(lsEdgInit2, lsCLCurr.endPoint(), snapOnVertexBorder);
-		endLsProj2.setZ(0);
+		_getGeomProjClOnEdge(lsCLCurr, lsEdgInit1, lsEdg1, snapOnVertex);
+		_getGeomProjClOnEdge( lsCLCurr, lsEdgInit2,lsEdg2, snapOnVertex);
 
-		epg::tools::geometry::LineStringSplitter lsSplitter1(lsEdgInit1);
-		lsSplitter1.addCuttingGeometry(startLsProj1);	
-		lsSplitter1.addCuttingGeometry(endLsProj1);
-		std::vector<ign::geometry::LineString> vLsCandidate1 = lsSplitter1.getSubLineStrings();
-		for (size_t i = 0; i < vLsCandidate1.size(); ++i) {
-			ign::geometry::LineString lsCandidate = vLsCandidate1[i];
-			if ((lsCandidate.startPoint().egal2d(startLsProj1) && lsCandidate.endPoint().egal2d(endLsProj1))
-				|| (lsCandidate.startPoint().egal2d(endLsProj1) && lsCandidate.endPoint().egal2d(startLsProj1))) {
-				lsEdg1 = lsCandidate;
-				lsEdg1.startPoint().setZ(0);
-				lsEdg1.endPoint().setZ(0);
-				break;
-			}
-		}
+		//on coupe les edges au niveau de la projection des extremites des CLs sur ces edges, pour ne prendre que la portion d'edge que l'on apparie à la CL
 
 		if (lsEdg1.isEmpty()) {
 			_logger->log(epg::log::WARN, "Suppression CL  " + fCL.getId() + " not matching linked edge : " + idEdgLinked1);
@@ -1161,21 +1168,6 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble
 			_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fShaplog);
 			sCL2delete.insert(fCL.getId());
 			continue;
-		}
-
-		epg::tools::geometry::LineStringSplitter lsSplitter2(lsEdgInit2);
-		lsSplitter2.addCuttingGeometry(startLsProj2);
-		lsSplitter2.addCuttingGeometry(endLsProj2);
-		std::vector<ign::geometry::LineString> vLsCandidate2 = lsSplitter2.getSubLineStrings();
-		for (size_t i = 0; i < vLsCandidate2.size(); ++i) {
-			ign::geometry::LineString lsCandidate = vLsCandidate2[i];
-			if ((lsCandidate.startPoint().egal2d(startLsProj2) && lsCandidate.endPoint().egal2d(endLsProj2))
-				|| (lsCandidate.startPoint().egal2d(endLsProj2) && lsCandidate.endPoint().egal2d(startLsProj2))) {
-				lsEdg2 = lsCandidate;
-				lsEdg2.startPoint().setZ(0);
-				lsEdg2.endPoint().setZ(0);
-				break;
-			}
 		}
 
 		if (lsEdg2.isEmpty()) {
@@ -1189,11 +1181,6 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble
 			continue;
 		}
 
-		//on s'assure que les ls1 et ls2 sont dans le même sens
-		if (!lsEdg1.startPoint().egal2d(startLsProj1) )
-			lsEdg1 = lsEdg1.reverse();
-		if (!lsEdg2.startPoint().egal2d(startLsProj2))
-			lsEdg2 = lsEdg2.reverse();
 
 		//si les 2 edges sont dans le même pays, on prend la geom de la portion de l'edge du pays
 		bool isLs1InCountry1 = lsEdg1.intersects(mPolyCountry1);
@@ -1201,9 +1188,9 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble
 		bool isLs1InCountry2 = lsEdg1.intersects(mPolyCountry2);
 		bool isLs2InCountry2 = lsEdg2.intersects(mPolyCountry2);
 		if (isLs1InCountry1 && !isLs1InCountry2 && isLs2InCountry1 && !isLs2InCountry2)
-			_getGeomCL(lsCLUpdated, lsEdg1, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertexBorder);
+			_getGeomCL(lsCLUpdated, lsEdg1, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertex);
 		else if (isLs1InCountry2 && !isLs1InCountry1 && isLs2InCountry2 && !isLs2InCountry1)
-			_getGeomCL(lsCLUpdated, lsEdg2, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertexBorder);
+			_getGeomCL(lsCLUpdated, lsEdg2, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertex);
 		else {
 			std::set<double> sAbsCurv;
 			geometry::tools::LengthIndexedLineString lsIndex1(lsEdg1);
@@ -1234,8 +1221,9 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble
 					lsCLUpdated.addPoint(ptLsCentroid);
 			}
 			ign::geometry::MultiPoint multiPtEnd;
-			multiPtEnd.addGeometry(endLsProj1);
-			multiPtEnd.addGeometry(endLsProj2);
+			multiPtEnd.addGeometry(lsEdg1.endPoint());
+			multiPtEnd.addGeometry(lsEdg2.endPoint());
+			//multiPtEnd.addGeometry(endLsProj2);
 			lsCLUpdated.addPoint(multiPtEnd.getCentroid());
 		}
 		lsCLUpdated.clearZ();
@@ -1249,6 +1237,36 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble
 
 	_logger->log(epg::log::TITLE, "[ BEGIN UPDATE GEOM CL " + countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
+}
+
+
+void app::calcul::CFeatGenerationOp::_getGeomProjClOnEdge(ign::geometry::LineString& lsCl, ign::geometry::LineString& lsEdge, ign::geometry::LineString& lsprojClOnEdg, double snapOnVertex)
+{
+	ign::geometry::Point startLsProj = epg::tools::geometry::project(lsEdge, lsCl.startPoint(), snapOnVertex);
+	startLsProj.setZ(0);//interpolate avec projZ
+	ign::geometry::Point endLsProj = epg::tools::geometry::project(lsEdge, lsCl.endPoint(), snapOnVertex);
+	endLsProj.setZ(0);//interpolate
+
+	epg::tools::geometry::LineStringSplitter lsSplitter1(lsEdge);
+	lsSplitter1.addCuttingGeometry(startLsProj);
+	lsSplitter1.addCuttingGeometry(endLsProj);
+	std::vector<ign::geometry::LineString> vLsCandidate1 = lsSplitter1.getSubLineStrings();
+	for (size_t i = 0; i < vLsCandidate1.size(); ++i) {
+		ign::geometry::LineString lsCandidate = vLsCandidate1[i];
+		if ((lsCandidate.startPoint().egal2d(startLsProj) && lsCandidate.endPoint().egal2d(endLsProj))
+			|| (lsCandidate.startPoint().egal2d(endLsProj) && lsCandidate.endPoint().egal2d(startLsProj))) {
+			lsprojClOnEdg = lsCandidate;
+			lsprojClOnEdg.startPoint().setZ(0);
+			lsprojClOnEdg.endPoint().setZ(0);
+			break;
+		}
+	}
+
+	if (lsprojClOnEdg.isEmpty())
+		return;
+	//on s'assure du sens de ls
+	if (!lsprojClOnEdg.startPoint().egal2d(startLsProj))
+		lsprojClOnEdg = lsprojClOnEdg.reverse();
 }
 
 void app::calcul::CFeatGenerationOp::_deleteCLUnderThreshold(std::string countryCodeDouble)
@@ -1411,21 +1429,80 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl(GraphType& graphCL)
 
 void app::calcul::CFeatGenerationOp::_getClDoublonGeom(std::string countryCodeDouble)
 {
+	_logger->log(epg::log::TITLE, "[ BEGIN DELETE CL DOUBLON ] : " + epg::tools::TimeTools::getTime());
+	epg::Context* context = epg::ContextS::getInstance();
+	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
+
+	std::set<std::string> sClDoublonToDelete;
 
 	GraphType graphClDoublon;
-	_loadGraphCL(countryCodeDouble, graphClDoublon);
+	ign::geometry::graph::tools::SnapRoundPlanarizer< GraphType >  planarizerClDoublon(graphClDoublon,100);//scale =100 -> precision de 0.01
+	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + countryCodeDouble + "'");
+	ign::feature::FeatureIteratorPtr it = _fsCL->getFeatures(filterCLCountryCode);
+	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCLCountryCode);
+	boost::progress_display displayLoad(numFeatures, std::cout, "[ LOAD GRAPH PLANARIZE CL ]\n");
+	while (it->hasNext()) {
+		++displayLoad;
+		ign::feature::Feature fCL = it->next();
+		bool cladde = planarizerClDoublon.addEdge(fCL.getGeometry().asLineString(), fCL.getId());
+	}
+	planarizerClDoublon.planarize();
 
 	GraphType::edge_iterator eit, eitEnd;
 	graphClDoublon.edges(eit, eitEnd);
-
 	boost::progress_display display(graphClDoublon.numEdges(), std::cout, "[ DELETE CL DOUBLON ]\n");
-
 	while (eit != eitEnd) {
 		++display;
-
-		if (graphClDoublon.origins(*eit).size() == 1)
+		
+		if (graphClDoublon.origins(*eit).size() == 1) {
+			++eit;
 			continue;
+		}
+
+		std::vector<std::string> vIdClDoublon = graphClDoublon.origins(*eit);
+		std::map <std::string, double > mIdClDoublonsAngle;
+		for (std::vector<std::string>::iterator vit = vIdClDoublon.begin(); vit != vIdClDoublon.end(); ++vit) {
+			ign::feature::Feature fClDoublon;
+			_fsCL->getFeatureById(*vit, fClDoublon);
+			_logger->log(epg::log::WARN, "CL DOUBLON  : " + *vit);
+			if (fClDoublon.getId().empty() ) { 
+				//sClDoublonToDelete.insert(*vit);
+				continue;
+			}
+			//ign::geometry::LineString lsClDoublon = fClDoublon.getGeometry().asLineString();
+			ign::feature::Feature fShaplog = fClDoublon;
+			ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
+			lsSphaplog.clearZ();
+			fShaplog.setGeometry(lsSphaplog);
+			_shapeLogger->writeFeature("ClDoublon", fShaplog);
+
+			return;
+			/*
+			std::vector<std::string> vEdgeslinked;
+			epg::tools::StringTools::Split(fClDoublon.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinked);
+			std::string idEdgLinked1 = vEdgeslinked[0];
+			std::string idEdgLinked2 = vEdgeslinked[1];
+			ign::feature::Feature fEdg1, fEdg2;
+			_fsEdge->getFeatureById(idEdgLinked1, fEdg1);
+			_fsEdge->getFeatureById(idEdgLinked2, fEdg2);
+			if (fEdg1.getId().empty() || fEdg2.getId().empty()) { //si on ne trouve pas l'un des troncons liés
+				sClDoublonToDelete.insert(*vit);
+				continue;
+			}
+			ign::geometry::LineString lsEdg1 = fEdg1.getGeometry().asLineString();
+			ign::geometry::LineString lsEdg2 = fEdg2.getGeometry().asLineString();
+			//calcul de l'angle
+			ign::math::Vec2d vecLsDoublon(lsClDoublon.endPoint().x() - lsClDoublon.startPoint().x(), lsClDoublon.endPoint().y() - lsClDoublon.startPoint().y());
+			ign::math::Vec2d vecEdg1(lsEdg1.endPoint().x() - lsEdg1.startPoint().x(), lsEdg1.endPoint().y() - lsEdg1.startPoint().y());
+			ign::math::Vec2d vecEdg2(lsEdg2.endPoint().x() - lsEdg2.startPoint().x(), lsEdg2.endPoint().y() - lsEdg2.startPoint().y());
+			//, vecLsArround;
+			double anglClEdg1 = epg::tools::geometry::angle(vecLsDoublon, vecEdg1);
+			double anglClEdg2 = epg::tools::geometry::angle(vecLsDoublon, vecEdg2);
+			//if(anglClEdg1)*/
+		}
+
 		++eit;
 	}
-
+	_logger->log(epg::log::TITLE, "[ END DELETE CL DOUBLON ] : " + epg::tools::TimeTools::getTime());
 }

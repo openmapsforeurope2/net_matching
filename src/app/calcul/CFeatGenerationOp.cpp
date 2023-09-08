@@ -1083,6 +1083,7 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleEdges(std::string countryCo
 	for (std::set<std::string>::iterator sit = sCl2delete.begin(); sit != sCl2delete.end(); ++sit) {
 		_fsCL->deleteFeature(*sit);
 	}
+	_logger->log(epg::log::INFO, "Nb CL supprimées par angle des edges superieur a un seuil et non utile à la continuité : " + ign::data::Integer(sCl2delete.size()).toString());
 	_logger->log(epg::log::TITLE, "[ END DELETE CL BY ANGLE EDGES FOR :" + countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 }
 

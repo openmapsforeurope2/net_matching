@@ -45,7 +45,9 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
-
+	std::string const idName = context->getEpgParameters().getValue(ID).toString();
+	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
+	std::string const clTableName = _fsCL->getTableName();
 	//CL
 	double distBuffer = 5;
 	double thresholdNoCL = 0.1;
@@ -84,12 +86,17 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 
 
 	}
+	epg::utils::CopyTableUtils::copyTable(clTableName,idName,geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName+"_avtmerge", "", false,true);
+
 
 	_mergeIntersectingCL(countryCodeDouble, distMergeCL, angleMaxBorder);
+	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresmerge", "", false, true);
 
 	_deleteClByAngleEdges(countryCodeDouble, angleMaxBorder, snapOnVertexBorder);
+	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresdeletebyangle", "", false, true);
 
 	_deleteCLUnderThreshold(countryCodeDouble);
+	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresdeletebyseuilmin", "", false, true);
 
 	_getClDoublonGeom(countryCodeDouble);
 
@@ -98,6 +105,7 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 	_loadGraphCL(countryCodeDouble,graphCL);
 
 	_updateGeomCL(countryCodeDouble, snapOnVertexBorder);
+	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresupdate", "", false, true);
 
 	_setContinuityCl(graphCL);
 
@@ -1012,6 +1020,24 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleEdges(std::string countryCo
 			ign::feature::Feature fEdg1, fEdg2;
 			_fsEdge->getFeatureById(idEdgLinked1, fEdg1);
 			_fsEdge->getFeatureById(idEdgLinked2, fEdg2);
+			if (fEdg1.getId().empty()) {
+				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not matching linked edge : " + idEdgLinked1);
+				ign::feature::Feature fShaplog = fCl;
+				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
+				fShaplog.setGeometry(lsSphaplog);
+				_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fShaplog);
+				sCl2delete.insert(fCl.getId());
+				continue;
+			}
+			if (fEdg2.getId().empty()) {
+				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not matching linked edge : " + idEdgLinked2);
+				ign::feature::Feature fShaplog = fCl;
+				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
+				fShaplog.setGeometry(lsSphaplog);
+				_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fShaplog);
+				sCl2delete.insert(fCl.getId());
+				continue;
+			}
 			ign::geometry::LineString lsEdg1 = fEdg1.getGeometry().asLineString();
 			ign::geometry::LineString lsEdg2 = fEdg2.getGeometry().asLineString();
 			ign::geometry::LineString lsCl = fCl.getGeometry().asLineString();

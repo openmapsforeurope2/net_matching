@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 
 		app::calcul::CFeatGenerationOp cFeatGenerationOp;
 		cFeatGenerationOp.computeCL(countryCode);
-
+		return 0;
 		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
 			app::calcul::CFeatConnectionOp::computeCl(edgeTableName, clTableName, *vit, verbose);
 		}

@@ -74,12 +74,12 @@ int main(int argc, char *argv[])
         // logger->setProdOfstream( logDirectory+"/au_merging.log" );
         logger->setDevOfstream( logDirectory+"/tn_matching.log" );
 
+		//repertoire de travail
+		context->setLogDirectory(logDirectory);
+
         //shape logger
         epg::log::ShapeLogger* shapeLogger = epg::log::ShapeLoggerS::getInstance();
 	    shapeLogger->setDataDirectory(context->getLogDirectory()+"/shape");
-        
-        //repertoire de travail
-        context->setLogDirectory( logDirectory );
 
         //theme parameters
         themeParametersFile = context->getConfigParameters().getValue( THEME_PARAMETER_FILE ).toString();

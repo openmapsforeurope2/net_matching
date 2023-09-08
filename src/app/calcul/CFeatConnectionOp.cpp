@@ -141,7 +141,7 @@ namespace app
 
             //--
             _shapeLogger = epg::log::ShapeLoggerS::getInstance();
-            _shapeLogger->setDataDirectory(context->getLogDirectory());
+            //_shapeLogger->setDataDirectory(context->getLogDirectory());
             _shapeLogger->addShape("resulting_edges", epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("projected_cp", epg::log::ShapeLogger::POINT);
             _shapeLogger->addShape("multiple_result", epg::log::ShapeLogger::LINESTRING);

@@ -169,13 +169,12 @@ void app::calcul::CFeatGenerationOp::_init( bool verbose)
 {
 	_logger = epg::log::EpgLoggerS::getInstance();
 	_logger->log(epg::log::TITLE, "[ BEGIN INITIALIZATION ] : " + epg::tools::TimeTools::getTime());
-
 	epg::Context* context = epg::ContextS::getInstance();
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	std::string const idName = context->getEpgParameters().getValue(ID).toString();
 	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
-
+	_shapeLogger = epg::log::ShapeLoggerS::getInstance();
 	_shapeLogger->addShape("CLBeforeMerge", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClMergedBeforeUpdate", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDeletedNoCandidatefound", epg::log::ShapeLogger::LINESTRING);

@@ -1044,6 +1044,24 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleEdges(std::string countryCo
 			ign::geometry::LineString lsProjClEdg1, lsProjClEdg2;
 			_getGeomProjClOnEdge(lsCl, lsEdg1, lsProjClEdg1, snapOnVertexBorder);
 			_getGeomProjClOnEdge(lsCl, lsEdg2, lsProjClEdg2, snapOnVertexBorder);
+			if (lsProjClEdg1.isEmpty()) {
+				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not projecting on matching linked edge : " + idEdgLinked1);
+				ign::feature::Feature fShaplog = fCl;
+				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
+				fShaplog.setGeometry(lsSphaplog);
+				_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fShaplog);
+				sCl2delete.insert(fCl.getId());
+				continue;
+			}
+			if (lsProjClEdg2.isEmpty()) {
+				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + "  not projecting on matching linked edge : " + idEdgLinked2);
+				ign::feature::Feature fShaplog = fCl;
+				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
+				fShaplog.setGeometry(lsSphaplog);
+				_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fShaplog);
+				sCl2delete.insert(fCl.getId());
+				continue;
+			}
 			ign::math::Vec2d vec1(lsProjClEdg1.endPoint().x() - lsProjClEdg1.startPoint().x(), lsProjClEdg1.endPoint().y() - lsProjClEdg1.startPoint().y());
 			ign::math::Vec2d vec2(lsProjClEdg2.endPoint().x() - lsProjClEdg2.startPoint().x(), lsProjClEdg2.endPoint().y() - lsProjClEdg2.startPoint().y());
 			double angleEdgesLinked = epg::tools::geometry::angle(vec1, vec2);

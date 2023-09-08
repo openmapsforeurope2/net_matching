@@ -155,14 +155,11 @@ app::calcul::CFeatGenerationOp::CFeatGenerationOp( bool verbose)
 
 app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 {
-
 	_shapeLogger->closeShape("CLBeforeMerge");
 	_shapeLogger->closeShape("ClMergedBeforeUpdate");
 	_shapeLogger->closeShape("ClDeletedNoCandidatefound");
 	_shapeLogger->closeShape("ClDoublon");
 	_shapeLogger->closeShape("CldeleteByAngleEdges");
-
-	epg::log::ShapeLoggerS::kill();
 }
 	
 ///

@@ -69,22 +69,8 @@ int main(int argc, char *argv[])
             }
         }
 
-<<<<<<< HEAD
         //repertoire de travail
         context->setLogDirectory( logDirectory );
-=======
-        //epg logger
-        epg::log::EpgLogger* logger = epg::log::EpgLoggerS::getInstance();
-        // logger->setProdOfstream( logDirectory+"/au_merging.log" );
-        logger->setDevOfstream( logDirectory+"/tn_matching.log" );
-
-		//repertoire de travail
-		context->setLogDirectory(logDirectory);
-
-        //shape logger
-        epg::log::ShapeLogger* shapeLogger = epg::log::ShapeLoggerS::getInstance();
-	    shapeLogger->setDataDirectory(context->getLogDirectory()+"/shape");
->>>>>>> 8a5de89c1b80e03f575e3651c5a17f4781f0ca52
 
         //epg logger
         epg::log::EpgLogger* logger = epg::log::EpgLoggerS::getInstance();

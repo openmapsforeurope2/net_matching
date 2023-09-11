@@ -175,7 +175,7 @@ void app::calcul::CFeatGenerationOp::_init( bool verbose)
 	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 
-
+	_shapeLogger = epg::log::ShapeLoggerS::getInstance();
 	_shapeLogger->addShape("CLBeforeMerge", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClMergedBeforeUpdate", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDeletedNoCandidatefound", epg::log::ShapeLogger::LINESTRING);
@@ -423,7 +423,6 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 	double distUnderShoot
 )
 {
-	epg::log::ShapeLogger* _shapeLogger = epg::log::ShapeLoggerS::getInstance();
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
 	std::string const idName = context->getEpgParameters().getValue(ID).toString();
@@ -804,7 +803,6 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL(
 	double snapOnVertexBorder
 )
 {
-	epg::log::ShapeLogger* _shapeLogger = epg::log::ShapeLoggerS::getInstance();
 	epg::Context* context = epg::ContextS::getInstance();
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();

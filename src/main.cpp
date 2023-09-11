@@ -69,18 +69,19 @@ int main(int argc, char *argv[])
             }
         }
 
-        //epg logger
-        epg::log::EpgLogger* logger = epg::log::EpgLoggerS::getInstance();
-        // logger->setProdOfstream( logDirectory+"/au_merging.log" );
-        logger->setDevOfstream( logDirectory+"/tn_matching.log" );
-
-        //shape logger
-        epg::log::ShapeLogger* shapeLogger = epg::log::ShapeLoggerS::getInstance();
-	    shapeLogger->setDataDirectory(context->getLogDirectory()+"/shape");
-        
         //repertoire de travail
         context->setLogDirectory( logDirectory );
 
+        //epg logger
+        epg::log::EpgLogger* logger = epg::log::EpgLoggerS::getInstance();
+        // logger->setProdOfstream( logDirectory+"/au_merging.log" );
+        logger->setDevOfstream( context->getLogDirectory()+"/tn_matching.log" );
+
+        //shape logger
+        epg::log::ShapeLogger* shapeLogger = epg::log::ShapeLoggerS::getInstance();
+	    shapeLogger->setDataDirectory( context->getLogDirectory()+"/shape" );
+        
+        
         //theme parameters
         themeParametersFile = context->getConfigParameters().getValue( THEME_PARAMETER_FILE ).toString();
 		app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();

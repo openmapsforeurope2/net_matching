@@ -184,6 +184,7 @@ namespace app
             ign::feature::FeatureIteratorPtr itCl = _fsCl->getFeatures(filterCl);
             while (itCl->hasNext())
             {
+                ++display;
                 ign::feature::Feature const &fCl = itCl->next();
                 ign::geometry::LineString const &clGeom = fCl.getGeometry().asLineString();
                 std::string edgeLink = fCl.getAttribute(edgeLinkName).toString();
@@ -330,7 +331,6 @@ namespace app
                         _shapeLogger->writeFeature("cl_created_features", fEdge);
                     }
                 }
-                ++display;
             }
 
             std::set< std::string >::const_iterator sit;

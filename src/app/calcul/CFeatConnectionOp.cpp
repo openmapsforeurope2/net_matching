@@ -191,9 +191,13 @@ namespace app
 
                 if (_verbose) _logger->log(epg::log::DEBUG, fCl.getId());
 
+                //DEBUG
                 // std::string idDebug = fCl.getId();
-                // // if ( idDebug != "CONNECTINGLINE179" && idDebug != "CONNECTINGLINE178" ) continue;
-                // if ( idDebug != "CONNECTINGLINE177" ) continue;
+                // // // if ( idDebug != "CONNECTINGLINE179" && idDebug != "CONNECTINGLINE178" ) continue;
+                // if ( idDebug == "CONNECTINGLINE1680" || idDebug == "CONNECTINGLINE1825") {
+                //     bool test = true;
+                // }
+                // if ( /*idDebug != "CONNECTINGLINE1680" &&*/ idDebug != "CONNECTINGLINE1679") continue;
 
                 std::pair<bool, std::string> foundEdgeLink = _getCountryEdgeLink(edgeLink, countryCode, _countryCode);
                 if (!foundEdgeLink.first)
@@ -320,6 +324,7 @@ namespace app
 
                     for (size_t i = 0 ; i < vNewGeom.size() ; ++i) {
                         fEdge.setGeometry(vNewGeom[i]);
+
                         _fsEdge->createFeature(fEdge);
 
                         _shapeLogger->writeFeature("cl_created_features", fEdge);
@@ -409,6 +414,7 @@ namespace app
             ign::feature::FeatureIteratorPtr itCp = _fsCp->getFeatures(filterCp);
             while (itCp->hasNext())
             {
+                ++display;
                 ign::feature::Feature const &fCp = itCp->next();
                 ign::geometry::Point const &cpGeom = fCp.getGeometry().asPoint();
                 std::string edgeLink = fCp.getAttribute(edgeLinkName).toString();
@@ -524,8 +530,6 @@ namespace app
                 ign::feature::Feature featLog;
                 featLog.setGeometry(newEdgeGeom);
                 _shapeLogger->writeFeature("resulting_edges", featLog);
-
-                ++display;
             }
 
             std::set< std::string >::const_iterator sit;

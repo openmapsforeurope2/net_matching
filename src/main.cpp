@@ -11,6 +11,7 @@
 #include <app/params/ThemeParameters.h>
 #include <app/calcul/CFeatConnectionOp.h>
 #include <app/calcul/CFeatGenerationOp.h>
+#include <app/calcul/EdgeCleaningOp.h>
 
 
 namespace po = boost::program_options;
@@ -95,20 +96,23 @@ int main(int argc, char *argv[])
 		std::vector<std::string> vCountriesCodeName;
 		epg::tools::StringTools::Split(countryCode, "#", vCountriesCodeName);
 
-		app::calcul::CFeatGenerationOp cFeatGenerationOp;
-		cFeatGenerationOp.computeCL(countryCode);
-		//return 0;
-		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
-			app::calcul::CFeatConnectionOp::computeCl(edgeTableName, clTableName, *vit, verbose);
-		}
+		// app::calcul::CFeatGenerationOp cFeatGenerationOp;
+		// cFeatGenerationOp.computeCL(countryCode);
 		
-		return 0;
+		// for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
+		// 	app::calcul::CFeatConnectionOp::computeCl(edgeTableName, clTableName, *vit, verbose);
+		// }
 
-		cFeatGenerationOp.computeCP(countryCode);
+        //nettoyage
+        app::calcul::EdgeCleaningOp::clean(edgeTableName, countryCode, verbose );
 
-		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
-			app::calcul::CFeatConnectionOp::computeCp(edgeTableName, cpTableName, *vit, verbose);
-		}
+		//cFeatGenerationOp.computeCP(countryCode);
+
+		// for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
+		// 	app::calcul::CFeatConnectionOp::computeCp(edgeTableName, cpTableName, *vit, verbose);
+		// }
+
+        
     }
     catch( ign::Exception &e )
     {

@@ -193,12 +193,12 @@ namespace app
                 if (_verbose) _logger->log(epg::log::DEBUG, fCl.getId());
 
                 //DEBUG
-                // std::string idDebug = fCl.getId();
-                // // // if ( idDebug != "CONNECTINGLINE179" && idDebug != "CONNECTINGLINE178" ) continue;
+                std::string idDebug = fCl.getId();
+                // // if ( idDebug != "CONNECTINGLINE179" && idDebug != "CONNECTINGLINE178" ) continue;
                 // if ( idDebug == "CONNECTINGLINE1680" || idDebug == "CONNECTINGLINE1825") {
                 //     bool test = true;
                 // }
-                // if ( /*idDebug != "CONNECTINGLINE1680" &&*/ idDebug != "CONNECTINGLINE1679") continue;
+                // if ( idDebug != "CONNECTINGLINE1675" && idDebug != "CONNECTINGLINE1676") continue;
 
                 std::pair<bool, std::string> foundEdgeLink = _getCountryEdgeLink(edgeLink, countryCode, _countryCode);
                 if (!foundEdgeLink.first)

@@ -1,5 +1,5 @@
-#ifndef _APP_CALCUL_CFeatConnectionOP_H_
-#define _APP_CALCUL_CFeatConnectionOP_H_
+#ifndef _APP_CALCUL_CFEATCONNECTIONOP_H_
+#define _APP_CALCUL_CFEATCONNECTIONOP_H_
 
 //SOCLE
 #include <ign/feature/sql/FeatureStorePostgis.h>

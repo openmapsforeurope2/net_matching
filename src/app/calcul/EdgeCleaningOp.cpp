@@ -16,6 +16,7 @@
 
 // SOCLE
 #include <ign/geometry/graph/detail/NextEdge.h>
+#include <ign/tools/stringtools.h>
 
 namespace app
 {
@@ -286,10 +287,15 @@ namespace app
             std::list<edge_descriptor>::const_iterator lit = lEdges.begin();
             for ( ; lit != lEdges.end() ; ++lit) {
                 if (graph.origins(*lit).size() > 1) {
-                    _logger->log(epg::log::WARN, "Edge with multiple origins [cl id] "+_toString(graph.origins(*lit)));
+                    _logger->log(epg::log::WARN, "Edge with multiple origins [edge id] "+_toString(graph.origins(*lit)));
                 }
                 for (size_t i = 0 ; i < graph.origins(*lit).size() ; ++i) {
-                     std::string edgeId = graph.origins(*lit)[0];
+                    std::string edgeId = graph.origins(*lit)[0];
+
+                    if (ign::tools::StringManip::FindSubString(edgeId,"CONNECTINGLINE")) {
+                        _logger->log(epg::log::WARN, "Edge has a cl as origin [cl id] "+edgeId);
+                        continue;
+                    }
 
                     ign::feature::Feature dFeat;
                     _fsEdge->getFeatureById(edgeId, dFeat);
@@ -447,7 +453,7 @@ namespace app
 
                     vTarget = graph.target( nextEdge );
 
-                    if (graphManager.isCl(nextEdge.descriptor)) {
+                    if (graphManager.isCl(nextEdge.descriptor) && graph.degree(graph.source( nextEdge )) == 2 ) {
                         _logger->log(epg::log::WARN, "Antenna connected to connecting line [cl id] "+graph.origins(nextEdge.descriptor)[0]);
                         break;
                     }

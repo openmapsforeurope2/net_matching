@@ -49,11 +49,11 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
 	std::string const clTableName = _fsCL->getTableName();
 	//CL
-	double distBuffer = 5;
+	double distBuffer = 20; // 5;
 	double thresholdNoCL = 0.1;
 	double ratioInBuff = 0.6;
 	//double snapOnVertexBorder = 1;
-	double snapOnVertexBorder = 1;
+	double snapOnVertexBorder = 5; //1;
 	double angleMaxBorder = 25;
 	angleMaxBorder = angleMaxBorder * M_PI / 180;
 	double distCLIntersected = 10;
@@ -1261,11 +1261,11 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble
 		bool isLs2InCountry1 = lsEdg2.intersects(mPolyCountry1);
 		bool isLs1InCountry2 = lsEdg1.intersects(mPolyCountry2);
 		bool isLs2InCountry2 = lsEdg2.intersects(mPolyCountry2);
-		if (isLs1InCountry1 && !isLs1InCountry2 && isLs2InCountry1 && !isLs2InCountry2)
+/*		if (isLs1InCountry1 && !isLs1InCountry2 && isLs2InCountry1 && !isLs2InCountry2)
 			_getGeomCL(lsCLUpdated, lsEdg1, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertex);
 		else if (isLs1InCountry2 && !isLs1InCountry1 && isLs2InCountry2 && !isLs2InCountry1)
 			_getGeomCL(lsCLUpdated, lsEdg2, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertex);
-		else {
+		else {*/
 			std::set<double> sAbsCurv;
 			geometry::tools::LengthIndexedLineString lsIndex1(lsEdg1);
 			geometry::tools::LengthIndexedLineString lsIndex2(lsEdg2);
@@ -1299,7 +1299,7 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble
 			multiPtEnd.addGeometry(lsEdg2.endPoint());
 			//multiPtEnd.addGeometry(endLsProj2);
 			lsCLUpdated.addPoint(multiPtEnd.getCentroid());
-		}
+//		}
 		lsCLUpdated.clearZ();
 		fCL.setGeometry(lsCLUpdated);
 		_fsCL->modifyFeature(fCL);

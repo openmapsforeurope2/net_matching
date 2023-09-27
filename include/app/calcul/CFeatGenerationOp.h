@@ -54,7 +54,7 @@ namespace calcul{
 
 		void _addFeatAttributeMergingOnBorder(ign::feature::Feature& featMergedAttr, ign::feature::Feature& featAttrToAdd, std::string separator);
 
-		void _deleteClByAngleEdges(std::string countryCodeDouble, double angleMax, double snapOnVertexBorder);
+		void _deleteClByAngleAndDistEdges(std::string countryCodeDouble, double angleMax, double distMax, double snapOnVertexBorder);
 
 		//void mergeCL(double distMergeCL, double snapOnVertexBorder);
 		void _mergeIntersectingCL(std::string countryCodeDouble, double distMergeCL,  double snapOnVertexBorder);

@@ -10,6 +10,7 @@
 #include <ign/math/LineT.h>
 #include <ign/geometry/graph/builder/SimpleGraphBuilder.h>
 #include <ign/geometry/graph/tools/SnapRoundPlanarizer.h>
+#include <ign/geometry/algorithm/OptimizedHausdorffDistanceOp.h>
 //#include <ign/geometry/tools/LengthIndexedLineString.h>
 
 //EPG
@@ -55,11 +56,13 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 	//double snapOnVertexBorder = 1;
 	double snapOnVertexBorder = 5; //1;
 	double angleMaxBorder = 25;
+	double angleMaxEdges = 25;
 	angleMaxBorder = angleMaxBorder * M_PI / 180;
 	double distCLIntersected = 10;
 	double distUnderShoot = 10;
 	double distMergeCL = 1;
 	double distMergeCP = 2;
+	double distMaxEdges= 10;
 
 	ign::feature::FeatureIteratorPtr itBoundary = _fsBoundary->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + countryCodeDouble + "'"));
 	while (itBoundary->hasNext())
@@ -92,7 +95,7 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 	_mergeIntersectingCL(countryCodeDouble, distMergeCL, angleMaxBorder);
 	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresmerge", "", false, true);
 
-	_deleteClByAngleEdges(countryCodeDouble, angleMaxBorder, snapOnVertexBorder);
+	_deleteClByAngleAndDistEdges(countryCodeDouble, angleMaxEdges, distMaxEdges, snapOnVertexBorder);
 	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresdeletebyangle", "", false, true);
 
 	_deleteCLUnderThreshold(countryCodeDouble);
@@ -167,7 +170,7 @@ app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 	_shapeLogger->closeShape("ClMergedBeforeUpdate");
 	_shapeLogger->closeShape("ClDeletedNoCandidatefound");
 	_shapeLogger->closeShape("ClDoublon");
-	_shapeLogger->closeShape("CldeleteByAngleEdges");
+	_shapeLogger->closeShape("ClDeleteByAngleDistEdges");
 }
 	
 ///
@@ -188,7 +191,7 @@ void app::calcul::CFeatGenerationOp::_init( bool verbose)
 	_shapeLogger->addShape("ClMergedBeforeUpdate", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDeletedNoCandidatefound", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDoublon", epg::log::ShapeLogger::LINESTRING);
-	_shapeLogger->addShape("CldeleteByAngleEdges", epg::log::ShapeLogger::LINESTRING);
+	_shapeLogger->addShape("ClDeleteByAngleDistEdges", epg::log::ShapeLogger::LINESTRING);
 
 	_verbose = verbose;
 
@@ -986,7 +989,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL(
 
 
 
-void app::calcul::CFeatGenerationOp::_deleteClByAngleEdges(std::string countryCodeDouble, double angleMax, double snapOnVertexBorder)
+void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges(std::string countryCodeDouble, double angleMax, double distMax, double snapOnVertexBorder)
 {
 	
 	_logger->log(epg::log::TITLE, "[ BEGIN DELETE CL BY ANGLE EDGES FOR : " + countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
@@ -1064,17 +1067,19 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleEdges(std::string countryCo
 			ign::math::Vec2d vec1(lsProjClEdg1.endPoint().x() - lsProjClEdg1.startPoint().x(), lsProjClEdg1.endPoint().y() - lsProjClEdg1.startPoint().y());
 			ign::math::Vec2d vec2(lsProjClEdg2.endPoint().x() - lsProjClEdg2.startPoint().x(), lsProjClEdg2.endPoint().y() - lsProjClEdg2.startPoint().y());
 			double angleEdgesLinked = epg::tools::geometry::angle(vec1, vec2);
+
+			double hausdorffDist = ign::geometry::algorithm::OptimizedHausdorffDistanceOp::distance(lsProjClEdg1, lsProjClEdg2);
+
 			//si angle trop important entre les deux edges on ne crée pas de Cl
-			if (angleEdgesLinked > angleMax && angleEdgesLinked < (M_PI - angleMax)) {
+			if (angleEdgesLinked > angleMax && angleEdgesLinked < (M_PI - angleMax) || hausdorffDist > distMax) {
 				sCl2delete.insert(fCl.getId());
 				{
 					ign::feature::Feature fShaplog = fCl;
 					ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
 					lsSphaplog.clearZ();
 					fShaplog.setGeometry(lsSphaplog);
-					_shapeLogger->writeFeature("CldeleteByAngleEdges", fShaplog);
+					_shapeLogger->writeFeature("ClDeleteByAngleDistEdges", fShaplog);
 				}
-
 			}
 		}
 	}
@@ -1195,9 +1200,9 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble
 	std::string countryCode1 = vCountriesCodeName[0];
 	std::string countryCode2 = vCountriesCodeName[1];
 
-	ign::geometry::MultiPolygon mPolyCountry1, mPolyCountry2;
-	_getGeomCountry(countryCode1, mPolyCountry1);
-	_getGeomCountry(countryCode2, mPolyCountry2);
+	//ign::geometry::MultiPolygon mPolyCountry1, mPolyCountry2;
+	//_getGeomCountry(countryCode1, mPolyCountry1);
+	//_getGeomCountry(countryCode2, mPolyCountry2);
 
 	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + countryCodeDouble + "'");
 	ign::feature::FeatureIteratorPtr it = _fsCL->getFeatures(filterCLCountryCode);
@@ -1255,13 +1260,12 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(std::string countryCodeDouble
 			continue;
 		}
 
-
 		//si les 2 edges sont dans le même pays, on prend la geom de la portion de l'edge du pays
-		bool isLs1InCountry1 = lsEdg1.intersects(mPolyCountry1);
+		/*bool isLs1InCountry1 = lsEdg1.intersects(mPolyCountry1);
 		bool isLs2InCountry1 = lsEdg2.intersects(mPolyCountry1);
 		bool isLs1InCountry2 = lsEdg1.intersects(mPolyCountry2);
 		bool isLs2InCountry2 = lsEdg2.intersects(mPolyCountry2);
-/*		if (isLs1InCountry1 && !isLs1InCountry2 && isLs2InCountry1 && !isLs2InCountry2)
+		if (isLs1InCountry1 && !isLs1InCountry2 && isLs2InCountry1 && !isLs2InCountry2)
 			_getGeomCL(lsCLUpdated, lsEdg1, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertex);
 		else if (isLs1InCountry2 && !isLs1InCountry1 && isLs2InCountry2 && !isLs2InCountry1)
 			_getGeomCL(lsCLUpdated, lsEdg2, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertex);

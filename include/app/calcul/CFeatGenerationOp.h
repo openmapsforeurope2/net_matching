@@ -57,8 +57,10 @@ namespace calcul{
 		void _deleteClByAngleAndDistEdges(std::string countryCodeDouble, double angleMax, double distMax, double snapOnVertexBorder);
 
 		//void mergeCL(double distMergeCL, double snapOnVertexBorder);
-		void _mergeIntersectingCL(std::string countryCodeDouble, double distMergeCL,  double snapOnVertexBorder);
-
+		void _mergeIntersectingCL(std::string countryCodeDouble, double distMergeCL, double snapOnVertexBorder);
+		
+		void _mergeIntersectingClWithGraph(std::string countryCodeDouble, double distMaxEdges, double snapProjCl2edge);
+		
 		bool _getCLToMerge(ign::feature::Feature fCL, double distMergeCL, std::map < std::string, ign::feature::Feature>& mCL2merge, std::set<std::string>& sCountryCode);
 
 

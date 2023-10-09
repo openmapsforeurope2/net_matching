@@ -878,59 +878,67 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 		}
 
 		//recuperation des portions d'edges associées et selection des CLs à fusionner
+		std::set<std::string> sEdgesMerged;
+		int nbEdgesMerged= -1;
 
-		double distMin = 100000;
-		//on stocke les pairs de 
-		std::map<std::pair<std::string, std::string>, std::vector<ign::geometry::LineString>> mCls2pairWithLs;
-		std::pair<std::string, std::string> cl2merge;
+		while(nbEdgesMerged != sEdgesMerged.size() ){
+			nbEdgesMerged = sEdgesMerged.size();
 
-		for (std::map<std::string, ign::feature::Feature>::iterator mit1 = mIdClOriginsCountry1.begin(); mit1 != mIdClOriginsCountry1.end(); ++mit1) {
-			std::string idEdgeLinked1 = mit1->second.getAttribute(linkedFeatIdName).toString();
-			ign::feature::Feature fEdge1;
-			_fsEdge->getFeatureById(idEdgeLinked1, fEdge1);
-			ign::geometry::LineString lsEdge1 = fEdge1.getGeometry().asLineString();
-			ign::geometry::LineString lsClEdge1;
-			_getGeomProjClOnEdge(lsCl, lsEdge1, lsClEdge1, snapProjCl2edge);
-			if (lsClEdge1.isEmpty())
-				continue;
+			double distMin = 100000;
+			std::pair<std::string, std::string> cl2merge;
 
-			for (std::map<std::string, ign::feature::Feature>::iterator mit2 = mIdClOriginsCountry2.begin(); mit2 != mIdClOriginsCountry2.end(); ++mit2) {
-				std::string idEdgeLinked2 = mit2->second.getAttribute(linkedFeatIdName).toString();
-				ign::feature::Feature fEdge2;
-				_fsEdge->getFeatureById(idEdgeLinked2, fEdge2);
-				ign::geometry::LineString lsEdge2 = fEdge2.getGeometry().asLineString();
-				ign::geometry::LineString lsClEdge2;
-				_getGeomProjClOnEdge(lsCl, lsEdge2, lsClEdge2, snapProjCl2edge);
-
-				if (lsClEdge2.isEmpty())
+			for (std::map<std::string, ign::feature::Feature>::iterator mit1 = mIdClOriginsCountry1.begin(); mit1 != mIdClOriginsCountry1.end(); ++mit1) {
+				std::string idEdgeLinked1 = mit1->second.getAttribute(linkedFeatIdName).toString();
+				if (sEdgesMerged.find(mit1->first) != sEdgesMerged.end())//deja utilise pour merge
+					continue;
+				ign::feature::Feature fEdge1;
+				_fsEdge->getFeatureById(idEdgeLinked1, fEdge1);
+				ign::geometry::LineString lsEdge1 = fEdge1.getGeometry().asLineString();
+				ign::geometry::LineString lsClEdge1;
+				_getGeomProjClOnEdge(lsCl, lsEdge1, lsClEdge1, snapProjCl2edge);
+				if (lsClEdge1.isEmpty())
 					continue;
 
-				double hausdorffDistEdges = ign::geometry::algorithm::OptimizedHausdorffDistanceOp::distance(lsClEdge1, lsClEdge2);
+				for (std::map<std::string, ign::feature::Feature>::iterator mit2 = mIdClOriginsCountry2.begin(); mit2 != mIdClOriginsCountry2.end(); ++mit2) {
+					std::string idEdgeLinked2 = mit2->second.getAttribute(linkedFeatIdName).toString();
+					if (sEdgesMerged.find(mit2->first) != sEdgesMerged.end())//deja utilise pour merge
+						continue;
+					ign::feature::Feature fEdge2;
+					_fsEdge->getFeatureById(idEdgeLinked2, fEdge2);
+					ign::geometry::LineString lsEdge2 = fEdge2.getGeometry().asLineString();
+					ign::geometry::LineString lsClEdge2;
+					_getGeomProjClOnEdge(lsCl, lsEdge2, lsClEdge2, snapProjCl2edge);
 
-				if (hausdorffDistEdges > distMaxEdges)
-					continue;//on ne garde que les CL dont les edges associés sont proches (sous un seuil)
+					if (lsClEdge2.isEmpty())
+						continue;
 
-				if (hausdorffDistEdges < distMin) {
-					distMin = hausdorffDistEdges;
-					cl2merge= std::make_pair(mit1->first, mit2->first);
+					double hausdorffDistEdges = ign::geometry::algorithm::OptimizedHausdorffDistanceOp::distance(lsClEdge1, lsClEdge2);
+
+					if (hausdorffDistEdges > distMaxEdges)
+						continue;//on ne garde que les CL dont les edges associés sont proches (sous un seuil)
+
+					if (hausdorffDistEdges < distMin) {
+						distMin = hausdorffDistEdges;
+						cl2merge = std::make_pair(mit1->first, mit2->first);
+					}
+
 				}
-
 			}
+			if (cl2merge.first.empty()) {
+				continue;//break
+			}
+			sEdgesMerged.insert(cl2merge.first);
+			sEdgesMerged.insert(cl2merge.second);
+			ign::feature::Feature fClNew = _fsCL->newFeature();
+			fClNew = mIdClOriginsCountry1.find(cl2merge.first)->second;
+			_addFeatAttributeMergingOnBorder(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
+
+			std::string idCLNew = _idGeneratorCL->next();
+			fClNew.setId(idCLNew);
+			fClNew.setGeometry(lsCl);
+
+			_fsCL->createFeature(fClNew, idCLNew);
 		}
-		if (cl2merge.first.empty()) {
-			++eit;
-			continue;
-		}
-		ign::feature::Feature fClNew = _fsCL->newFeature();
-		fClNew = mIdClOriginsCountry1.find(cl2merge.first)->second;
-		_addFeatAttributeMergingOnBorder(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
-
-		std::string idCLNew = _idGeneratorCL->next();
-		fClNew.setId(idCLNew);
-		fClNew.setGeometry(lsCl);
-
-		_fsCL->createFeature(fClNew, idCLNew);
-
 		++eit;
 	}
 

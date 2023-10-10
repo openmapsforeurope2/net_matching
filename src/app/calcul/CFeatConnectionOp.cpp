@@ -2,6 +2,8 @@
 #include <app/calcul/CFeatConnectionOp.h>
 #include <app/params/ThemeParameters.h>
 #include <app/geometry/tools/LineStringSplitter.h>
+#include <app/tools/StringTools.h>
+#include <app/tools/translateVertex.h>
 
 // BOOST
 #include <boost/progress.hpp>
@@ -20,6 +22,8 @@
 // SOCLE
 #include <ign/geometry/graph/builder/SimpleGraphBuilder.h>
 #include <ign/tools/stringtools.h>
+#include <ign/geometry/algorithm/LineMergerOpGeos.h>
+#include <ign/geometry/algorithm/HausdorffDistanceOp.h>
 
 namespace app
 {
@@ -86,14 +90,15 @@ namespace app
         ///
         CFeatConnectionOp::~CFeatConnectionOp()
         {
-            _shapeLogger->closeShape("resulting_edges");
-            _shapeLogger->closeShape("projected_cp");
-            _shapeLogger->closeShape("multiple_result");
-            _shapeLogger->closeShape("cp_displacements");
-            _shapeLogger->closeShape("created_edges");
-            _shapeLogger->closeShape("cl_displacements");
-            _shapeLogger->closeShape("cl_created_features");
-            _shapeLogger->closeShape("cl_deleted_features");
+            _shapeLogger->closeShape("resulting_edges_"+_countryCode);
+            _shapeLogger->closeShape("projected_cp_"+_countryCode);
+            _shapeLogger->closeShape("multiple_result_"+_countryCode);
+            _shapeLogger->closeShape("cp_displacements_"+_countryCode);
+            _shapeLogger->closeShape("created_edges_"+_countryCode);
+            _shapeLogger->closeShape("cl_displacements_"+_countryCode);
+            _shapeLogger->closeShape("cl_created_features_"+_countryCode);
+            _shapeLogger->closeShape("cl_deleted_features_"+_countryCode);
+            _shapeLogger->closeShape("cl_superposed_edges_"+_countryCode);
         }
 
         ///
@@ -141,17 +146,95 @@ namespace app
 
             //--
             _shapeLogger = epg::log::ShapeLoggerS::getInstance();
-            _shapeLogger->addShape("resulting_edges", epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("projected_cp", epg::log::ShapeLogger::POINT);
-            _shapeLogger->addShape("multiple_result", epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("cp_displacements", epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("created_edges", epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("cl_displacements", epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("cl_created_features", epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("cl_deleted_features", epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("resulting_edges_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("projected_cp_"+_countryCode, epg::log::ShapeLogger::POINT);
+            _shapeLogger->addShape("multiple_result_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("cp_displacements_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("created_edges_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("cl_displacements_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("cl_created_features_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("cl_deleted_features_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("cl_superposed_edges_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
 
             //--
             _logger->log(epg::log::INFO, "[END] initialization: " + epg::tools::TimeTools::getTime());
+        };
+
+        ///
+        ///
+        ///
+        ign::geometry::LineString CFeatConnectionOp::_mergecl(ign::feature::Feature const& refClFeat, std::string const& linkedFeatureId, std::set<std::string> & sTreatedCl) const {
+            epg::Context* context = epg::ContextS::getInstance();
+            epg::params::EpgParameters const& epgParams = context->getEpgParameters();
+            std::string const linkedFeatureIdName = epgParams.getValue(LINKED_FEATURE_ID).toString();
+
+            ign::geometry::LineString const& refClGeom = refClFeat.getGeometry().asLineString();
+            ign::geometry::Point startPoint = refClGeom.startPoint();
+            ign::geometry::Point endPoint = refClGeom.endPoint();
+            bool bNewStart = true;
+            bool bNewEnd = true;
+
+            std::vector<ign::feature::Feature> vCandidates;
+            ign::feature::FeatureIteratorPtr itCl = _fsCl->getFeatures(linkedFeatureIdName + " LIKE '%" + linkedFeatureId + "%'");
+            while (itCl->hasNext())
+            {
+                ign::feature::Feature const& fCl = itCl->next();
+                vCandidates.push_back(fCl);
+            }
+
+            // std::set<std::string> sMergedCl;
+            sTreatedCl.insert(refClFeat.getId());
+            std::vector<ign::geometry::LineString> vGeom2Merge;
+            vGeom2Merge.push_back(refClGeom);
+
+            do {
+                std::vector<ign::feature::Feature>::const_iterator vit;
+                size_t before = sTreatedCl.size();
+                for ( vit = vCandidates.begin() ; vit != vCandidates.end() ; ++vit ) {
+                    if (sTreatedCl.find(vit->getId()) != sTreatedCl.end()) continue;
+                    
+                    ign::geometry::LineString const& clGeom = vit->getGeometry().asLineString();
+                    bool bTouchingEnd = startPoint.distance(clGeom.endPoint()) < 1e-1;
+                    bool bTouchingStart = startPoint.distance(clGeom.startPoint()) < 1e-1;
+                    if ( bTouchingEnd || bTouchingStart ) {
+                        sTreatedCl.insert(vit->getId());
+                        vGeom2Merge.push_back(clGeom);
+                        if (bTouchingEnd) vGeom2Merge.back().endPoint() = startPoint;
+                        if (bTouchingStart) vGeom2Merge.back().startPoint() = startPoint;
+                        startPoint = bTouchingEnd ? clGeom.startPoint() : clGeom.endPoint();
+                        break;
+                    }
+                }
+                if (before == sTreatedCl.size()) bNewStart = false;
+            }while (bNewStart);
+
+            do {
+                std::vector<ign::feature::Feature>::const_iterator vit;
+                size_t before = sTreatedCl.size();
+                for ( vit = vCandidates.begin() ; vit != vCandidates.end() ; ++vit ) {
+                    if (sTreatedCl.find(vit->getId()) != sTreatedCl.end()) continue;
+
+                    ign::geometry::LineString const& clGeom = vit->getGeometry().asLineString();
+                    bool bTouchingEnd = endPoint.distance(clGeom.endPoint()) < 1e-5;
+                    bool bTouchingStart = endPoint.distance(clGeom.startPoint()) < 1e-5;
+                    if ( bTouchingEnd || bTouchingStart ) {
+                        sTreatedCl.insert(vit->getId());
+                        vGeom2Merge.push_back(clGeom);
+                        if (bTouchingEnd) vGeom2Merge.back().endPoint() = endPoint;
+                        if (bTouchingStart) vGeom2Merge.back().startPoint() = endPoint;
+                        endPoint = bTouchingEnd ? clGeom.startPoint() : clGeom.endPoint();
+                        break;
+                    }
+                }
+                if (before == sTreatedCl.size()) bNewEnd = false;
+            } while (bNewEnd);
+
+            if (vGeom2Merge.size() == 1) return vGeom2Merge.front();
+
+            std::vector<ign::geometry::LineString> vMergedGeom = ign::geometry::algorithm::LineMergerOpGeos::MergeLineStrings(vGeom2Merge);
+            if ( vMergedGeom.size() > 1 ) _logger->log(epg::log::WARN, "Merging adjacent CL gives a MultilineString [ref CL id] " + refClFeat.getId());
+
+            return vMergedGeom.front();
         };
 
         ///
@@ -165,6 +248,7 @@ namespace app
             epg::params::EpgParameters const &epgParams = context->getEpgParameters();
 
             std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
+            std::string const linkedFeatureIdName = epgParams.getValue(LINKED_FEATURE_ID).toString();
 
             // app params
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
@@ -175,62 +259,88 @@ namespace app
             double snapDistance = themeParameters->getValue(SNAP_DIST).toDouble();
 
             ign::feature::FeatureFilter filterCl(countryCodeName + " LIKE '%" + _countryCode + "%'");
-            std::set<std::string> sEdge2Delete;
 
             // patience
             int numFeatures = epg::sql::tools::numFeatures(*_fsCl, filterCl);
             boost::progress_display display(numFeatures, std::cout, "[ cl_connection  % complete ]\n");
 
+            // pour garder le lien entre les CL et les edges nouvellement créés
+            // std::map<std::string, std::vector<std::string>> mParentChilds;
+            bimap_t mParentChilds;
+
+            std::set<std::string> sTreatedCl;
             ign::feature::FeatureIteratorPtr itCl = _fsCl->getFeatures(filterCl);
             while (itCl->hasNext())
             {
                 ++display;
-                ign::feature::Feature const &fCl = itCl->next();
-                ign::geometry::LineString const &clGeom = fCl.getGeometry().asLineString();
-                std::string edgeLink = fCl.getAttribute(edgeLinkName).toString();
+                ign::feature::Feature const& fCl = itCl->next();
+                ign::geometry::LineString const& clGeom = fCl.getGeometry().asLineString();
+                // std::string edgeLink = fCl.getAttribute(edgeLinkName).toString();
+                std::string linkedFeatureId = fCl.getAttribute(linkedFeatureIdName).toString();
                 std::string countryCode = fCl.getAttribute(countryCodeName).toString();
 
                 if (_verbose) _logger->log(epg::log::DEBUG, fCl.getId());
 
+                if ( sTreatedCl.find(fCl.getId()) != sTreatedCl.end() ) continue;
+
                 //DEBUG
                 std::string idDebug = fCl.getId();
-                // // if ( idDebug != "CONNECTINGLINE179" && idDebug != "CONNECTINGLINE178" ) continue;
+                // if ( idDebug != "CONNECTINGLINE2096" && idDebug != "CONNECTINGLINE2093" && idDebug != "CONNECTINGLINE2095" && idDebug != "CONNECTINGLINE2094" && idDebug != "CONNECTINGLINE2086" ) continue;
                 // if ( idDebug == "CONNECTINGLINE1680" || idDebug == "CONNECTINGLINE1825") {
                 //     bool test = true;
                 // }
-                // if ( idDebug != "CONNECTINGLINE1675" && idDebug != "CONNECTINGLINE1676") continue;
+                // if ( idDebug != "CONNECTINGLINE2218" && idDebug != "CONNECTINGLINE2230") continue;
 
-                std::pair<bool, std::string> foundEdgeLink = _getCountryEdgeLink(edgeLink, countryCode, _countryCode);
-                if (!foundEdgeLink.first)
+                std::pair<bool, std::string> foundFeatureId = _getSingleValue(linkedFeatureId, countryCode, _countryCode);
+                if (!foundFeatureId.first)
                 {
-                    _logger->log(epg::log::ERROR, "Edge link not found [connecting edge id] " + fCl.getId());
+                    _logger->log(epg::log::ERROR, "Feature id not found [connecting edge id] " + fCl.getId());
                     continue;
                 }
 
-                std::pair<bool, std::string> foundEdge = _getNearestEdge(clGeom, countryCodeName, edgeLinkName, foundEdgeLink.second, sEdge2Delete);
+                //DEBUG
+                // std::map<std::string, std::vector<std::string>>::const_iterator mit = mParentChilds.find("fd8c7927-7e77-422e-a50e-67a4989550fc");
+                // if (mit !=  mParentChilds.end()) {
+                //     std::vector<std::string>>::const_iterator vit;
+                //     for( vit = mit->second.begin() ; vit != mit->second.end() ; ++vit) {
+                //         if (vit == foundFeatureId.second)
+                //     }
+                // }
+                // if (foundFeatureId.second == "fd8c7927-7e77-422e-a50e-67a4989550fc") {
+                //     bool test =true;
+                // }
+
+                //fusionner les cl adjacentes avec le même edgeLink, récuperer le géométrie fusionnée et lister les cl traitées pour ne pas les traiter de nouveau
+                ign::geometry::LineString mergedClGeom = _mergecl(fCl, foundFeatureId.second, sTreatedCl);
+
+                std::pair<bool, ign::feature::Feature> foundEdge = _getNearestChild(mergedClGeom, foundFeatureId.second, mParentChilds);
                 if (!foundEdge.first)
                 {
-                    _logger->log(epg::log::ERROR, "No candidate edge found [" + edgeLinkName + "] " + foundEdgeLink.second);
+                    _logger->log(epg::log::ERROR, "No candidate edge found [" + linkedFeatureIdName + "] " + foundFeatureId.second);
                     continue;
                 }
 
+                // std::pair<bool, std::string> foundEdge = _getNearestEdge(mergedClGeom, countryCodeName, edgeLinkName, foundEdgeLink.second, sEdge2Delete);
+                // if (!foundEdge.first)
+                // {
+                //     _logger->log(epg::log::ERROR, "No candidate edge found [" + edgeLinkName + "] " + foundEdgeLink.second);
+                //     continue;
+                // }
+                
                 // if (foundEdge.second ==  "50ab969e-2186-4c19-a0bb-ddc2d8ada2b8" || foundEdge.second ==  "38cb0d6f-50cf-4ce3-ae74-9d6f8a5915d4") {
                 //     bool test =true;
                 // }
 
-                ign::feature::Feature fEdge;
-                _fsEdge->getFeatureById(foundEdge.second, fEdge);
+                if (_verbose) _logger->log(epg::log::DEBUG, "  "+foundEdge.second.getId());
 
-                if (_verbose) _logger->log(epg::log::DEBUG, "  "+foundEdge.second);
-
-                ign::geometry::LineString const &edgeGeom = fEdge.getGeometry().asLineString();
+                ign::geometry::LineString const& edgeGeom = foundEdge.second.getGeometry().asLineString();
 
                 // peut-on connecter l'edge aux extremités du connecting edge ?
                 std::vector<double> vDist;
-                vDist.push_back(clGeom.startPoint().distance(edgeGeom.startPoint()));
-                vDist.push_back(clGeom.startPoint().distance(edgeGeom.endPoint()));
-                vDist.push_back(clGeom.endPoint().distance(edgeGeom.startPoint()));
-                vDist.push_back(clGeom.endPoint().distance(edgeGeom.endPoint()));
+                vDist.push_back(mergedClGeom.startPoint().distance(edgeGeom.startPoint()));
+                vDist.push_back(mergedClGeom.startPoint().distance(edgeGeom.endPoint()));
+                vDist.push_back(mergedClGeom.endPoint().distance(edgeGeom.startPoint()));
+                vDist.push_back(mergedClGeom.endPoint().distance(edgeGeom.endPoint()));
 
                 size_t minId = 0;
                 for (size_t i = 1; i < vDist.size(); ++i)
@@ -251,10 +361,20 @@ namespace app
                     }
                     else
                     {
-                        epg::tools::geometry::projectZ(edgeGeom, clGeom.startPoint(), startPoint);
-                        mpCuttingPoints.addGeometry(startPoint);
+                        epg::tools::geometry::projectZ(edgeGeom, mergedClGeom.startPoint(), startPoint);
+                        if (startPoint.distance((minId == 0) ? edgeGeom.startPoint() : edgeGeom.endPoint()) <= snapDistance) {
+                            startPoint = (minId == 0) ? edgeGeom.startPoint() : edgeGeom.endPoint();
+                            endingPoint = startPoint;
+                        } else {
+                            mpCuttingPoints.addGeometry(startPoint);
+                        }
                     }
-                    mDisplacements.insert(std::make_pair(startPoint, clGeom.startPoint().toVec2d() - startPoint.toVec2d()));
+                    ign::math::Vec2d v1 = mergedClGeom.startPoint().toVec2d() - startPoint.toVec2d();
+                    mDisplacements.insert(std::make_pair(startPoint, v1));
+                    double n1 = v1.norm();
+                    if (n1 > 10) {
+                        _logger->log(epg::log::WARN, "Big displacement : "+std::to_string(n1)+" [" + linkedFeatureIdName + "] " + foundFeatureId.second);
+                    }
 
                     // size_t minId2 = vDist[2] < vDist[3] ? 2 : 3;
                     size_t minId2 = minId == 0  ? 3 : 2;
@@ -265,10 +385,20 @@ namespace app
                     }
                     else
                     {
-                        epg::tools::geometry::projectZ(edgeGeom, clGeom.endPoint(), startPoint);
-                        mpCuttingPoints.addGeometry(startPoint);
+                        epg::tools::geometry::projectZ(edgeGeom, mergedClGeom.endPoint(), startPoint);
+                        if (startPoint.distance((minId2 == 2) ? edgeGeom.startPoint() : edgeGeom.endPoint()) <= snapDistance) {
+                            startPoint = (minId2 == 2) ? edgeGeom.startPoint() : edgeGeom.endPoint();
+                            endingPoint = startPoint;
+                        } else {
+                            mpCuttingPoints.addGeometry(startPoint);
+                        }
                     }
-                    mDisplacements.insert(std::make_pair(startPoint, clGeom.endPoint().toVec2d() - startPoint.toVec2d()));
+                    ign::math::Vec2d v2 = mergedClGeom.endPoint().toVec2d() - startPoint.toVec2d();
+                    mDisplacements.insert(std::make_pair(startPoint, v2));
+                    double n2 = v2.norm();
+                    if (n2 > 10) {
+                        _logger->log(epg::log::WARN, "Big displacement : "+std::to_string(n2)+" [" + linkedFeatureIdName + "] " + foundFeatureId.second);
+                    }
                 }
                 else
                 {
@@ -280,10 +410,20 @@ namespace app
                     }
                     else
                     {
-                        epg::tools::geometry::projectZ(edgeGeom, clGeom.endPoint(), startPoint);
-                        mpCuttingPoints.addGeometry(startPoint);
+                        epg::tools::geometry::projectZ(edgeGeom, mergedClGeom.endPoint(), startPoint);
+                        if (startPoint.distance((minId == 2) ? edgeGeom.startPoint() : edgeGeom.endPoint()) <= snapDistance) {
+                            startPoint = (minId == 2) ? edgeGeom.startPoint() : edgeGeom.endPoint();
+                            endingPoint = startPoint;
+                        } else {
+                            mpCuttingPoints.addGeometry(startPoint);
+                        }
                     }
-                    mDisplacements.insert(std::make_pair(startPoint, clGeom.endPoint().toVec2d() - startPoint.toVec2d()));
+                    ign::math::Vec2d v1 = mergedClGeom.endPoint().toVec2d() - startPoint.toVec2d();
+                    mDisplacements.insert(std::make_pair(startPoint, v1));
+                    double n1 = v1.norm();
+                    if (n1 > 10) {
+                        _logger->log(epg::log::WARN, "Big displacement : "+std::to_string(n1)+" [" + linkedFeatureIdName + "] " + foundFeatureId.second);
+                    }
 
                     // size_t minId2 = vDist[0] < vDist[1] ? 0 : 1;
                     size_t minId2 = minId == 2  ? 1 : 0;
@@ -294,10 +434,20 @@ namespace app
                     }
                     else
                     {
-                        epg::tools::geometry::projectZ(edgeGeom, clGeom.startPoint(), startPoint);
-                        mpCuttingPoints.addGeometry(startPoint);
+                        epg::tools::geometry::projectZ(edgeGeom, mergedClGeom.startPoint(), startPoint);
+                        if (startPoint.distance((minId2 == 0) ? edgeGeom.startPoint() : edgeGeom.endPoint()) <= snapDistance) {
+                            startPoint = (minId2 == 0) ? edgeGeom.startPoint() : edgeGeom.endPoint();
+                            endingPoint = startPoint;
+                        } else {
+                            mpCuttingPoints.addGeometry(startPoint);
+                        }
                     }
-                    mDisplacements.insert(std::make_pair(startPoint, clGeom.startPoint().toVec2d() - startPoint.toVec2d()));
+                    ign::math::Vec2d v2 = mergedClGeom.startPoint().toVec2d() - startPoint.toVec2d();
+                    mDisplacements.insert(std::make_pair(startPoint, v2));
+                    double n2 = v2.norm();
+                    if (n2 > 10) {
+                        _logger->log(epg::log::WARN, "Big displacement : "+std::to_string(n2)+" [" + linkedFeatureIdName + "] " + foundFeatureId.second);
+                    }
                 }
 
                 std::vector< ign::geometry::LineString > vNewGeom;
@@ -315,31 +465,27 @@ namespace app
                         }
                     }
                 }
-                if (vNewGeom.empty()) {
-                    sEdge2Delete.insert(foundEdge.second);
-                } else if (vNewGeom.size() == 1) {
-                    fEdge.setGeometry(vNewGeom.front());
-                    _fsEdge->modifyFeature(fEdge);
-                } else {
-                    sEdge2Delete.insert(foundEdge.second);
 
-                    for (size_t i = 0 ; i < vNewGeom.size() ; ++i) {
-                        fEdge.setGeometry(vNewGeom[i]);
+                //on supprime l'edge
+                _shapeLogger->writeFeature("cl_deleted_features_"+_countryCode, foundEdge.second);
+                _fsEdge->deleteFeature(foundEdge.second.getId());
 
-                        _fsEdge->createFeature(fEdge);
+                // std::vector<std::string> vChilds;
+                std::string edgeId = foundEdge.second.getId();
+                auto r_mit = mParentChilds.right.find(edgeId);
+                std::string parentId = r_mit != mParentChilds.right.end() ? r_mit->second : edgeId;
+                if ( vNewGeom.size() > 0 && r_mit != mParentChilds.right.end()) mParentChilds.right.erase(r_mit);
+                // std::string parentId = foundEdge.second.getId();
+                for (size_t i = 0 ; i < vNewGeom.size() ; ++i) {
+                    foundEdge.second.setGeometry(vNewGeom[i]);
+                    
+                    _fsEdge->createFeature(foundEdge.second);
+                    mParentChilds.insert(value_type(parentId,foundEdge.second.getId()));
+                    // vChilds.push_back(foundEdge.second.getId());
 
-                        _shapeLogger->writeFeature("cl_created_features", fEdge);
-                    }
+                    _shapeLogger->writeFeature("cl_created_features_"+_countryCode, foundEdge.second);
                 }
-            }
-
-            std::set< std::string >::const_iterator sit;
-            for( sit = sEdge2Delete.begin() ; sit != sEdge2Delete.end() ; ++sit ) {
-                ign::feature::Feature dFeat;
-                _fsEdge->getFeatureById(*sit, dFeat);
-                _shapeLogger->writeFeature("cl_deleted_features", dFeat);
-
-                _fsEdge->deleteFeature(*sit);
+                // if (!vChilds.empty()) mParentChilds.insert(std::make_pair(parentId, vChilds));
             }
 
             std::map<ign::geometry::Point, ign::math::Vec2d>::const_iterator mit;
@@ -348,7 +494,7 @@ namespace app
                 ign::feature::Feature feat;
                 ign::geometry::Point p = mit->first;
                 feat.setGeometry(ign::geometry::LineString(p, ign::geometry::Point(mit->first.x() + mit->second.x(), mit->first.y() + mit->second.y())));
-                _shapeLogger->writeFeature("cl_displacements", feat);
+                _shapeLogger->writeFeature("cl_displacements_"+_countryCode, feat);
             }
         }
 
@@ -369,8 +515,50 @@ namespace app
             std::vector<edge_descriptor> vDeformedEdges;
             _applyEdgeDisplacement(graph, mDisplacements, vDeformedEdges, sCollapsedEdges);
 
+
+            //DEBUG
+            std::set<edge_descriptor> sVisitedEdge;
+            edge_iterator eit, eend;
+            for (graph.edges(eit, eend); eit != eend; ++eit)
+            {
+                if ( sVisitedEdge.find(*eit) != sVisitedEdge.end() ) continue;
+                std::vector< oriented_edge_descriptor > vParallelEdges;
+                graph.edges( graph.source(*eit), graph.target(*eit), vParallelEdges );
+                if(vParallelEdges.size() < 2) continue;
+
+                std::vector< oriented_edge_descriptor >::const_iterator vit;
+                std::vector< oriented_edge_descriptor >::const_iterator vit_last = --vParallelEdges.end();
+                std::set<edge_descriptor> sVisited;
+                for (vit = vParallelEdges.begin() ; vit != vit_last ; ++vit ) {
+                    if ( sVisitedEdge.find(vit->descriptor) != sVisitedEdge.end() ) continue;
+                    sVisitedEdge.insert(vit->descriptor);
+                    ign::geometry::LineString lsRef = graph.getGeometry(*vit);
+                    std::vector< oriented_edge_descriptor >::const_iterator vit2 = vit;
+                    for ( ++vit2 ; vit2 != vParallelEdges.end() ; ++vit2 ) {
+                        if( vit2->descriptor == vit->descriptor ) continue; /*gestion des boucle*/
+                        ign::geometry::LineString ls = graph.getGeometry(vit2->descriptor);
+                        if ( ign::geometry::algorithm::HausdorffDistanceOp::distance(lsRef, ls) < 0.1 /*todo a ajuster*/ ) {
+                            sVisitedEdge.insert(vit2->descriptor);
+                            ign::feature::Feature eFeat;
+                            eFeat.setGeometry(ls);
+                            _shapeLogger->writeFeature("cl_superposed_edges_"+_countryCode, eFeat);
+                        }
+                    }
+                }
+            }
+            _logger->log(epg::log::DEBUG, "coucu");
+
             // on enregistre les modifications
             _persistEdgeDisplacement(graph, vDeformedEdges);
+
+            _logger->log(epg::log::DEBUG, "coucu2");
+
+            //remove collapsed edges
+            for (std::set<std::string>::const_iterator sit = sCollapsedEdges.begin() ; sit != sCollapsedEdges.end() ; ++sit) {
+                _fsEdge->deleteFeature(*sit);
+            }
+
+            _logger->log(epg::log::DEBUG, "coucu3");
         };
 
         ///
@@ -472,7 +660,7 @@ namespace app
 
                             ign::feature::Feature feat = fCp;
                             feat.setGeometry(ls);
-                            _shapeLogger->writeFeature("multiple_result", feat);
+                            _shapeLogger->writeFeature("multiple_result_"+_countryCode, feat);
 
                             double distance = ls.distance(cpGeom);
                             if (distance < distanceMax)
@@ -504,7 +692,7 @@ namespace app
 
                 ign::feature::Feature feat = fEdge;
                 feat.setGeometry(projectedPoint);
-                _shapeLogger->writeFeature("projected_cp", feat);
+                _shapeLogger->writeFeature("projected_cp_"+_countryCode, feat);
 
                 lsSplitter.addCuttingGeometry(projectedPoint);
                 ign::geometry::LineString newEdgeGeom = lsSplitter.truncAtEnds();
@@ -520,7 +708,7 @@ namespace app
                 {
                     fEdge.setId("");
                     _fsEdge->createFeature(fEdge);
-                    _shapeLogger->writeFeature("created_edges", fEdge);
+                    _shapeLogger->writeFeature("created_edges_"+_countryCode, fEdge);
                 }
                 else
                 {
@@ -529,7 +717,7 @@ namespace app
 
                 ign::feature::Feature featLog;
                 featLog.setGeometry(newEdgeGeom);
-                _shapeLogger->writeFeature("resulting_edges", featLog);
+                _shapeLogger->writeFeature("resulting_edges_"+_countryCode, featLog);
             }
 
             std::set< std::string >::const_iterator sit;
@@ -542,7 +730,7 @@ namespace app
             {
                 ign::feature::Feature feat;
                 feat.setGeometry(ign::geometry::LineString(mit->first, ign::geometry::Point(mit->first.x() + mit->second.x(), mit->first.y() + mit->second.y())));
-                _shapeLogger->writeFeature("cp_displacements", feat);
+                _shapeLogger->writeFeature("cp_displacements_"+_countryCode, feat);
             }
 
         }
@@ -566,6 +754,11 @@ namespace app
 
             // on enregistre les modifications
             _persistEdgeDisplacement(graph, vDeformedEdges);
+
+            //remove collapsed edges
+            for (std::set<std::string>::const_iterator sit = sCollapsedEdges.begin() ; sit != sCollapsedEdges.end() ; ++sit) {
+                _fsEdge->deleteFeature(*sit);
+            }
         }
 
         ///
@@ -588,6 +781,66 @@ namespace app
 
             // on enregistre les modifications
             _persistEdgeDisplacement(graph, vDeformedEdges);
+
+            //remove collapsed edges
+            for (std::set<std::string>::const_iterator sit = sCollapsedEdges.begin() ; sit != sCollapsedEdges.end() ; ++sit) {
+                _fsEdge->deleteFeature(*sit);
+            }
+        }
+
+        ///
+        ///
+        ///
+        std::pair<bool, ign::feature::Feature> CFeatConnectionOp::_getNearestChild(
+            ign::geometry::Geometry const& refGeom,
+            std::string const& parentFeatureId,
+            bimap_t const& mParentChilds ) const
+        {
+            epg::Context* context = epg::ContextS::getInstance();
+            epg::params::EpgParameters const &epgParams = context->getEpgParameters();
+            std::string const edgeIdName = epgParams.getValue(ID).toString();
+
+            ign::feature::Feature fEdgeResult;
+            bool found = false;
+
+            std::vector<std::string> vCandidates;
+
+            // bimap_t::const_iterator mit = mParentChilds.find(parentFeatureId);
+            // if ( mit == mParentChilds.end() ) vCandidates.push_back(parentFeatureId);
+            // else vCandidates = mit->second;
+
+            auto range = mParentChilds.left.equal_range(parentFeatureId);
+            for (auto l_it = range.first; l_it != range.second; ++l_it) {
+                vCandidates.push_back(l_it->second);
+            }
+            if (vCandidates.size() == 0) {
+                vCandidates.push_back(parentFeatureId);
+            }
+
+            if (vCandidates.size() == 1) {
+                _fsEdge->getFeatureById(vCandidates.front(), fEdgeResult);
+                found = !fEdgeResult.getId().empty();
+            } else {
+                double dMax = std::numeric_limits<double>::infinity();
+                ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(edgeIdName + " IN ('" + tools::StringTools::toString(vCandidates, "','") + "')");
+
+                while (itEdge->hasNext())
+                {
+                    ign::feature::Feature const& fEdge = itEdge->next();
+
+                    ign::geometry::LineString const &edgeGeom = fEdge.getGeometry().asLineString();
+                    double distance = edgeGeom.distance(refGeom);
+
+                    if (distance < dMax)
+                    {
+                        dMax = distance;
+                        fEdgeResult = fEdge;
+                    }
+                }
+                found = (dMax != std::numeric_limits<double>::infinity());
+            }
+            
+            return std::make_pair(found, fEdgeResult);
         }
 
         ///
@@ -628,7 +881,7 @@ namespace app
         ///
         ///
         ///
-        std::pair<bool, std::string> CFeatConnectionOp::_getCountryEdgeLink(
+        std::pair<bool, std::string> CFeatConnectionOp::_getSingleValue(
             std::string edgeLinks,
             std::string countryCodes,
             std::string country) const
@@ -749,11 +1002,6 @@ namespace app
                 shapeLogger->addShape("applyDisplacements_deformedEdges", epg::log::ShapeLogger::LINESTRING);
             if (_verbose)
                 shapeLogger->addShape("applyDisplacements_edgesBeforeDeformation", epg::log::ShapeLogger::LINESTRING);
-
-
-            typedef typename GraphType::vertex_descriptor vertex_descriptor;
-            typedef typename GraphType::edge_descriptor edge_descriptor;
-            typedef typename GraphType::edge_iterator edge_iterator;
 
             // on construit la map des deplacements
             std::map<vertex_descriptor, std::vector<ign::math::Vec2d>> mDisplacements;
@@ -894,13 +1142,22 @@ namespace app
                 graph.removeEdge(edgesToRemove[i]);
 
             // sur les sommets
+            std::map<edge_descriptor, edge_descriptor> mOldNewEdges;
             typename std::map<vertex_descriptor, std::vector<ign::math::Vec2d>>::const_iterator dit;
             for (dit = mDisplacements.begin(); dit != mDisplacements.end(); ++dit)
             {
                 ign::math::Vec2d displacement = _computeDisplacement(dit->second);
-                // epg::graph::tools::translateVertex( graph, dit->first, displacement, false/*with merging*/ );
-                ign::geometry::Point oldGeom = graph.getGeometry(dit->first);
-                graph.setGeometry(dit->first, ign::geometry::Point(oldGeom.x() + displacement.x(), oldGeom.y() + displacement.y(), oldGeom.z()));
+                tools::translateVertex( graph, dit->first, displacement, mOldNewEdges, true/*with merging*/, 1e-5 );
+                // ign::geometry::Point oldGeom = graph.getGeometry(dit->first);
+                // graph.setGeometry(dit->first, ign::geometry::Point(oldGeom.x() + displacement.x(), oldGeom.y() + displacement.y(), oldGeom.z()));
+            }
+
+            std::vector<edge_descriptor>::iterator vit;
+            for (vit = vDeformedEdges.begin() ; vit != vDeformedEdges.end() ; ++vit) {
+                std::map<edge_descriptor, edge_descriptor>::const_iterator mit = mOldNewEdges.find(*vit);
+                if (mit != mOldNewEdges.end()) {
+                    *vit = mit->second;
+                }
             }
 
             if (_verbose)
@@ -934,6 +1191,9 @@ namespace app
             std::vector<edge_descriptor>::const_iterator vit;
             for ( vit = vDeformedEdges.begin() ; vit != vDeformedEdges.end() ; ++vit ) {
                 std::string edgeId = graph.origins(*vit)[0];
+
+                _logger->log(epg::log::DEBUG, edgeId);
+
                 ign::geometry::LineString edgeGeom = graph.getGeometry(*vit);
                 
                 ign::feature::Feature fEdge;

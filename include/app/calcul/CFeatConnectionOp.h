@@ -12,17 +12,26 @@
 // SOCLE
 #include <ign/geometry/graph/GeometryGraph.h>
 
+// BOOST
+#include <boost/bimap.hpp>
+#include <boost/bimap/set_of.hpp>
+#include <boost/bimap/multiset_of.hpp>
+
 
 namespace app{
 namespace calcul{
 
 	class CFeatConnectionOp {
+		typedef boost::bimap<boost::bimaps::multiset_of<std::string>, boost::bimaps::set_of<std::string>> bimap_t;
+        typedef bimap_t::value_type value_type;
 
 	public:
 
 		typedef ign::geometry::graph::GeometryGraph< ign::geometry::graph::PunctualVertexProperties, ign::geometry::graph::LinearEdgeProperties >  GraphType;
 		typedef typename GraphType::edge_descriptor edge_descriptor;
+		typedef typename GraphType::oriented_edge_descriptor oriented_edge_descriptor;
 		typedef typename GraphType::vertex_descriptor vertex_descriptor;
+        typedef typename GraphType::edge_iterator edge_iterator;
 
 		/// \brief
 		static void computeCp(
@@ -104,10 +113,24 @@ namespace calcul{
 		void _computeCpCl();
 
 		//--
-		std::pair<bool, std::string> _getCountryEdgeLink(
+		ign::geometry::LineString _mergecl(
+			ign::feature::Feature const& refClFeat,
+			std::string const& edgeLink,
+			std::set<std::string> & sTreatedCl
+		) const;
+
+		//--
+		std::pair<bool, std::string> _getSingleValue(
             std::string edgeLinks,
             std::string countryCodes,
             std::string country
+		) const;
+
+		//--
+		std::pair<bool, ign::feature::Feature> _getNearestChild(
+            ign::geometry::Geometry const& refGeom,
+            std::string const& parentFeatureId,
+            bimap_t const& mParentChilds
 		) const;
 
 		//--

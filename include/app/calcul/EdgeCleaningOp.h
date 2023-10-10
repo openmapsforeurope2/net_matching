@@ -21,6 +21,7 @@ namespace calcul{
 		typedef app::calcul::detail::EdgeCleaningGraphManager::GraphType   GraphType;
 		typedef typename GraphType::edge_descriptor                        edge_descriptor;
 		typedef typename GraphType::oriented_edge_descriptor               oriented_edge_descriptor;
+		typedef typename GraphType::edge_iterator                          edge_iterator;
 		typedef typename GraphType::face_descriptor                        face_descriptor;
 		typedef typename GraphType::face_iterator                          face_iterator;
 		typedef typename GraphType::vertex_descriptor                      vertex_descriptor;
@@ -69,16 +70,13 @@ namespace calcul{
         );
 
 		//--
-		void _loadGraph(app::calcul::detail::EdgeCleaningGraphManager & graphManager) const;
+		void _loadGraph(app::calcul::detail::EdgeCleaningGraphManager & graphManager, bool planarize = false) const;
 
 		//--
 		double _getLength( ign::geometry::Geometry const& geom ) const;
 
 		//--
 		double _getRatio(GraphType const& graph, std::string country, std::list<edge_descriptor> const& lEdges) const;
-
-		//--
-		std::string _toString(std::vector<std::string> const& vStrings, std::string separator = ",") const;
 
 		//--
 		void _removeEdges(GraphType const& graph, std::list<edge_descriptor> const& lEdges) const;

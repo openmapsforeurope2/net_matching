@@ -112,12 +112,12 @@ namespace calcul{
 		//--
 		void _computeCpCl();
 
-		//--
-		ign::geometry::LineString _mergecl(
-			ign::feature::Feature const& refClFeat,
-			std::string const& edgeLink,
-			std::set<std::string> & sTreatedCl
-		) const;
+		// //--
+		// ign::geometry::LineString _mergecl(
+		// 	ign::feature::Feature const& refClFeat,
+		// 	std::string const& edgeLink,
+		// 	std::set<std::string> & sTreatedCl
+		// ) const;
 
 		//--
 		std::pair<bool, std::string> _getSingleValue(

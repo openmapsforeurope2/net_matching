@@ -4,6 +4,7 @@
 #include <app/geometry/tools/LineStringSplitter.h>
 #include <app/tools/StringTools.h>
 #include <app/tools/translateVertex.h>
+#include <app/calcul/detail/ClMerger.h>
 
 // BOOST
 #include <boost/progress.hpp>
@@ -160,82 +161,82 @@ namespace app
             _logger->log(epg::log::INFO, "[END] initialization: " + epg::tools::TimeTools::getTime());
         };
 
-        ///
-        ///
-        ///
-        ign::geometry::LineString CFeatConnectionOp::_mergecl(ign::feature::Feature const& refClFeat, std::string const& linkedFeatureId, std::set<std::string> & sTreatedCl) const {
-            epg::Context* context = epg::ContextS::getInstance();
-            epg::params::EpgParameters const& epgParams = context->getEpgParameters();
-            std::string const linkedFeatureIdName = epgParams.getValue(LINKED_FEATURE_ID).toString();
+        // ///
+        // ///
+        // ///
+        // ign::geometry::LineString CFeatConnectionOp::_mergecl(ign::feature::Feature const& refClFeat, std::string const& linkedFeatureId, std::set<std::string> & sTreatedCl) const {
+        //     epg::Context* context = epg::ContextS::getInstance();
+        //     epg::params::EpgParameters const& epgParams = context->getEpgParameters();
+        //     std::string const linkedFeatureIdName = epgParams.getValue(LINKED_FEATURE_ID).toString();
 
-            ign::geometry::LineString const& refClGeom = refClFeat.getGeometry().asLineString();
-            ign::geometry::Point startPoint = refClGeom.startPoint();
-            ign::geometry::Point endPoint = refClGeom.endPoint();
-            bool bNewStart = true;
-            bool bNewEnd = true;
+        //     ign::geometry::LineString const& refClGeom = refClFeat.getGeometry().asLineString();
+        //     ign::geometry::Point startPoint = refClGeom.startPoint();
+        //     ign::geometry::Point endPoint = refClGeom.endPoint();
+        //     bool bNewStart = true;
+        //     bool bNewEnd = true;
 
-            std::vector<ign::feature::Feature> vCandidates;
-            ign::feature::FeatureIteratorPtr itCl = _fsCl->getFeatures(linkedFeatureIdName + " LIKE '%" + linkedFeatureId + "%'");
-            while (itCl->hasNext())
-            {
-                ign::feature::Feature const& fCl = itCl->next();
-                vCandidates.push_back(fCl);
-            }
+        //     std::vector<ign::feature::Feature> vCandidates;
+        //     ign::feature::FeatureIteratorPtr itCl = _fsCl->getFeatures(linkedFeatureIdName + " LIKE '%" + linkedFeatureId + "%'");
+        //     while (itCl->hasNext())
+        //     {
+        //         ign::feature::Feature const& fCl = itCl->next();
+        //         vCandidates.push_back(fCl);
+        //     }
 
-            // std::set<std::string> sMergedCl;
-            sTreatedCl.insert(refClFeat.getId());
-            std::vector<ign::geometry::LineString> vGeom2Merge;
-            vGeom2Merge.push_back(refClGeom);
+        //     // std::set<std::string> sMergedCl;
+        //     sTreatedCl.insert(refClFeat.getId());
+        //     std::vector<ign::geometry::LineString> vGeom2Merge;
+        //     vGeom2Merge.push_back(refClGeom);
 
-            do {
-                std::vector<ign::feature::Feature>::const_iterator vit;
-                size_t before = sTreatedCl.size();
-                for ( vit = vCandidates.begin() ; vit != vCandidates.end() ; ++vit ) {
-                    if (sTreatedCl.find(vit->getId()) != sTreatedCl.end()) continue;
+        //     do {
+        //         std::vector<ign::feature::Feature>::const_iterator vit;
+        //         size_t before = sTreatedCl.size();
+        //         for ( vit = vCandidates.begin() ; vit != vCandidates.end() ; ++vit ) {
+        //             if (sTreatedCl.find(vit->getId()) != sTreatedCl.end()) continue;
                     
-                    ign::geometry::LineString const& clGeom = vit->getGeometry().asLineString();
-                    bool bTouchingEnd = startPoint.distance(clGeom.endPoint()) < 1e-1;
-                    bool bTouchingStart = startPoint.distance(clGeom.startPoint()) < 1e-1;
-                    if ( bTouchingEnd || bTouchingStart ) {
-                        sTreatedCl.insert(vit->getId());
-                        vGeom2Merge.push_back(clGeom);
-                        if (bTouchingEnd) vGeom2Merge.back().endPoint() = startPoint;
-                        if (bTouchingStart) vGeom2Merge.back().startPoint() = startPoint;
-                        startPoint = bTouchingEnd ? clGeom.startPoint() : clGeom.endPoint();
-                        break;
-                    }
-                }
-                if (before == sTreatedCl.size()) bNewStart = false;
-            }while (bNewStart);
+        //             ign::geometry::LineString const& clGeom = vit->getGeometry().asLineString();
+        //             bool bTouchingEnd = startPoint.distance(clGeom.endPoint()) < 1e-1;
+        //             bool bTouchingStart = startPoint.distance(clGeom.startPoint()) < 1e-1;
+        //             if ( bTouchingEnd || bTouchingStart ) {
+        //                 sTreatedCl.insert(vit->getId());
+        //                 vGeom2Merge.push_back(clGeom);
+        //                 if (bTouchingEnd) vGeom2Merge.back().endPoint() = startPoint;
+        //                 if (bTouchingStart) vGeom2Merge.back().startPoint() = startPoint;
+        //                 startPoint = bTouchingEnd ? clGeom.startPoint() : clGeom.endPoint();
+        //                 break;
+        //             }
+        //         }
+        //         if (before == sTreatedCl.size()) bNewStart = false;
+        //     }while (bNewStart);
 
-            do {
-                std::vector<ign::feature::Feature>::const_iterator vit;
-                size_t before = sTreatedCl.size();
-                for ( vit = vCandidates.begin() ; vit != vCandidates.end() ; ++vit ) {
-                    if (sTreatedCl.find(vit->getId()) != sTreatedCl.end()) continue;
+        //     do {
+        //         std::vector<ign::feature::Feature>::const_iterator vit;
+        //         size_t before = sTreatedCl.size();
+        //         for ( vit = vCandidates.begin() ; vit != vCandidates.end() ; ++vit ) {
+        //             if (sTreatedCl.find(vit->getId()) != sTreatedCl.end()) continue;
 
-                    ign::geometry::LineString const& clGeom = vit->getGeometry().asLineString();
-                    bool bTouchingEnd = endPoint.distance(clGeom.endPoint()) < 1e-5;
-                    bool bTouchingStart = endPoint.distance(clGeom.startPoint()) < 1e-5;
-                    if ( bTouchingEnd || bTouchingStart ) {
-                        sTreatedCl.insert(vit->getId());
-                        vGeom2Merge.push_back(clGeom);
-                        if (bTouchingEnd) vGeom2Merge.back().endPoint() = endPoint;
-                        if (bTouchingStart) vGeom2Merge.back().startPoint() = endPoint;
-                        endPoint = bTouchingEnd ? clGeom.startPoint() : clGeom.endPoint();
-                        break;
-                    }
-                }
-                if (before == sTreatedCl.size()) bNewEnd = false;
-            } while (bNewEnd);
+        //             ign::geometry::LineString const& clGeom = vit->getGeometry().asLineString();
+        //             bool bTouchingEnd = endPoint.distance(clGeom.endPoint()) < 1e-5;
+        //             bool bTouchingStart = endPoint.distance(clGeom.startPoint()) < 1e-5;
+        //             if ( bTouchingEnd || bTouchingStart ) {
+        //                 sTreatedCl.insert(vit->getId());
+        //                 vGeom2Merge.push_back(clGeom);
+        //                 if (bTouchingEnd) vGeom2Merge.back().endPoint() = endPoint;
+        //                 if (bTouchingStart) vGeom2Merge.back().startPoint() = endPoint;
+        //                 endPoint = bTouchingEnd ? clGeom.startPoint() : clGeom.endPoint();
+        //                 break;
+        //             }
+        //         }
+        //         if (before == sTreatedCl.size()) bNewEnd = false;
+        //     } while (bNewEnd);
 
-            if (vGeom2Merge.size() == 1) return vGeom2Merge.front();
+        //     if (vGeom2Merge.size() == 1) return vGeom2Merge.front();
 
-            std::vector<ign::geometry::LineString> vMergedGeom = ign::geometry::algorithm::LineMergerOpGeos::MergeLineStrings(vGeom2Merge);
-            if ( vMergedGeom.size() > 1 ) _logger->log(epg::log::WARN, "Merging adjacent CL gives a MultilineString [ref CL id] " + refClFeat.getId());
+        //     std::vector<ign::geometry::LineString> vMergedGeom = ign::geometry::algorithm::LineMergerOpGeos::MergeLineStrings(vGeom2Merge);
+        //     if ( vMergedGeom.size() > 1 ) _logger->log(epg::log::WARN, "Merging adjacent CL gives a MultilineString [ref CL id] " + refClFeat.getId());
 
-            return vMergedGeom.front();
-        };
+        //     return vMergedGeom.front();
+        // };
 
         ///
         ///
@@ -286,7 +287,7 @@ namespace app
                 //DEBUG
                 std::string idDebug = fCl.getId();
                 // if ( idDebug != "CONNECTINGLINE2096" && idDebug != "CONNECTINGLINE2093" && idDebug != "CONNECTINGLINE2095" && idDebug != "CONNECTINGLINE2094" && idDebug != "CONNECTINGLINE2086" ) continue;
-                // if ( idDebug == "CONNECTINGLINE1680" || idDebug == "CONNECTINGLINE1825") {
+                // if ( idDebug == "CONNECTINGLINE1817" || idDebug == "CONNECTINGLINE1816") {
                 //     bool test = true;
                 // }
                 // if ( idDebug != "CONNECTINGLINE2218" && idDebug != "CONNECTINGLINE2230") continue;
@@ -311,8 +312,8 @@ namespace app
                 // }
 
                 //fusionner les cl adjacentes avec le même edgeLink, récuperer le géométrie fusionnée et lister les cl traitées pour ne pas les traiter de nouveau
-                ign::geometry::LineString mergedClGeom = _mergecl(fCl, foundFeatureId.second, sTreatedCl);
-
+                ign::geometry::LineString mergedClGeom = detail::ClMerger::merge(_fsCl, fCl, foundFeatureId.second, sTreatedCl);
+                
                 std::pair<bool, ign::feature::Feature> foundEdge = _getNearestChild(mergedClGeom, foundFeatureId.second, mParentChilds);
                 if (!foundEdge.first)
                 {
@@ -466,12 +467,12 @@ namespace app
                     }
                 }
 
+                std::string edgeId = foundEdge.second.getId();
                 //on supprime l'edge
                 _shapeLogger->writeFeature("cl_deleted_features_"+_countryCode, foundEdge.second);
-                _fsEdge->deleteFeature(foundEdge.second.getId());
+                _fsEdge->deleteFeature(edgeId);
 
                 // std::vector<std::string> vChilds;
-                std::string edgeId = foundEdge.second.getId();
                 auto r_mit = mParentChilds.right.find(edgeId);
                 std::string parentId = r_mit != mParentChilds.right.end() ? r_mit->second : edgeId;
                 if ( vNewGeom.size() > 0 && r_mit != mParentChilds.right.end()) mParentChilds.right.erase(r_mit);

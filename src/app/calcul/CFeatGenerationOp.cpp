@@ -1,4 +1,5 @@
 #include <app/calcul/CFeatGenerationOp.h>
+#include <app/calcul/detail/ClMerger.h>
 
 //BOOST
 #include <boost/timer.hpp>
@@ -943,7 +944,11 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 	}
 
 	//fusion des CL ayant les mêmes linkedFeatIdName et qui se touchent (ou presque)
-
+	// A ce stade il y a des CL avec simple linkedFeatIdName et double linkedFeatIdName ...!?
+	std::ostringstream ss1;
+	ss1 << linkedFeatIdName << " LIKE '%#%'";
+	ign::feature::FeatureFilter mergeFilter(ss1.str());
+	detail::ClMerger::mergeAll(_idGeneratorCL.get(), _fsCL, mergeFilter);
 
 	//suppression des CL sans #
 	std::ostringstream ss;

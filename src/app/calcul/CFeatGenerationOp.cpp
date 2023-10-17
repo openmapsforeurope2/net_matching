@@ -55,7 +55,7 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 	double thresholdNoCL = 0.1;
 	double ratioInBuff = 0.6;
 	//double snapOnVertexBorder = 1;
-	double snapOnVertexBorder = 5; //1;
+	double snapOnVertexBorder = 0.1; //1;
 	double angleMaxBorder = 25;
 	double angleMaxEdges = 25;
 	angleMaxBorder = angleMaxBorder * M_PI / 180;
@@ -64,7 +64,7 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 	double distUnderShoot = 10;
 	double distMergeCL = 1;
 	double distMergeCP = 2;
-	double distMaxEdges= 5;
+	double distMaxEdges= 10; //5
 	double snapProjCl2edge = 0.1;
 
 	ign::feature::FeatureIteratorPtr itBoundary = _fsBoundary->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + countryCodeDouble + "'"));
@@ -177,6 +177,7 @@ app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 	_shapeLogger->closeShape("ClDeletedNoCandidatefound");
 	_shapeLogger->closeShape("ClDoublon");
 	_shapeLogger->closeShape("ClDeleteByAngleDistEdges");
+	_shapeLogger->closeShape("ClDebug");
 }
 	
 ///
@@ -198,6 +199,7 @@ void app::calcul::CFeatGenerationOp::_init( bool verbose)
 	_shapeLogger->addShape("ClDeletedNoCandidatefound", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDoublon", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDeleteByAngleDistEdges", epg::log::ShapeLogger::LINESTRING);
+	_shapeLogger->addShape("ClDebug", epg::log::ShapeLogger::LINESTRING);
 
 	_verbose = verbose;
 
@@ -915,8 +917,18 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 
 					double hausdorffDistEdges = ign::geometry::algorithm::OptimizedHausdorffDistanceOp::distance(lsClEdge1, lsClEdge2);
 
-					if (hausdorffDistEdges > distMaxEdges)
+					if (hausdorffDistEdges > distMaxEdges) {
+
+						ign::feature::Feature feat;
+						std::ostringstream ss;
+						ss << mit1->first << " : " << mit1->second.getAttribute(linkedFeatIdName).toString() << "   " << mit2->first << " : " << idEdgeLinked2;
+						// feat.setAttribute("message",ign::data::String( ss.str() ) );
+						feat.setGeometry(lsEdge2);
+						_shapeLogger->writeFeature("ClDebug", feat, ss.str());
+
 						continue;//on ne garde que les CL dont les edges associés sont proches (sous un seuil)
+					}
+						
 
 					if (hausdorffDistEdges < distMin) {
 						distMin = hausdorffDistEdges;

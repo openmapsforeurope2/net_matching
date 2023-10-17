@@ -116,7 +116,7 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 	_updateGeomCL(countryCodeDouble, snapProjCl2edge);
 	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresupdate", "", false, true);
 
-	_setContinuityCl(graphCL);
+	_setContinuityCl(countryCodeDouble,graphCL);
 
 	_logger->log(epg::log::TITLE, "[ END CL GENERATION FOR " + countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
@@ -955,17 +955,17 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 		++eit;
 	}
 
+	//suppression des CL sans #
+	std::ostringstream ss;
+	ss << "DELETE  FROM " << _fsCL->getTableName() << " WHERE " << countryCodeName << " not like '%#%'";
+	context->getDataBaseManager().getConnection()->update(ss.str());
+
 	//fusion des CL ayant les mêmes linkedFeatIdName et qui se touchent (ou presque)
 	// A ce stade il y a des CL avec simple linkedFeatIdName et double linkedFeatIdName ...!?
 	std::ostringstream ss1;
 	ss1 << linkedFeatIdName << " LIKE '%#%'";
 	ign::feature::FeatureFilter mergeFilter(ss1.str());
 	detail::ClMerger::mergeAll(_idGeneratorCL.get(), _fsCL, mergeFilter);
-
-	//suppression des CL sans #
-	std::ostringstream ss;
-	ss << "DELETE  FROM " << _fsCL->getTableName() << " WHERE " << countryCodeName << " not like '%#%'";
-	context->getDataBaseManager().getConnection()->update(ss.str());
 
 	_logger->log(epg::log::TITLE, "[ END FUSION CONNECTING LINES ] : " + epg::tools::TimeTools::getTime());
 }
@@ -1611,9 +1611,47 @@ void app::calcul::CFeatGenerationOp::_loadGraphCL(std::string countryCodeDouble,
 	}
 }
 
-void app::calcul::CFeatGenerationOp::_setContinuityCl(GraphType& graphCL)
+
+void app::calcul::CFeatGenerationOp::_loadGraphEdges(std::string countryCodeSimple, GraphType& graphEdges)
+{
+	epg::Context* context = epg::ContextS::getInstance();
+	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	ign::feature::FeatureFilter filterEdgeCountryCode(countryCodeName + " = '" + countryCodeSimple + "'");
+	ign::feature::FeatureIteratorPtr it = _fsEdge->getFeatures(filterEdgeCountryCode);
+	int numFeatures = context->getDataBaseManager().numFeatures(*_fsEdge, filterEdgeCountryCode);
+	boost::progress_display display(numFeatures, std::cout, "[ LOAD GRAPH EDGE " + countryCodeSimple+" ]\n");
+	ign::geometry::graph::builder::SimpleGraphBuilder<GraphType> graphBuilder(graphEdges, 0.01);
+	while (it->hasNext()) {
+		++display;
+		ign::feature::Feature fedge= it->next();
+		graphBuilder.addEdge(fedge.getGeometry().asLineString(), fedge.getId());
+	}
+}
+
+bool app::calcul::CFeatGenerationOp::_isConnectedEdges(GraphType& graph, std::string idEdge1, std::string idEdge2)
+{
+	edge_descriptor edCl1 = graph.getInducedEdges(idEdge1).second[0].descriptor;
+	edge_descriptor edCl2 = graph.getInducedEdges(idEdge2).second[0].descriptor;
+
+	if (graph.source(edCl1) == graph.source(edCl2) || graph.source(edCl1) == graph.target(edCl2) || graph.target(edCl1) == graph.source(edCl2) || graph.target(edCl1) == graph.target(edCl2))
+		return true;
+
+	return false;
+}
+
+void app::calcul::CFeatGenerationOp::_setContinuityCl(std::string countryCodeDouble, GraphType& graphCL)
 {
 	_logger->log(epg::log::TITLE, "[ BEGIN SET CL CONTINUITY ] : " + epg::tools::TimeTools::getTime());
+
+	epg::Context* context = epg::ContextS::getInstance();
+	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
+
+	std::vector<std::string> vCountriesCodeName;
+	epg::tools::StringTools::Split(countryCodeDouble, "#", vCountriesCodeName);
+
+	GraphType graphEdges1, graphEdges2;
+	_loadGraphEdges(vCountriesCodeName[0], graphEdges1);
+	_loadGraphEdges(vCountriesCodeName[1],graphEdges2);
 
 	GraphType::vertex_iterator vit, vitEnd;
 	graphCL.vertices(vit, vitEnd);
@@ -1627,47 +1665,82 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl(GraphType& graphCL)
 			++vit;
 			continue;
 		}
-		std::vector< GraphType::oriented_edge_descriptor > vClsIncident;
-		graphCL.incidentEdges(*vit, vClsIncident);
+		std::vector< GraphType::oriented_edge_descriptor > vClsIncidentTemp;
+		graphCL.incidentEdges(*vit, vClsIncidentTemp);
+
+		//recal
+		std::vector<std::vector< GraphType::oriented_edge_descriptor >> vVClsTrueIncident;
+		for (size_t i = 0; i < vClsIncidentTemp.size()-1; ++i) {
+			std::vector< GraphType::oriented_edge_descriptor > vClsIncidentTempConnectI;
+			GraphType::edge_descriptor edClI = vClsIncidentTemp[i].descriptor;
+			vClsIncidentTempConnectI.push_back(vClsIncidentTemp[i]);
+			std::string idClToModifyI = graphCL.origins(edClI)[0];
+			ign::feature::Feature fClToModifyI;
+			_fsCL->getFeatureById(idClToModifyI, fClToModifyI);
+			std::vector<std::string> vEdgeslinkedI;
+			epg::tools::StringTools::Split(fClToModifyI.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinkedI);
+			std::string idEdgLinked1I = vEdgeslinkedI[0];
+			std::string idEdgLinked2I = vEdgeslinkedI[1];
+			for (size_t j = i + 1; j < vClsIncidentTemp.size(); ++i) {
+				GraphType::edge_descriptor edClJ = vClsIncidentTemp[j].descriptor;
+				std::string idClToModifyJ = graphCL.origins(edClJ)[0];
+				ign::feature::Feature fClToModifyJ;
+				_fsCL->getFeatureById(idClToModifyJ, fClToModifyJ);
+				std::vector<std::string> vEdgeslinkedJ;
+				epg::tools::StringTools::Split(fClToModifyJ.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinkedJ);
+				std::string idEdgLinked1J = vEdgeslinkedJ[0];
+				std::string idEdgLinked2J = vEdgeslinkedJ[1];
+
+				if (idEdgLinked1I == idEdgLinked1J || idEdgLinked2I == idEdgLinked2J || _isConnectedEdges(graphEdges1, idEdgLinked1I, idEdgLinked1J) || _isConnectedEdges(graphEdges2, idEdgLinked2I, idEdgLinked2J)) {
+					vClsIncidentTempConnectI.push_back(vClsIncidentTemp[j]);
+				}
+			}
+			if (vClsIncidentTempConnectI.size() > 1)
+				vVClsTrueIncident.push_back(vClsIncidentTempConnectI);
+		}
+
 
 		//on recalcule la nouvelle geometrie du point
-		ign::geometry::MultiPoint multiPtToConnect;
-		for (size_t i = 0; i < vClsIncident.size(); ++i) {
-			GraphType::edge_descriptor edCl = vClsIncident[i].descriptor;
-			std::string idClToModify = graphCL.origins(edCl)[0];
-			ign::feature::Feature fClToModify;
-			if (mClModified.find(idClToModify) != mClModified.end())
-				fClToModify = mClModified.find(idClToModify)->second;
-			else {
-				_fsCL->getFeatureById(idClToModify, fClToModify);
-				//patch tant que les doublons ne sont pas suppr
-				if (fClToModify.getId().empty())
+		for (size_t j = 0; j < vVClsTrueIncident.size(); ++j) {
+			std::vector< GraphType::oriented_edge_descriptor > vClsTrueIncident = vVClsTrueIncident[j];
+			ign::geometry::MultiPoint multiPtToConnect;
+			for (size_t i = 0; i < vClsTrueIncident.size(); ++i) {
+				GraphType::edge_descriptor edCl = vClsTrueIncident[i].descriptor;
+				std::string idClToModify = graphCL.origins(edCl)[0];
+				ign::feature::Feature fClToModify;
+				if (mClModified.find(idClToModify) != mClModified.end())
+					fClToModify = mClModified.find(idClToModify)->second;
+				else {
+					_fsCL->getFeatureById(idClToModify, fClToModify);
+					//patch tant que les doublons ne sont pas suppr
+					if (fClToModify.getId().empty())
+						continue;
+					mClModified[idClToModify] = fClToModify;
+				}
+
+				ign::geometry::LineString ls = fClToModify.getGeometry().asLineString();
+				if (graphCL.source(edCl) == *vit)
+					multiPtToConnect.addGeometry(ls.startPoint());
+				else
+					multiPtToConnect.addGeometry(ls.endPoint());
+			}
+			ign::geometry::Point ptUpdated = multiPtToConnect.asMultiPoint().getCentroid();
+			//on modifie la geom des cl avec celle du nouveau point
+			for (size_t i = 0; i < vClsTrueIncident.size(); ++i) {
+				GraphType::edge_descriptor edCl = vClsTrueIncident[i].descriptor;
+				std::string idClToModify = graphCL.origins(edCl)[0];
+				// patch tant que les doublons ne sont pas suppr
+				if (mClModified.find(idClToModify) == mClModified.end())
 					continue;
+				ign::feature::Feature fClToModify = mClModified.find(idClToModify)->second;
+				ign::geometry::LineString lsClToModify = fClToModify.getGeometry().asLineString();
+				if (graphCL.source(edCl) == *vit)
+					lsClToModify.setPointN(ptUpdated, 0);
+				else
+					lsClToModify.setPointN(ptUpdated, lsClToModify.numPoints() - 1);
+				fClToModify.setGeometry(lsClToModify);
 				mClModified[idClToModify] = fClToModify;
 			}
-
-			ign::geometry::LineString ls = fClToModify.getGeometry().asLineString();
-			if (graphCL.source(edCl) == *vit)
-				multiPtToConnect.addGeometry(ls.startPoint());
-			else 
-				multiPtToConnect.addGeometry(ls.endPoint());
-		}
-		ign::geometry::Point ptUpdated = multiPtToConnect.asMultiPoint().getCentroid();
-		//on modifie la geom des cl avec celle du nouveau point
-		for (size_t i = 0; i < vClsIncident.size(); ++i) {
-			GraphType::edge_descriptor edCl = vClsIncident[i].descriptor;
-			std::string idClToModify = graphCL.origins(edCl)[0];
-			// patch tant que les doublons ne sont pas suppr
-			if (mClModified.find(idClToModify) == mClModified.end())
-				continue;
-			ign::feature::Feature fClToModify = mClModified.find(idClToModify)->second;
-			ign::geometry::LineString lsClToModify = fClToModify.getGeometry().asLineString();
-			if (graphCL.source(edCl) == *vit )
-				lsClToModify.setPointN(ptUpdated, 0);
-			else
-				lsClToModify.setPointN(ptUpdated, lsClToModify.numPoints()-1);
-			fClToModify.setGeometry(lsClToModify);
-			mClModified[idClToModify] = fClToModify;
 		}
 		++vit;
 	}

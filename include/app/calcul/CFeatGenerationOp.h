@@ -79,8 +79,11 @@ namespace calcul{
 		void _getClDoublonGeom(std::string countryCodeDouble);
 
 		void _loadGraphCL(std::string countryCodeDouble, GraphType& graphCL);
+		void _loadGraphEdges(std::string countryCodeSimple, GraphType& graphEdges);
 
-		void _setContinuityCl(GraphType& graphCL);
+		bool _isConnectedEdges(GraphType& graph, std::string idEdge1, std::string idEdge2);
+
+		void _setContinuityCl(std::string countryCodeDouble, GraphType& graphCL);
 		//void _getClContinuity(std::map<std::string, std::vector<std::pair<std::string, bool>>>& mClConnect);
 		//void _getEdgesConnectedOnPoint(ign::geometry::Point ptConnect, std::vector<std::pair<std::string, bool>>& vEdgesConnection);
 

@@ -1639,6 +1639,36 @@ bool app::calcul::CFeatGenerationOp::_isConnectedEdges(GraphType& graph, std::st
 	return false;
 }
 
+std::pair<std::string, std::string> app::calcul::CFeatGenerationOp::_getClLinkedEdges( std::string const& linkedFeatIdName, GraphType& graphCL, GraphType::edge_descriptor eCl ) {
+	std::string idCl = graphCL.origins(eCl)[0];
+	ign::feature::Feature clFeat;
+	_fsCL->getFeatureById(idCl, clFeat);
+	std::vector<std::string> vEdgeslinkedJ;
+	epg::tools::StringTools::Split(clFeat.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinkedJ);
+
+	return std::make_pair(vEdgeslinkedJ[0], vEdgeslinkedJ[1]);
+}
+
+bool app::calcul::CFeatGenerationOp::_areParallelEdges( GraphType& graphCL, GraphType::edge_descriptor e1,  GraphType::edge_descriptor e2 ) {
+	if (graphCL.source(e1) == graphCL.source(e2) && graphCL.target(e1) == graphCL.target(e2) ) return true;
+	if (graphCL.target(e1) == graphCL.source(e2) && graphCL.source(e1) == graphCL.target(e2) ) return true;
+	return false;
+}
+
+ign::geometry::Point app::calcul::CFeatGenerationOp::_getLinkedEdgesConnectingPoint( GraphType const& graph, std::string const& idEdge1, std::string const& idEdge2 ){
+	edge_descriptor edCl1 = graph.getInducedEdges(idEdge1).second[0].descriptor;
+	edge_descriptor edCl2 = graph.getInducedEdges(idEdge2).second[0].descriptor;
+
+	ign::feature::Feature fEdge1;
+	_fsEdge->getFeatureById(idEdge1, fEdge1);
+	ign::geometry::LineString const& edgeGeom1 = fEdge1.getGeometry().asLineString();
+
+	if ( graph.source(edCl1) == graph.source(edCl2) || graph.source(edCl1) == graph.target(edCl2) )
+		return edgeGeom1.startPoint();
+
+	return edgeGeom1.endPoint();
+}
+
 void app::calcul::CFeatGenerationOp::_setContinuityCl(std::string countryCodeDouble, GraphType& graphCL)
 {
 	_logger->log(epg::log::TITLE, "[ BEGIN SET CL CONTINUITY ] : " + epg::tools::TimeTools::getTime());
@@ -1651,7 +1681,7 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl(std::string countryCodeDou
 
 	GraphType graphEdges1, graphEdges2;
 	_loadGraphEdges(vCountriesCodeName[0], graphEdges1);
-	_loadGraphEdges(vCountriesCodeName[1],graphEdges2);
+	_loadGraphEdges(vCountriesCodeName[1], graphEdges2);
 
 	GraphType::vertex_iterator vit, vitEnd;
 	graphCL.vertices(vit, vitEnd);
@@ -1670,29 +1700,47 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl(std::string countryCodeDou
 
 		//recal
 		std::vector<std::vector< GraphType::oriented_edge_descriptor >> vVClsTrueIncident;
+		std::set<size_t> sTreated;
 		for (size_t i = 0; i < vClsIncidentTemp.size()-1; ++i) {
-			std::vector< GraphType::oriented_edge_descriptor > vClsIncidentTempConnectI;
-			GraphType::edge_descriptor edClI = vClsIncidentTemp[i].descriptor;
-			vClsIncidentTempConnectI.push_back(vClsIncidentTemp[i]);
-			std::string idClToModifyI = graphCL.origins(edClI)[0];
-			ign::feature::Feature fClToModifyI;
-			_fsCL->getFeatureById(idClToModifyI, fClToModifyI);
-			std::vector<std::string> vEdgeslinkedI;
-			epg::tools::StringTools::Split(fClToModifyI.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinkedI);
-			std::string idEdgLinked1I = vEdgeslinkedI[0];
-			std::string idEdgLinked2I = vEdgeslinkedI[1];
-			for (size_t j = i + 1; j < vClsIncidentTemp.size(); ++i) {
-				GraphType::edge_descriptor edClJ = vClsIncidentTemp[j].descriptor;
-				std::string idClToModifyJ = graphCL.origins(edClJ)[0];
-				ign::feature::Feature fClToModifyJ;
-				_fsCL->getFeatureById(idClToModifyJ, fClToModifyJ);
-				std::vector<std::string> vEdgeslinkedJ;
-				epg::tools::StringTools::Split(fClToModifyJ.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinkedJ);
-				std::string idEdgLinked1J = vEdgeslinkedJ[0];
-				std::string idEdgLinked2J = vEdgeslinkedJ[1];
+			if ( sTreated.find(i) != sTreated.end() ) continue;
 
-				if (idEdgLinked1I == idEdgLinked1J || idEdgLinked2I == idEdgLinked2J || _isConnectedEdges(graphEdges1, idEdgLinked1I, idEdgLinked1J) || _isConnectedEdges(graphEdges2, idEdgLinked2I, idEdgLinked2J)) {
+			std::vector< GraphType::oriented_edge_descriptor > vClsIncidentTempConnectI;
+			vClsIncidentTempConnectI.push_back(vClsIncidentTemp[i]);
+
+			std::pair<std::string, std::string> pLinkedEdgesI = _getClLinkedEdges(linkedFeatIdName, graphCL, vClsIncidentTemp[i].descriptor);
+
+			for (size_t j = i + 1; j < vClsIncidentTemp.size(); ++j) {
+				if ( sTreated.find(j) != sTreated.end() ) continue;
+
+				std::pair<std::string, std::string> pLinkedEdgesJ = _getClLinkedEdges(linkedFeatIdName, graphCL, vClsIncidentTemp[j].descriptor);
+
+				bool isConnected1 = pLinkedEdgesI.first == pLinkedEdgesJ.first || _isConnectedEdges(graphEdges1, pLinkedEdgesI.first, pLinkedEdgesJ.first);
+				bool isConnected2 = pLinkedEdgesI.second == pLinkedEdgesJ.second || _isConnectedEdges(graphEdges2, pLinkedEdgesI.second, pLinkedEdgesJ.second);
+
+				// tester si vClsIncidentTemp[i].descriptor et vClsIncidentTemp[j].descriptor sont paralleles
+				if (_areParallelEdges(graphCL, vClsIncidentTemp[i].descriptor, vClsIncidentTemp[j].descriptor)) {
+					// si oui regarder si *vit est plus proche que l'autre sommet des points d'intersections des linkedEdges
+					std::string idClI = graphCL.origins(vClsIncidentTemp[i].descriptor)[0];
+					ign::feature::Feature fClI;
+					_fsCL->getFeatureById(idClI, fClI);
+					ign::geometry::LineString const& lsI = fClI.getGeometry().asLineString();
+
+					ign::geometry::Point const& vitGeom = vClsIncidentTemp[i].direction == ign::graph::DIRECT ? lsI.startPoint() : lsI.endPoint();
+					ign::geometry::Point const& otherGeom = vClsIncidentTemp[i].direction == ign::graph::DIRECT ? lsI.endPoint() : lsI.startPoint();
+
+
+					ign::geometry::MultiPoint mpLinkedEdgesConnectingPoints;
+					mpLinkedEdgesConnectingPoints.addGeometry(_getLinkedEdgesConnectingPoint(graphEdges1, pLinkedEdgesI.first, pLinkedEdgesJ.first));
+					mpLinkedEdgesConnectingPoints.addGeometry(_getLinkedEdgesConnectingPoint(graphEdges2, pLinkedEdgesI.second, pLinkedEdgesJ.second));
+					ign::geometry::Point linkedEdgesConnectingPoint = mpLinkedEdgesConnectingPoints.getCentroid();
+
+					// si il ne l'est pas (et que les linkeEdges ne sont pas egalement paralleles?) --> continue
+					if (linkedEdgesConnectingPoint.distance(vitGeom) > linkedEdgesConnectingPoint.distance(otherGeom)) continue;
+				}
+
+				if (isConnected1 && isConnected2) {
 					vClsIncidentTempConnectI.push_back(vClsIncidentTemp[j]);
+					sTreated.insert(j);
 				}
 			}
 			if (vClsIncidentTempConnectI.size() > 1)

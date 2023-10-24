@@ -1,5 +1,8 @@
 #include <app/calcul/CFeatGenerationOp.h>
 #include <app/calcul/detail/ClMerger.h>
+//#include <app/tools/CountryQueryErmTrans.h>
+#include <app/params/ThemeParameters.h>
+#include <app/geometry/tools/LengthIndexedLineString.h>
 
 //BOOST
 #include <boost/timer.hpp>
@@ -31,10 +34,10 @@
 #include <epg/tools/geometry/SegmentIndexedGeometry.h>
 #include <epg/tools/geometry/LineIntersector.h>
 
-//APP
-//#include <app/tools/CountryQueryErmTrans.h>
-#include <app/params/ThemeParameters.h>
-#include <app/geometry/tools/LengthIndexedLineString.h>
+// BOOST
+#include <boost/bimap.hpp>
+#include <boost/bimap/set_of.hpp>
+#include <boost/bimap/multiset_of.hpp>
 
 
 
@@ -141,7 +144,7 @@ void app::calcul::CFeatGenerationOp::computeCP(std::string countryCodeDouble)
 	double distCLIntersected = 10;
 	double distUnderShoot = 10;
 	double distMergeCL = 1;
-	double distMergeCP = 2;
+	double distMergeCP = 5; //2
 
 
 	ign::feature::FeatureIteratorPtr itBoundary = _fsBoundary->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + countryCodeDouble + "'"));
@@ -677,9 +680,191 @@ bool app::calcul::CFeatGenerationOp::_isEdgeIntersectedPtWithCL(
 	return false;
 }
 
-
-
 void app::calcul::CFeatGenerationOp::_snapCPNearBy(
+	std::string countryCodeDouble,
+	double distMergeCP,
+	double snapOnVertexBorder
+)
+{
+
+	epg::Context* context = epg::ContextS::getInstance();
+	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+
+	ign::feature::FeatureFilter filterCP;
+	std::vector<std::string> vCountriesCodeName;
+	epg::tools::StringTools::Split(countryCodeDouble, "#", vCountriesCodeName);
+	for (size_t i = 0; i < vCountriesCodeName.size(); ++i) {
+		epg::tools::FilterTools::addOrConditions(filterCP, countryCodeName + " = '" + vCountriesCodeName[i] + "'");
+	}
+	ign::feature::FeatureIteratorPtr itCP = _fsCP->getFeatures(filterCP);
+	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCP, filterCP);
+	boost::progress_display display(numFeatures, std::cout, "[ FUSION CONNECTING POINTS WITH #]\n");
+
+	std::set<std::string> sCP2Snap;
+	std::string separator = "#";
+
+	while (itCP->hasNext())
+	{
+		++display;
+
+		ign::feature::Feature fCPCurr = itCP->next();
+		std::string idCP = fCPCurr.getId();
+
+		if (sCP2Snap.find(idCP) != sCP2Snap.end())
+			continue;
+
+		std::map<std::string, ign::feature::Feature> mCPNear;
+		bool hasNearestCP = _getNearestCP(fCPCurr, distMergeCP, mCPNear);
+
+		std::list<std::string> lCp2Delete;
+
+		if (!hasNearestCP) {
+			_fsCP->deleteFeature(fCPCurr.getId());
+			continue;
+		}
+
+		std::set<std::string> s1, s2;
+		for(std::map<std::string, ign::feature::Feature>::iterator mit = mCPNear.begin(); mit != mCPNear.end(); ++mit) {
+			if(mit->second.getAttribute(countryCodeName).toString() == vCountriesCodeName[0]) s1.insert(mit->first);
+			else s2.insert(mit->first);
+			sCP2Snap.insert(mit->first);
+		}
+
+		std::map<std::string, std::string> m1;
+		for (std::set<std::string>::const_iterator sit1 = s1.begin() ; sit1 != s1.end() ; ++sit1) {
+			ign::geometry::Point const& p1 = mCPNear[*sit1].getGeometry().asPoint();
+			std::string samicopain = "";
+			double distanceMax = distMergeCP;
+			for (std::set<std::string>::const_iterator sit2 = s2.begin() ; sit2 != s2.end() ; ++sit2) {
+				ign::geometry::Point const& p2 = mCPNear[*sit2].getGeometry().asPoint();
+				double distance = p1.distance(p2);
+				if (distance < distanceMax) {
+					samicopain = *sit2;
+					distanceMax = distance;
+				}
+			}
+			if (!samicopain.empty()) {
+				m1.insert(std::make_pair(*sit1, samicopain));
+			} else {
+				lCp2Delete.push_back(*sit1);
+			}
+		}
+
+		std::map<std::string, std::string> m2;
+		for (std::set<std::string>::const_iterator sit2 = s2.begin() ; sit2 != s2.end() ; ++sit2) {
+			ign::geometry::Point const& p2 = mCPNear[*sit2].getGeometry().asPoint();
+			std::string samicopain = "";
+			double distanceMax = distMergeCP;
+			for (std::set<std::string>::const_iterator sit1 = s1.begin() ; sit1 != s1.end() ; ++sit1) {
+				ign::geometry::Point const& p1 = mCPNear[*sit1].getGeometry().asPoint();
+				double distance = p2.distance(p1);
+				if (distance < distanceMax) {
+					samicopain = *sit1;
+					distanceMax = distance;
+				}
+			}
+			if (!samicopain.empty()) {
+				m2.insert(std::make_pair(*sit2, samicopain));
+			} else {
+				lCp2Delete.push_back(*sit2);
+			}
+		}
+
+		typedef boost::bimap<boost::bimaps::set_of<std::string>, boost::bimaps::multiset_of<size_t>> bimap_t;
+		typedef bimap_t::value_type value_type;
+
+		bimap_t mapCpGroup;
+		size_t group = 0;
+		size_t nMapCpGroup = mapCpGroup.size();
+		for (std::map<std::string, std::string>::const_iterator mit1 = m1.begin() , next_mit1 = mit1 ; mit1 != m1.end() ; mit1 = next_mit1) {
+			++next_mit1;
+			for (std::map<std::string, std::string>::const_iterator mit2 = m2.begin() ; mit2 != m2.end() ; ++mit2) {
+				if( mit1->second == mit2->first && mit2->second == mit1->first) {
+					mapCpGroup.insert(value_type(mit1->first, ++group));
+					mapCpGroup.insert(value_type(mit2->first, group));
+					m1.erase(mit1);
+					m2.erase(mit2);
+					break;
+				}
+			}
+		}
+
+		for (std::map<std::string, std::string>::const_iterator mit1 = m1.begin() , next_mit1 = mit1 ; mit1 != m1.end() ; mit1 = next_mit1) {
+			++next_mit1;
+			std::map<std::string, std::string>::const_iterator mit2 = m2.find(mit1->second);
+			if( mit2 == m2.end()) continue; /*cp de m2 déjà affecté à un groupe*/
+
+			mapCpGroup.insert(value_type(mit1->first,++group));
+			mapCpGroup.insert(value_type(mit2->first,group));
+			m1.erase(mit1);
+			m2.erase(mit2);
+		}
+
+		for (std::map<std::string, std::string>::const_iterator mit2 = m2.begin() , next_mit2 = mit2 ; mit2 != m2.end() ; mit2 = next_mit2) {
+			++next_mit2;
+			std::map<std::string, std::string>::const_iterator mit1 = m1.find(mit2->second);
+			if( mit1 == m1.end()) continue; /*cp de m1 déjà affecté à un groupe*/
+
+			mapCpGroup.insert(value_type(mit2->first,++group));
+			mapCpGroup.insert(value_type(mit1->first,group));
+			m2.erase(mit2);
+			m1.erase(mit1);
+		}
+
+		// il reste les cl reliés à des groupes
+		for (std::map<std::string, std::string>::const_iterator mit2 = m2.begin() ; mit2 != m2.end() ; ++mit2) {
+			auto l_mit = mapCpGroup.left.find(mit2->second);
+			IGN_ASSERT(l_mit != mapCpGroup.left.end());
+			mapCpGroup.insert(value_type(mit2->first, l_mit->second));
+		}
+		for (std::map<std::string, std::string>::const_iterator mit1 = m1.begin() ; mit1 != m1.end() ; ++mit1) {
+			auto l_mit = mapCpGroup.left.find(mit1->second);
+			IGN_ASSERT(l_mit != mapCpGroup.left.end());
+			mapCpGroup.insert(value_type(mit1->first, l_mit->second));
+		}
+
+		for (size_t i = 1 ; i <= group ; ++i) {
+			ign::geometry::MultiPoint multiPtCP;
+			auto range = mapCpGroup.right.equal_range(i);
+			for (auto r_it = range.first; r_it != range.second; ++r_it) {
+				multiPtCP.addGeometry(mCPNear[r_it->second].getGeometry().asPoint());
+			}
+
+			//geom
+			ign::geometry::Point ptCentroidCP = multiPtCP.asMultiPoint().getCentroid();
+			ign::feature::FeatureFilter filterBorderNearCP;// (countryCodeName + " = 'be#fr'");
+			filterBorderNearCP.setExtent(ptCentroidCP.getEnvelope().expandBy(distMergeCP));
+			ign::geometry::LineString lsBorderClosest;
+			double distMinBorder = 2 * distMergeCP;
+			ign::feature::FeatureIteratorPtr fitBorder = _fsBoundary->getFeatures(filterBorderNearCP);
+			while (fitBorder->hasNext()) {
+				ign::geometry::LineString lsBorder = fitBorder->next().getGeometry().asLineString();
+				double dist = lsBorder.distance(ptCentroidCP);
+				if (dist < distMinBorder) {
+					distMinBorder = dist;
+					lsBorderClosest = lsBorder;
+				}
+			}
+			ign::geometry::Point ptCentroidOnBorderCP = epg::tools::geometry::project(lsBorderClosest, ptCentroidCP, snapOnVertexBorder);
+			ptCentroidOnBorderCP.setZ(0);
+
+			//modif features
+			for (auto r_it = range.first; r_it != range.second; ++r_it) {
+				mCPNear[r_it->second].setGeometry(ptCentroidOnBorderCP);
+				_fsCP->modifyFeature(mCPNear[r_it->second]);
+			}
+		}
+
+		for (std::list<std::string>::const_iterator lit = lCp2Delete.begin() ; lit != lCp2Delete.end() ; ++lit) {
+			_fsCP->deleteFeature(*lit);
+		}
+	}
+
+}
+
+
+void app::calcul::CFeatGenerationOp::_snapCPNearBy2(
 	std::string countryCodeDouble,
 	double distMergeCP,
 	double snapOnVertexBorder
@@ -745,7 +930,7 @@ void app::calcul::CFeatGenerationOp::_snapCPNearBy(
 				ign::feature::Feature fCP2snap;
 				_fsCP->getFeatureById(mit->first, fCP2snap);
 				fCP2snap.setGeometry(ptCentroidOnBorderCP);
-				fCP2snap.setAttribute(themeParameters->getValue(CF_STATUS).toString(), ign::data::String("edge_matched"));
+				// fCP2snap.setAttribute(themeParameters->getValue(CF_STATUS).toString(), ign::data::String("edge_matched"));
 				_fsCP->modifyFeature(fCP2snap);
 			}
 

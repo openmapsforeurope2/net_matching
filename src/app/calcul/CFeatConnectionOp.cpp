@@ -573,11 +573,12 @@ namespace app
             epg::params::EpgParameters const &epgParams = context->getEpgParameters();
 
             std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
+            std::string const linkedFeatureIdName = epgParams.getValue(LINKED_FEATURE_ID).toString();
 
             // app params
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
-
-            std::string const edgeLinkName = themeParameters->getValue(EDGE_LINK).toString();
+            
+            // std::string const edgeLinkName = themeParameters->getValue(EDGE_LINK).toString();
             std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE).toString();
             std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
 
@@ -606,7 +607,9 @@ namespace app
                 ++display;
                 ign::feature::Feature const &fCp = itCp->next();
                 ign::geometry::Point const &cpGeom = fCp.getGeometry().asPoint();
-                std::string edgeLink = fCp.getAttribute(edgeLinkName).toString();
+                // std::string edgeLink = fCp.getAttribute(edgeLinkName).toString();
+                std::string linkedFeatureId = fCp.getAttribute(linkedFeatureIdName).toString();
+                std::string countryCode = fCp.getAttribute(countryCodeName).toString();
 
                 // if (fCp.getId() == "CONNECTINGPOINT48" || fCp.getId() == "CONNECTINGPOINT49") {
                 //     bool test = true;
@@ -617,19 +620,26 @@ namespace app
                 if (_verbose)
                     _logger->log(epg::log::DEBUG, fCp.getId());
 
-                std::pair<bool, std::string> foundEdge = _getNearestEdge(cpGeom, countryCodeName, edgeLinkName, edgeLink, sEdge2Delete);
+                // std::pair<bool, std::string> foundEdge = _getNearestEdge(cpGeom, countryCodeName, edgeLinkName, edgeLink, sEdge2Delete);
 
-                if (!foundEdge.first)
+                // if (!foundEdge.first)
+                // {
+                //     _logger->log(epg::log::ERROR, "No candidate edge found [" + edgeLinkName + "] " + edgeLink);
+                //     continue;
+                // }
+
+                std::pair<bool, std::string> foundFeatureId = _getSingleValue(linkedFeatureId, countryCode, _countryCode);
+                if (!foundFeatureId.first)
                 {
-                    _logger->log(epg::log::ERROR, "No candidate edge found [" + edgeLinkName + "] " + edgeLink);
+                    _logger->log(epg::log::ERROR, "Feature id not found [connecting point id] " + fCp.getId());
                     continue;
                 }
 
                 ign::feature::Feature fEdge;
-                _fsEdge->getFeatureById(foundEdge.second, fEdge);
+                _fsEdge->getFeatureById(foundFeatureId.second, fEdge);
 
                 if (_verbose)
-                    _logger->log(epg::log::DEBUG, foundEdge.second);
+                    _logger->log(epg::log::DEBUG, foundFeatureId.second);
 
                 // if (foundEdge.second == "41f0d5bf-d002-4c8e-a828-779aeed290ae") {
                 //     bool test = true;
@@ -675,14 +685,14 @@ namespace app
 
                 if (intersectedEdgeGeom.isEmpty())
                 {
-                    _logger->log(epg::log::ERROR, "The edge doesn't intersect the landmask [id] " + foundEdge.second);
+                    _logger->log(epg::log::ERROR, "The edge doesn't intersect the landmask [id] " + foundFeatureId.second);
                     continue;
                 }
 
                 bool bCreateNewFeature = false;
                 if (nbResultingEdges > 1)
                 {
-                    sEdge2Delete.insert(foundEdge.second);
+                    sEdge2Delete.insert(foundFeatureId.second);
                     bCreateNewFeature = true;
                 }
 
@@ -697,9 +707,6 @@ namespace app
 
                 lsSplitter.addCuttingGeometry(projectedPoint);
                 ign::geometry::LineString newEdgeGeom = lsSplitter.truncAtEnds();
-
-                // TODO : a virer ?
-                newEdgeGeom.clearZ();
 
                 ign::geometry::Point displacementStart = newEdgeGeom.startPoint().distance(cpGeom) < newEdgeGeom.endPoint().distance(cpGeom) ? newEdgeGeom.startPoint() : newEdgeGeom.endPoint();
                 mDisplacements.insert(std::make_pair(displacementStart, cpGeom.toVec2d() - displacementStart.toVec2d()));

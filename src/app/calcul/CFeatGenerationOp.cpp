@@ -935,11 +935,6 @@ void app::calcul::CFeatGenerationOp::_snapCPNearBy2(
 				ign::feature::Feature fCP2snap;
 				_fsCP->getFeatureById(mit->first, fCP2snap);
 				fCP2snap.setGeometry(ptCentroidOnBorderCP);
-<<<<<<< HEAD
-				// fCP2snap.setAttribute(themeParameters->getValue(CF_STATUS).toString(), ign::data::String("edge_matched"));
-=======
-				//fCP2snap.setAttribute(themeParameters->getValue(CF_STATUS).toString(), ign::data::String("edge_matched"));
->>>>>>> afcfc2a (gestion des racdcords pour petits "trous" entre CL)
 				_fsCP->modifyFeature(fCP2snap);
 			}
 

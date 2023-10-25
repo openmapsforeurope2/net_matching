@@ -42,7 +42,9 @@ namespace calcul{
 
 		void _getCPfromIntersectBorder(ign::geometry::LineString & lsBorder, double distCLIntersected);
 
+		void _snapCl2Cl(std::string countryCodeDouble, double distMaxClClosest);
 
+		bool _hasClExtremityClose(std::string countryCodeDouble, double distMaxClClosest, ign::feature::Feature fClCurr, ign::geometry::Point ptClCurr, ign::feature::Feature& fCl2snap, bool& isClosestStartCl2snap);
 
 		bool _isEdgeIntersectedPtWithCL(ign::feature::Feature& fEdge, ign::geometry::Point ptIntersectBorder, double distCLIntersected);
 

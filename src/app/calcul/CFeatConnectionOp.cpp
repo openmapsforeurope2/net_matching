@@ -19,6 +19,7 @@
 #include <epg/tools/TimeTools.h>
 #include <epg/tools/geometry/project.h>
 #include <epg/calcul/matching/detail/LineStringSimpleDampedDeformer.h>
+#include <epg/calcul/merging/MergingByLength.h>
 
 // SOCLE
 #include <ign/geometry/graph/builder/SimpleGraphBuilder.h>

@@ -57,7 +57,7 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 	double distBuffer = 20; // 5;
 	double thresholdNoCL = 0.1;
 	double ratioInBuff = 0.6;
-	double snapOnVertexBorder = 0.1;
+	double snapOnVertexBorder = 2;
 	double distMaxClClosest = 2;
 	double angleMaxBorder = 25;
 	double angleMaxEdges = 25;
@@ -99,10 +99,9 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 
 
 	_mergeIntersectingClWithGraph(countryCodeDouble, distMaxEdges, snapProjCl2edge);
-	//_mergeIntersectingCL(countryCodeDouble, distMergeCL, angleMaxBorder);
 	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresmerge", "", false, true);
 
-	_snapCl2Cl(countryCodeDouble, distMaxClClosest);
+//	_snapCl2Cl(countryCodeDouble, distMaxClClosest);
 
 	//_getClDoublonGeom(countryCodeDouble);
 	_deleteClByAngleAndDistEdges(countryCodeDouble, angleMaxEdges, distMaxEdges, snapProjCl2edge);
@@ -110,8 +109,6 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 
 	_deleteCLUnderThreshold(countryCodeDouble);
 	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresdeletebyseuilmin", "", false, true);
-
-
 
 	//boucle sur CC?
 	GraphType graphCL;
@@ -121,6 +118,8 @@ void app::calcul::CFeatGenerationOp::computeCL(std::string countryCodeDouble)
 	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresupdate", "", false, true);
 
 	_setContinuityCl(countryCodeDouble,graphCL);
+
+	//_snapCl2Cl(countryCodeDouble, distMaxClClosest);
 
 	_logger->log(epg::log::TITLE, "[ END CL GENERATION FOR " + countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 

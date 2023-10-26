@@ -103,16 +103,15 @@ int main(int argc, char *argv[])
 			app::calcul::CFeatConnectionOp::computeCl(edgeTableName, clTableName, *vit, verbose);
 		 }
 
-        // nettoyage
-        app::calcul::EdgeCleaningOp::clean(edgeTableName, countryCode, verbose );
-
 		cFeatGenerationOp.computeCP(countryCode);
 
 		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
 			app::calcul::CFeatConnectionOp::computeCp(edgeTableName, cpTableName, *vit, verbose);
 		}
 
-        
+		// nettoyage
+		app::calcul::EdgeCleaningOp::clean(edgeTableName, countryCode, verbose);
+
     }
     catch( ign::Exception &e )
     {

@@ -96,14 +96,16 @@ int main(int argc, char *argv[])
 		std::vector<std::string> vCountriesCodeName;
 		epg::tools::StringTools::Split(countryCode, "#", vCountriesCodeName);
 
-		app::calcul::CFeatGenerationOp cFeatGenerationOp;
-		cFeatGenerationOp.computeCL(countryCode);
+		app::calcul::CFeatGenerationOp cFeatGenerationOp(countryCode);
+		cFeatGenerationOp.computeCL();
 		
 		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
 			app::calcul::CFeatConnectionOp::computeCl(edgeTableName, clTableName, *vit, verbose);
 		 }
 
-		cFeatGenerationOp.computeCP(countryCode);
+		return 0;
+
+		cFeatGenerationOp.computeCP();
 
 		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
 			app::calcul::CFeatConnectionOp::computeCp(edgeTableName, cpTableName, *vit, verbose);

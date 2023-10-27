@@ -178,6 +178,8 @@ namespace calcul{
 
 		//--
 		ign::math::Vec2d _computeDisplacement( std::vector< ign::math::Vec2d > const& vVectors ) const;
+
+		void _importCLintoEdgeTable();
     };
 
 }

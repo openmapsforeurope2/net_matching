@@ -19,7 +19,7 @@
 #include <epg/tools/TimeTools.h>
 #include <epg/tools/geometry/project.h>
 #include <epg/calcul/matching/detail/LineStringSimpleDampedDeformer.h>
-#include <epg/calcul/merging/MergingByLength.h>
+
 
 // SOCLE
 #include <ign/geometry/graph/builder/SimpleGraphBuilder.h>
@@ -1214,5 +1214,28 @@ namespace app
             }
 
         }
+
+
+		void CFeatConnectionOp::_importCLintoEdgeTable()
+		{
+
+			epg::Context* context = epg::ContextS::getInstance();
+			std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+
+			ign::feature::FeatureIteratorPtr itCL = _fsCl->getFeatures(ign::feature::FeatureFilter());
+
+			while (itCL->hasNext())
+			{
+				ign::feature::Feature fCL = itCL->next();
+				ign::geometry::LineString lsCL = fCL.getGeometry().asLineString();
+
+				ign::feature::Feature fNewEdge = fCL;
+				lsCL.setFillZ(0);
+				fNewEdge.setGeometry(lsCL);
+				_fsEdge->createFeature(fNewEdge);
+			}
+		}
+
     }
 }
+

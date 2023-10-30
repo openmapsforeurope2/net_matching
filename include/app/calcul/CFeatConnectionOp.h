@@ -58,6 +58,15 @@ namespace calcul{
 			bool verbose
 		);
 
+		/// \brief
+		static void computeClImport(
+			std::string edgeTable,
+			std::string clTable,
+			std::string countryCode,
+			bool verbose
+		);
+		
+
 	private:
 		//--
 		ign::feature::sql::FeatureStorePostgis*            _fsLandmask;

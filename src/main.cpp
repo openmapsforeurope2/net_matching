@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 			app::calcul::CFeatConnectionOp::computeCl(edgeTableName, clTableName, *vit, verbose);
 		 }
 
-		return 0;
+		app::calcul::CFeatConnectionOp::computeClImport(edgeTableName, clTableName, countryCode,verbose);
 
 		cFeatGenerationOp.computeCP();
 

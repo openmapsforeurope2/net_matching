@@ -1215,14 +1215,16 @@ namespace app
 
         }
 
-
+		///
+		///
+		///
 		void CFeatConnectionOp::_importCLintoEdgeTable()
 		{
 
 			epg::Context* context = epg::ContextS::getInstance();
 			std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 
-			ign::feature::FeatureIteratorPtr itCL = _fsCl->getFeatures(ign::feature::FeatureFilter());
+			ign::feature::FeatureIteratorPtr itCL = _fsCl->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCode + "'"));
 
 			while (itCL->hasNext())
 			{
@@ -1234,6 +1236,16 @@ namespace app
 				fNewEdge.setGeometry(lsCL);
 				_fsEdge->createFeature(fNewEdge);
 			}
+		}
+
+
+		///
+		///
+		///
+		void CFeatConnectionOp::computeClImport(std::string edgeTable, std::string clTable, std::string countryCode, bool verbose)
+		{
+			CFeatConnectionOp CFeatConnectionOp(edgeTable, "", clTable, countryCode, verbose);
+			CFeatConnectionOp._importCLintoEdgeTable();
 		}
 
     }

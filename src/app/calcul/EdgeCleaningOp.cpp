@@ -463,6 +463,8 @@ namespace app
                 
                 while( true )
                 {
+                    if (graphManager.getCountry(nextEdge.descriptor) != country) break;
+
                     lAntennaEdges.push_back(nextEdge.descriptor);
 
                     vTarget = graph.target( nextEdge );
@@ -522,7 +524,7 @@ namespace app
 
             std::set<edge_descriptor> sVisitedEdge;
 
-            boost::progress_display display4(graph.numVertices(), std::cout, "[ cleaning antennas  % complete ]\n");
+            boost::progress_display display4(graph.numEdges(), std::cout, "[ cleaning parallele edges  % complete ]\n");
             edge_iterator eit, eend;
             for (graph.edges(eit, eend); eit != eend; ++eit)
             {

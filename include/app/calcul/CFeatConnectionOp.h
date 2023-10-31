@@ -58,6 +58,15 @@ namespace calcul{
 			bool verbose
 		);
 
+		/// \brief
+		static void computeClImport(
+			std::string edgeTable,
+			std::string clTable,
+			std::string countryCode,
+			bool verbose
+		);
+		
+
 	private:
 		//--
 		ign::feature::sql::FeatureStorePostgis*            _fsLandmask;
@@ -178,6 +187,8 @@ namespace calcul{
 
 		//--
 		ign::math::Vec2d _computeDisplacement( std::vector< ign::math::Vec2d > const& vVectors ) const;
+
+		void _importCLintoEdgeTable();
     };
 
 }

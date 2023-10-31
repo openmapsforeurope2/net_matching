@@ -14,7 +14,7 @@ namespace calcul{
 
 	public:
 
-		CFeatGenerationOp(bool verbose = false);
+		CFeatGenerationOp(std::string countryCodeDouble, bool verbose = false);
 		~CFeatGenerationOp();
 
 		typedef ign::geometry::graph::GeometryGraph< ign::geometry::graph::PunctualVertexProperties, ign::geometry::graph::LinearEdgeProperties >  GraphType;
@@ -22,14 +22,14 @@ namespace calcul{
 		typedef typename GraphType::vertex_descriptor vertex_descriptor;
 
 		//static void compute(std::string countryCode, bool verbose);
-		void computeCL(std::string countryCodeDouble);
-		void computeCP(std::string countryCodeDouble);
+		void computeCL();
+		void computeCP();
 
 
 	private:
 
 
-		void _init(bool verbose);
+		void _init(std::string countryCodeDouble, bool verbose);
 
 		void _getCLfromBorder(ign::geometry::LineString & lsBorder, ign::geometry::GeometryPtr& buffBorder,  double distBuffer, double thresholdNoCL, double angleMax, double ratioInBuff, double snapOnVertexBorder);
 
@@ -42,25 +42,27 @@ namespace calcul{
 
 		void _getCPfromIntersectBorder(ign::geometry::LineString & lsBorder, double distCLIntersected);
 
+		void _snapCl2Cl(double distMaxClClosest);
 
+		bool _hasClExtremityClose(double distMaxClClosest, ign::feature::Feature fClCurr, ign::geometry::Point ptClCurr, ign::feature::Feature& fCl2snap, bool& isClosestStartCl2snap);
 
-		bool _isEdgeIntersectedPtWithCL(ign::feature::Feature& fEdge, ign::geometry::Point ptIntersectBorder, double distCLIntersected);
+		//bool _isEdgeIntersectedPtWithCL(ign::feature::Feature& fEdge, ign::geometry::Point ptIntersectBorder, double distCLIntersected);
 
 
 		//void mergeCPNearBy(double distMergeCP, double snapOnVertexBorder);
-		void _snapCPNearBy(std::string countryCodeDouble,double distMergeCP, double snapOnVertexBorder);
-		void _snapCPNearBy2(std::string countryCodeDouble,double distMergeCP, double snapOnVertexBorder);
+		void _snapCPNearBy(double distMergeCP, double snapOnVertexBorder);
+		void _snapCPNearBy2(double distMergeCP, double snapOnVertexBorder);
 
 		bool _getNearestCP(ign::feature::Feature fCP,double distMergeCP, std::map < std::string, ign::feature::Feature>& mCPNear);
 
 		void _addFeatAttributeMergingOnBorder(ign::feature::Feature& featMergedAttr, ign::feature::Feature& featAttrToAdd, std::string separator);
 
-		void _deleteClByAngleAndDistEdges(std::string countryCodeDouble, double angleMax, double distMax, double snapOnVertexBorder);
+		void _deleteClByAngleAndDistEdges(double angleMax, double distMax, double snapOnVertexBorder);
 
 		//void mergeCL(double distMergeCL, double snapOnVertexBorder);
-		void _mergeIntersectingCL(std::string countryCodeDouble, double distMergeCL, double snapOnVertexBorder);
+		void _mergeIntersectingCL( double distMergeCL, double snapOnVertexBorder);
 		
-		void _mergeIntersectingClWithGraph(std::string countryCodeDouble, double distMaxEdges, double snapProjCl2edge);
+		void _mergeIntersectingClWithGraph(double distMaxEdges, double snapProjCl2edge);
 		
 		bool _getCLToMerge(ign::feature::Feature fCL, double distMergeCL, std::map < std::string, ign::feature::Feature>& mCL2merge, std::set<std::string>& sCountryCode);
 
@@ -73,13 +75,13 @@ namespace calcul{
 
 		bool _isNextEdgeInAntennas(ign::feature::Feature& fEdge, ign::geometry::Point& ptCurr, ign::feature::Feature&  edgeNext, ign::geometry::Point& ptNext);
 
-		void _updateGeomCL(std::string countryCodeDouble, double snapOnVertex);
+		void _updateGeomCL(double snapOnVertex);
 
 		void _getGeomProjClOnEdge(ign::geometry::LineString& lsCl, ign::geometry::LineString& lsEdge, ign::geometry::LineString& lsprojClOnEdg, double snapOnVertex);
 
-		void _getClDoublonGeom(std::string countryCodeDouble);
+		void _getClDoublonGeom();
 
-		void _loadGraphCL(std::string countryCodeDouble, GraphType& graphCL);
+		void _loadGraphCL(GraphType& graphCL);
 		void _loadGraphEdges(std::string countryCodeSimple, GraphType& graphEdges);
 
 		bool _isConnectedEdges(GraphType& graph, std::string idEdge1, std::string idEdge2);
@@ -90,13 +92,19 @@ namespace calcul{
 
 		ign::geometry::Point _getLinkedEdgesConnectingPoint( GraphType const& graph, std::string const& idEdge1, std::string const& idEdge2 );
 
-		void _setContinuityCl(std::string countryCodeDouble, GraphType& graphCL);
+		void _setContinuityCl(GraphType& graphCL);
 		//void _getClContinuity(std::map<std::string, std::vector<std::pair<std::string, bool>>>& mClConnect);
 		//void _getEdgesConnectedOnPoint(ign::geometry::Point ptConnect, std::vector<std::pair<std::string, bool>>& vEdgesConnection);
 
-		void _deleteCLUnderThreshold(std::string countryCodeDouble);
+		void _deleteCLUnderThreshold();
 
 		void _getGeomCountry(std::string countryCodeSimple, ign::geometry::MultiPolygon& geomCountry);
+ 
+		void _mergingClUnderThreshold(double threshold);
+		//void _mergingClByLength(GraphType& graph, int threshold);
+
+		//GraphType::edge_descriptor _mergeEdgesCl(GraphType & graph, GraphType::edge_descriptor d, GraphType::edges_path & path);
+		//GraphType::edge_descriptor _switchEdge(GraphType& graph, GraphType::edge_descriptor oldEdge, GraphType::vertex_descriptor vSource, GraphType::vertex_descriptor vTarget, ign::geometry::LineString const& geom);
 		
 	private:
 		ign::feature::sql::FeatureStorePostgis* _fsEdge;
@@ -114,7 +122,9 @@ namespace calcul{
 		//--
 		bool                                               _verbose;
 
-		//std::string                                        _countryCodeDouble;
+		std::string                                        _countryCodeDouble;
+
+		std::vector<std::string>						   _vCountriesCodeName;
 
 		epg::sql::tools::IdGeneratorInterfacePtr _idGeneratorCP;
 		epg::sql::tools::IdGeneratorInterfacePtr _idGeneratorCL;

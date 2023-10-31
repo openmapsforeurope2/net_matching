@@ -20,6 +20,7 @@
 #include <epg/tools/geometry/project.h>
 #include <epg/calcul/matching/detail/LineStringSimpleDampedDeformer.h>
 
+
 // SOCLE
 #include <ign/geometry/graph/builder/SimpleGraphBuilder.h>
 #include <ign/tools/stringtools.h>
@@ -1213,5 +1214,40 @@ namespace app
             }
 
         }
+
+		///
+		///
+		///
+		void CFeatConnectionOp::_importCLintoEdgeTable()
+		{
+
+			epg::Context* context = epg::ContextS::getInstance();
+			std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+
+			ign::feature::FeatureIteratorPtr itCL = _fsCl->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCode + "'"));
+
+			while (itCL->hasNext())
+			{
+				ign::feature::Feature fCL = itCL->next();
+				ign::geometry::LineString lsCL = fCL.getGeometry().asLineString();
+
+				ign::feature::Feature fNewEdge = fCL;
+				lsCL.setFillZ(0);
+				fNewEdge.setGeometry(lsCL);
+				_fsEdge->createFeature(fNewEdge);
+			}
+		}
+
+
+		///
+		///
+		///
+		void CFeatConnectionOp::computeClImport(std::string edgeTable, std::string clTable, std::string countryCode, bool verbose)
+		{
+			CFeatConnectionOp CFeatConnectionOp(edgeTable, "", clTable, countryCode, verbose);
+			CFeatConnectionOp._importCLintoEdgeTable();
+		}
+
     }
 }
+

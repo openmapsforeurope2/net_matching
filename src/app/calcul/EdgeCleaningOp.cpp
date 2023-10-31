@@ -533,17 +533,20 @@ namespace app
                 if(vParallelEdges.size() < 2) continue;
 
                 ign::geometry::LineString lsRef = graph.getGeometry(*vParallelEdges.begin());
+                std::set<edge_descriptor> sVisitedTemp;
+                sVisitedTemp.insert(vParallelEdges.begin()->descriptor);
 
                 std::vector< oriented_edge_descriptor >::const_iterator vit;
                 for (vit = vParallelEdges.begin() ; vit != vParallelEdges.end() ; ++vit ) {
-                    sVisitedEdge.insert(vit->descriptor);
-                    if ( vit == vParallelEdges.begin() ) continue;
+                    if ( sVisitedTemp.find(vit->descriptor) != sVisitedTemp.end() ) continue; /*gestion des boucles + sert a passer le 1er element*/
+                    sVisitedTemp.insert(vit->descriptor);
 
                     ign::geometry::LineString ls = graph.getGeometry(vit->descriptor);
                     if ( ign::geometry::algorithm::HausdorffDistanceOp::distance(lsRef, ls) < 0.1 /*todo a ajuster*/ ) {
                         _removeEdges(graph, std::list<edge_descriptor>(1,vit->descriptor));
                     }
                 }
+                sVisitedEdge.insert(sVisitedTemp.begin(), sVisitedTemp.end());
             }
         };
     }

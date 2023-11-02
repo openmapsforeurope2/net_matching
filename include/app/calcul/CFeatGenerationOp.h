@@ -53,6 +53,10 @@ namespace calcul{
 		void _snapCPNearBy(double distMergeCP, double snapOnVertexBorder);
 		void _snapCPNearBy2(double distMergeCP, double snapOnVertexBorder);
 
+		void _snapCpOnClNearBy(double distCp2snapCl, double snapDistOnVertexFromCl, std::map< std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint> > & mClSplitedByCp);
+
+		void _cutClByCp(std::map< std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint> > & mClSplittedByCp);
+
 		bool _getNearestCP(ign::feature::Feature fCP,double distMergeCP, std::map < std::string, ign::feature::Feature>& mCPNear);
 
 		void _addFeatAttributeMergingOnBorder(ign::feature::Feature& featMergedAttr, ign::feature::Feature& featAttrToAdd, std::string separator);
@@ -60,8 +64,7 @@ namespace calcul{
 		void _deleteClByAngleAndDistEdges(double angleMax, double distMax, double snapOnVertexBorder);
 
 		//void mergeCL(double distMergeCL, double snapOnVertexBorder);
-		void _mergeIntersectingCL( double distMergeCL, double snapOnVertexBorder);
-		
+		void _mergeIntersectingCL2( double distMergeCL, double snapOnVertexBorder);
 		void _mergeIntersectingClWithGraph(double distMaxEdges, double snapProjCl2edge);
 		
 		bool _getCLToMerge(ign::feature::Feature fCL, double distMergeCL, std::map < std::string, ign::feature::Feature>& mCL2merge, std::set<std::string>& sCountryCode);

@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 
 		std::vector<std::string> vCountriesCodeName;
 		epg::tools::StringTools::Split(countryCode, "#", vCountriesCodeName);
-
+		
 		app::calcul::CFeatGenerationOp cFeatGenerationOp(countryCode);
 		cFeatGenerationOp.computeCL();
 		
@@ -106,6 +106,8 @@ int main(int argc, char *argv[])
 		app::calcul::CFeatConnectionOp::computeClImport(edgeTableName, clTableName, countryCode,verbose);
 
 		cFeatGenerationOp.computeCP();
+		
+	
 
 		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
 			app::calcul::CFeatConnectionOp::computeCp(edgeTableName, cpTableName, *vit, verbose);

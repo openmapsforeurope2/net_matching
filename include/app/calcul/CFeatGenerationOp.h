@@ -51,6 +51,11 @@ namespace calcul{
 
 		//void mergeCPNearBy(double distMergeCP, double snapOnVertexBorder);
 		void _snapCPNearBy(double distMergeCP, double snapOnVertexBorder);
+		bool _areCollinear(
+			ign::geometry::LineString const& ls1,
+			ign::geometry::LineString const& ls2
+		) const;
+
 		void _snapCPNearBy2(double distMergeCP, double snapOnVertexBorder);
 
 		void _snapCpOnClNearBy(double distCp2snapCl, double snapDistOnVertexFromCl, std::map< std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint> > & mClSplitedByCp);

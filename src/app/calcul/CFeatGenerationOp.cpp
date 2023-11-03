@@ -17,6 +17,7 @@
 #include <ign/geometry/graph/tools/SnapRoundPlanarizer.h>
 #include <ign/geometry/algorithm/OptimizedHausdorffDistanceOp.h>
 //#include <ign/geometry/tools/LengthIndexedLineString.h>
+#include <ign/geometry/algorithm/OptimizedHausdorffDistanceOp.h>
 
 //EPG
 #include <epg/Context.h>
@@ -709,7 +710,8 @@ void app::calcul::CFeatGenerationOp::_snapCPNearBy(
 
 	epg::Context* context = epg::ContextS::getInstance();
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
 
 	ign::feature::FeatureFilter filterCP;
 	
@@ -744,10 +746,25 @@ void app::calcul::CFeatGenerationOp::_snapCPNearBy(
 		}
 
 		std::set<std::string> s1, s2;
+		std::map<std::string, ign::geometry::LineString> mLinkedEdgeGeom;
 		for(std::map<std::string, ign::feature::Feature>::iterator mit = mCPNear.begin(); mit != mCPNear.end(); ++mit) {
 			if(mit->second.getAttribute(countryCodeName).toString() == _vCountriesCodeName[0]) s1.insert(mit->first);
 			else s2.insert(mit->first);
 			sCP2Snap.insert(mit->first);
+
+			ign::feature::Feature linkedEdgeFeat;
+			_fsEdge->getFeatureById(mit->second.getAttribute(linkedFeatIdName).toString(), linkedEdgeFeat);
+			mLinkedEdgeGeom.insert(std::make_pair(mit->first, linkedEdgeFeat.getGeometry().asLineString()));
+		}
+
+		// map pour optimisation
+		std::map<std::string, std::map<std::string, bool>> mmAreCollinear;
+		for (std::set<std::string>::const_iterator sit1 = s1.begin() ; sit1 != s1.end() ; ++sit1) {
+			std::map<std::string, bool> mAreCollinear;
+			for (std::set<std::string>::const_iterator sit2 = s2.begin() ; sit2 != s2.end() ; ++sit2) {
+				mAreCollinear.insert(std::make_pair(*sit2, _areCollinear(mLinkedEdgeGeom[*sit1], mLinkedEdgeGeom[*sit2])));
+			}
+			mmAreCollinear.insert(std::make_pair(*sit1, mAreCollinear));
 		}
 
 		std::map<std::string, std::string> m1;
@@ -758,7 +775,7 @@ void app::calcul::CFeatGenerationOp::_snapCPNearBy(
 			for (std::set<std::string>::const_iterator sit2 = s2.begin() ; sit2 != s2.end() ; ++sit2) {
 				ign::geometry::Point const& p2 = mCPNear[*sit2].getGeometry().asPoint();
 				double distance = p1.distance(p2);
-				if (distance < distanceMax) {
+				if (distance < distanceMax && !mmAreCollinear[*sit1][*sit2]) {
 					samicopain = *sit2;
 					distanceMax = distance;
 				}
@@ -778,7 +795,7 @@ void app::calcul::CFeatGenerationOp::_snapCPNearBy(
 			for (std::set<std::string>::const_iterator sit1 = s1.begin() ; sit1 != s1.end() ; ++sit1) {
 				ign::geometry::Point const& p1 = mCPNear[*sit1].getGeometry().asPoint();
 				double distance = p2.distance(p1);
-				if (distance < distanceMax) {
+				if (distance < distanceMax && !mmAreCollinear[*sit1][*sit2]) {
 					samicopain = *sit1;
 					distanceMax = distance;
 				}
@@ -879,9 +896,19 @@ void app::calcul::CFeatGenerationOp::_snapCPNearBy(
 			_fsCP->deleteFeature(*lit);
 		}
 	}
-
 }
 
+bool app::calcul::CFeatGenerationOp::_areCollinear(
+	ign::geometry::LineString const& ls1,
+	ign::geometry::LineString const& ls2
+) const {
+	ign::geometry::algorithm::OptimizedHausdorffDistanceOp op(ls1, ls2, -1, 10 /*TODO a rendre parametrable*/);
+	double dAB = op.getDemiHausdorff(ign::geometry::algorithm::OptimizedHausdorffDistanceOp::DhdFromAtoB);
+	if (dAB >= 0) return true;
+	double dBA = op.getDemiHausdorff(ign::geometry::algorithm::OptimizedHausdorffDistanceOp::DhdFromBtoA);
+	if (dBA < 0) return false;
+	return true;
+}
 
 void app::calcul::CFeatGenerationOp::_snapCpOnClNearBy(
 	double distCp2snapCl,

@@ -106,8 +106,6 @@ int main(int argc, char *argv[])
 		app::calcul::CFeatConnectionOp::computeClImport(edgeTableName, clTableName, countryCode,verbose);
 
 		cFeatGenerationOp.computeCP();
-		
-	
 
 		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
 			app::calcul::CFeatConnectionOp::computeCp(edgeTableName, cpTableName, *vit, verbose);

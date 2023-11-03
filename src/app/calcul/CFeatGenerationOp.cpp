@@ -150,7 +150,7 @@ void app::calcul::CFeatGenerationOp::computeCP()
 
 	//CL
 	double distBuffer = 5;
-	double distCLIntersected = 10;
+	double distCLIntersected = 5;
 	double distUnderShoot = 10;
 	double distMergeCP = 5; //2
 	double distCp2snapCl = 5;
@@ -195,6 +195,8 @@ app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 	_shapeLogger->closeShape("ClDoublon");
 	_shapeLogger->closeShape("ClDeleteByAngleDistEdges");
 	_shapeLogger->closeShape("ClDebug");
+	_shapeLogger->closeShape("edgeClCutByCp");
+	
 }
 	
 ///
@@ -217,6 +219,7 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	_shapeLogger->addShape("ClDoublon", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDeleteByAngleDistEdges", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDebug", epg::log::ShapeLogger::LINESTRING);
+	_shapeLogger->addShape("edgeClCutByCp", epg::log::ShapeLogger::LINESTRING);
 
 	_countryCodeDouble = countryCodeDouble;
 	epg::tools::StringTools::Split(_countryCodeDouble, "#", _vCountriesCodeName);
@@ -539,9 +542,6 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 
 		if (ptClosestBorder.distance(projPt) > distUnderShoot )
 			continue;
-		double distCLIntersected = distUnderShoot;
-		/*if (_isEdgeIntersectedPtWithCL(fEdge, projPt, distCLIntersected))
-			continue;*/
 
 		projPt.setZ(0);
 		ign::feature::Feature fCF = _fsCP->newFeature();
@@ -582,8 +582,10 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 
 	std::vector<ign::feature::FeatureAttributeType> listAttrEdge = _fsEdge->getFeatureType().attributes();
 
-	//ign::feature::FeatureFilter filterFeaturesToMatch("ST_INTERSECTS(" + geomName + ", ST_GeomFromText('" + lsBorder.toString() + "'))");
-	ign::feature::FeatureFilter filterFeaturesToMatch("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + lsBorder.toString() + "'),3035))");
+	//on prend les edges qui intersectent les frontières et ou ceux qui intersectent les Cls
+	ign::feature::FeatureFilter filterFeaturesToMatch("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + lsBorder.toString() + "'),3035))"
+		" OR ST_INTERSECTS(" + geomName + ", (SELECT ST_Union(array(SELECT "+geomName+" FROM "+ _fsEdge->getTableName()+" WHERE "+ countryCodeName + " = '" + _countryCodeDouble + "'))))");
+
 	epg::tools::FilterTools::addAndConditions(filterFeaturesToMatch, _reqFilterEdges2generateCF);
 	//on ne prend que les edes ayant un cc simple pour ne pas créer de CP là où il y a des CLs
 	epg::tools::FilterTools::addAndConditions(filterFeaturesToMatch,"("+ countryCodeName+" = '" +_vCountriesCodeName[0]+"' or "+countryCodeName + " = '" + _vCountriesCodeName[1] +"')");
@@ -597,10 +599,25 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 		++display;
 
 		ign::feature::Feature fToMatch = itFeaturesToMatch->next();
-		ign::geometry::LineString const& lsFToMatch = fToMatch.getGeometry().asLineString();
+		ign::geometry::LineString lsFToMatch = fToMatch.getGeometry().asLineString();
 		ign::geometry::Geometry* geomPtr = lsFToMatch.Intersection(lsBorder);
 
-		if (geomPtr->isNull())
+		ign::feature::Feature fClArround;
+		bool hasClConnected = _isEdgeConnected2cl(lsFToMatch, lsFToMatch.getEnvelope().expandBy(distCLIntersected), fClArround, distCLIntersected);
+		
+		ign::geometry::Geometry* geomIntersectCl;
+		if (hasClConnected) 
+			geomIntersectCl = fClArround.getGeometry().Intersection(lsFToMatch);
+		
+		//si il existe une intersection entre l'edge et une CL, et qu'elle est sous un seuil, on prend cette intersection à la place de celle avec la frontière
+		if (!geomIntersectCl->isNull() ) {
+			if(geomIntersectCl->distance(lsBorder) < distCLIntersected ) {
+			if (geomPtr->isNull() || geomPtr->distance(*geomIntersectCl) < distCLIntersected) //utile ce test ou le precedent suffit?
+				geomPtr = geomIntersectCl;
+			}
+		}
+
+		if (geomPtr->isNull() )
 			continue;
 
 		ign::feature::Feature fCF = _fsCP->newFeature();
@@ -615,13 +632,9 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 
 		if (geomPtr->isPoint())
 		{
-			//si l'edge sert à une CL et, ne pas créer de CP?
-			//bool isConnectedToCL = _isEdgeIntersectedPtWithCL(fToMatch, geomPtr->asPoint(), distCLIntersected);
-			//if (!isConnectedToCL) {
 			fCF.setGeometry(geomPtr->asPoint());
 			std::string idCP = _idGeneratorCP->next();
 			_fsCP->createFeature(fCF, idCP);
-			//}
 		}
 
 		else if (geomPtr->isGeometryCollection())
@@ -632,12 +645,9 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 				if (geomCollect.geometryN(i).isPoint())
 				{
 					ign::geometry::Point ptIntersect = geomCollect.geometryN(i).asPoint();		
-					//bool isConnectedToCL = _isEdgeIntersectedPtWithCL(fToMatch, ptIntersect, distCLIntersected);
-					//if (!isConnectedToCL) {
 					fCF.setGeometry(ptIntersect);
 					std::string idCP = _idGeneratorCP->next();
 					_fsCP->createFeature(fCF, idCP);
-					//}
 				}
 			}
 		}
@@ -910,6 +920,36 @@ bool app::calcul::CFeatGenerationOp::_areCollinear(
 	return true;
 }
 
+
+bool app::calcul::CFeatGenerationOp::_isEdgeConnected2cl(
+	ign::geometry::Geometry& geomObjNearCl,
+	ign::geometry::Envelope& envArroundGeom,
+	ign::feature::Feature& fCl2SnapOn,
+	double distMinCl
+)
+{
+	epg::Context* context = epg::ContextS::getInstance();
+	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	ign::feature::FeatureFilter filterArroundCp(countryCodeName + " = '" + _countryCodeDouble + "'");
+	filterArroundCp.setExtent(envArroundGeom);
+	ign::feature::FeatureIteratorPtr itClArround = _fsEdge->getFeatures(filterArroundCp);
+
+	bool hasEdgConnected2Cl = false;
+	while (itClArround->hasNext())
+	{
+		ign::feature::Feature fClArround = itClArround->next();
+		ign::geometry::LineString lsClArround = fClArround.getGeometry().asLineString();
+		double dist = lsClArround.distance(geomObjNearCl);
+		if (dist < distMinCl) {
+			hasEdgConnected2Cl = true;
+			distMinCl = dist;
+			fCl2SnapOn = fClArround;
+		}
+	}
+	return hasEdgConnected2Cl;
+}
+
 void app::calcul::CFeatGenerationOp::_snapCpOnClNearBy(
 	double distCp2snapCl,
 	double snapDistOnVertexFromCl,
@@ -934,7 +974,11 @@ void app::calcul::CFeatGenerationOp::_snapCpOnClNearBy(
 		ign::feature::Feature fCp= itCp->next();
 		ign::geometry::Point ptCp = fCp.getGeometry().asPoint();
 
-		ign::feature::FeatureFilter filterArroundCp(countryCodeName + " = '" + _countryCodeDouble+ "'");
+		ign::feature::Feature fCl2SnapOn;
+		double  distMinCl = distCp2snapCl * 2;
+		bool hasClNearBy = _isEdgeConnected2cl(ptCp,ptCp.getEnvelope().expandBy(distCp2snapCl), fCl2SnapOn, distMinCl);
+
+		/*ign::feature::FeatureFilter filterArroundCp(countryCodeName + " = '" + _countryCodeDouble+ "'");
 		filterArroundCp.setExtent(ptCp.getEnvelope().expandBy(distCp2snapCl));
 		ign::feature::FeatureIteratorPtr itClArround = _fsEdge->getFeatures(filterArroundCp);
 
@@ -953,6 +997,10 @@ void app::calcul::CFeatGenerationOp::_snapCpOnClNearBy(
 		}
 		//pas de Cl proche pour snapper
 		if (fCl2SnapOn.getId().empty())
+			continue;*/
+			
+		//pas de Cl proche pour snapper
+		if (!hasClNearBy)
 			continue;
 
 		//on projette la Cp sur la Cl identifiée
@@ -1011,6 +1059,8 @@ void app::calcul::CFeatGenerationOp::_cutClByCp(
 			fNewEdgeDouble.setGeometry(subCl2cut[i]);
 			fNewEdgeDouble.setId("");
 			_fsEdge->createFeature(fNewEdgeDouble);
+			_shapeLogger->writeFeature("edgeClCutByCp", fEdgDoubl2Cut);
+			_logger->log(epg::log::INFO, "edge create by _cutClByCp: " + fNewEdgeDouble.getId());
 		}
 	}
 

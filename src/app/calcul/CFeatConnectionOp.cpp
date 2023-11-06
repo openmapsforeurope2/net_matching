@@ -267,7 +267,6 @@ namespace app
             boost::progress_display display(numFeatures, std::cout, "[ cl_connection  % complete ]\n");
 
             // pour garder le lien entre les CL et les edges nouvellement créés
-            // std::map<std::string, std::vector<std::string>> mParentChilds;
             bimap_t mParentChilds;
 
             std::set<std::string> sTreatedCl;
@@ -277,9 +276,8 @@ namespace app
                 ++display;
                 ign::feature::Feature const& fCl = itCl->next();
                 ign::geometry::LineString const& clGeom = fCl.getGeometry().asLineString();
-                // std::string edgeLink = fCl.getAttribute(edgeLinkName).toString();
-                std::string linkedFeatureId = fCl.getAttribute(linkedFeatureIdName).toString();
-                std::string countryCode = fCl.getAttribute(countryCodeName).toString();
+                std::string const linkedFeatureId = fCl.getAttribute(linkedFeatureIdName).toString();
+                std::string const countryCode = fCl.getAttribute(countryCodeName).toString();
 
                 if (_verbose) _logger->log(epg::log::DEBUG, fCl.getId());
 
@@ -316,6 +314,7 @@ namespace app
                 ign::geometry::LineString mergedClGeom = detail::ClMerger::merge(_fsCl, fCl, foundFeatureId.second, sTreatedCl);
                 
                 std::pair<bool, ign::feature::Feature> foundEdge = _getNearestChild(mergedClGeom, foundFeatureId.second, mParentChilds);
+                std::string edgeId = foundEdge.second.getId();
                 if (!foundEdge.first)
                 {
                     _logger->log(epg::log::ERROR, "No candidate edge found [" + linkedFeatureIdName + "] " + foundFeatureId.second);
@@ -333,7 +332,7 @@ namespace app
                 //     bool test =true;
                 // }
 
-                if (_verbose) _logger->log(epg::log::DEBUG, "  "+foundEdge.second.getId());
+                if (_verbose) _logger->log(epg::log::DEBUG, "  "+edgeId);
 
                 ign::geometry::LineString const& edgeGeom = foundEdge.second.getGeometry().asLineString();
 
@@ -468,26 +467,22 @@ namespace app
                     }
                 }
 
-                std::string edgeId = foundEdge.second.getId();
                 //on supprime l'edge
                 _shapeLogger->writeFeature("cl_deleted_features_"+_countryCode, foundEdge.second);
                 _fsEdge->deleteFeature(edgeId);
 
-                // std::vector<std::string> vChilds;
                 auto r_mit = mParentChilds.right.find(edgeId);
                 std::string parentId = r_mit != mParentChilds.right.end() ? r_mit->second : edgeId;
                 if ( vNewGeom.size() > 0 && r_mit != mParentChilds.right.end()) mParentChilds.right.erase(r_mit);
-                // std::string parentId = foundEdge.second.getId();
+
                 for (size_t i = 0 ; i < vNewGeom.size() ; ++i) {
                     foundEdge.second.setGeometry(vNewGeom[i]);
                     
                     _fsEdge->createFeature(foundEdge.second);
-                    mParentChilds.insert(value_type(parentId,foundEdge.second.getId()));
-                    // vChilds.push_back(foundEdge.second.getId());
+                    mParentChilds.insert(value_type(parentId, foundEdge.second.getId()));
 
                     _shapeLogger->writeFeature("cl_created_features_"+_countryCode, foundEdge.second);
                 }
-                // if (!vChilds.empty()) mParentChilds.insert(std::make_pair(parentId, vChilds));
             }
 
             std::map<ign::geometry::Point, ign::math::Vec2d>::const_iterator mit;
@@ -580,37 +575,39 @@ namespace app
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
             
             // std::string const edgeLinkName = themeParameters->getValue(EDGE_LINK).toString();
-            std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE).toString();
-            std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
+            // std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE).toString();
+            // std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
+            double const snapDistance = themeParameters->getValue(SNAP_DIST).toDouble();
 
-            ign::geometry::MultiPolygon mpLandmask;
-            ign::feature::FeatureIteratorPtr itLandmask = _fsLandmask->getFeatures(ign::feature::FeatureFilter(landCoverTypeName + " = '" + landAreaValue + "' AND " + countryCodeName + " = '" + _countryCode + "'"));
-            while (itLandmask->hasNext())
-            {
-                ign::feature::Feature const &fLandmask = itLandmask->next();
-                ign::geometry::MultiPolygon const &mp = fLandmask.getGeometry().asMultiPolygon();
-                for (int i = 0; i < mp.numGeometries(); ++i)
-                {
-                    mpLandmask.addGeometry(mp.polygonN(i));
-                }
-            }
+            // ign::geometry::MultiPolygon mpLandmask;
+            // ign::feature::FeatureIteratorPtr itLandmask = _fsLandmask->getFeatures(ign::feature::FeatureFilter(landCoverTypeName + " = '" + landAreaValue + "' AND " + countryCodeName + " = '" + _countryCode + "'"));
+            // while (itLandmask->hasNext())
+            // {
+            //     ign::feature::Feature const &fLandmask = itLandmask->next();
+            //     ign::geometry::MultiPolygon const &mp = fLandmask.getGeometry().asMultiPolygon();
+            //     for (int i = 0; i < mp.numGeometries(); ++i)
+            //     {
+            //         mpLandmask.addGeometry(mp.polygonN(i));
+            //     }
+            // }
 
             ign::feature::FeatureFilter filterCp(countryCodeName + " LIKE '%" + _countryCode + "%'");
-            std::set<std::string> sEdge2Delete;
 
             // patience
             int numFeatures = epg::sql::tools::numFeatures(*_fsCp, filterCp);
             boost::progress_display display(numFeatures, std::cout, "[ cp_connection  % complete ]\n");
 
+            // pour garder le lien entre les CP et les edges nouvellement créés
+            bimap_t mParentChilds;
+
             ign::feature::FeatureIteratorPtr itCp = _fsCp->getFeatures(filterCp);
             while (itCp->hasNext())
             {
                 ++display;
-                ign::feature::Feature const &fCp = itCp->next();
-                ign::geometry::Point const &cpGeom = fCp.getGeometry().asPoint();
-                // std::string edgeLink = fCp.getAttribute(edgeLinkName).toString();
-                std::string linkedFeatureId = fCp.getAttribute(linkedFeatureIdName).toString();
-                std::string countryCode = fCp.getAttribute(countryCodeName).toString();
+                ign::feature::Feature const& fCp = itCp->next();
+                ign::geometry::Point const& cpGeom = fCp.getGeometry().asPoint();
+                std::string const linkedFeatureId = fCp.getAttribute(linkedFeatureIdName).toString();
+                std::string const countryCode = fCp.getAttribute(countryCodeName).toString();
 
                 // if (fCp.getId() == "CONNECTINGPOINT48" || fCp.getId() == "CONNECTINGPOINT49") {
                 //     bool test = true;
@@ -618,8 +615,7 @@ namespace app
                 //     continue;
                 // }
 
-                if (_verbose)
-                    _logger->log(epg::log::DEBUG, fCp.getId());
+                if (_verbose) _logger->log(epg::log::DEBUG, fCp.getId());
 
                 // std::pair<bool, std::string> foundEdge = _getNearestEdge(cpGeom, countryCodeName, edgeLinkName, edgeLink, sEdge2Delete);
 
@@ -636,11 +632,11 @@ namespace app
                     continue;
                 }
 
-                ign::feature::Feature fEdge;
-                _fsEdge->getFeatureById(foundFeatureId.second, fEdge);
+                // ign::feature::Feature fEdge;
+                // _fsEdge->getFeatureById(foundFeatureId.second, fEdge);
 
-                if (_verbose)
-                    _logger->log(epg::log::DEBUG, foundFeatureId.second);
+                // if (_verbose)
+                //     _logger->log(epg::log::DEBUG, foundFeatureId.second);
 
                 // if (foundEdge.second == "41f0d5bf-d002-4c8e-a828-779aeed290ae") {
                 //     bool test = true;
@@ -648,100 +644,60 @@ namespace app
                 //     continue;
                 // }
 
-                ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
+                // ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
 
-                // On recupere la (les) partie(s) qui touche(nt) le pays
-                ign::geometry::GeometryPtr intersectionGeom(mpLandmask.Intersection(edgeGeom));
-                ign::geometry::LineString intersectedEdgeGeom;
-                size_t nbResultingEdges = 0;
-
-                if (intersectionGeom->isLineString())
+                std::pair<bool, ign::feature::Feature> foundEdge = _getNearestChild(cpGeom, foundFeatureId.second, mParentChilds);
+                std::string edgeId = foundEdge.second.getId();
+                if (!foundEdge.first)
                 {
-                    intersectedEdgeGeom = intersectionGeom->asLineString();
-                }
-                else if (intersectionGeom->isGeometryCollection())
-                {
-                    double distanceMax = std::numeric_limits<double>::infinity();
-                    ign::geometry::GeometryCollection const& collectGeom = intersectionGeom->asGeometryCollection();
-                    for (size_t i = 0; i < collectGeom.numGeometries(); ++i)
-                    {
-                        if (collectGeom.geometryN(i).isLineString())
-                        {
-                            ++nbResultingEdges;
-                            ign::geometry::LineString const& ls = collectGeom.geometryN(i).asLineString();
-
-                            ign::feature::Feature feat = fCp;
-                            feat.setGeometry(ls);
-                            _shapeLogger->writeFeature("multiple_result_"+_countryCode, feat);
-
-                            double distance = ls.distance(cpGeom);
-                            if (distance < distanceMax)
-                            {
-                                distanceMax = distance;
-                                intersectedEdgeGeom = ls;
-                            }
-                        }
-                    }
-                }
-
-                if (intersectedEdgeGeom.isEmpty())
-                {
-                    _logger->log(epg::log::ERROR, "The edge doesn't intersect the landmask [id] " + foundFeatureId.second);
+                    _logger->log(epg::log::ERROR, "No candidate edge found [" + linkedFeatureIdName + "] " + foundFeatureId.second);
                     continue;
                 }
 
-                bool bCreateNewFeature = false;
-                if (nbResultingEdges > 1)
-                {
-                    sEdge2Delete.insert(foundFeatureId.second);
-                    bCreateNewFeature = true;
+                if (_verbose) _logger->log(epg::log::DEBUG, "  "+edgeId);
+
+                ign::geometry::LineString const& edgeGeom = foundEdge.second.getGeometry().asLineString();
+
+
+                ign::geometry::Point startPoint;
+                // peut-on connecter l'edge aux extremités du connecting edge ?
+                double dCpStart = edgeGeom.startPoint().distance(cpGeom);
+                double dCpEnd = edgeGeom.endPoint().distance(cpGeom);
+                if (std::min(dCpStart, dCpEnd) > snapDistance) {
+                    epg::tools::geometry::projectZ(edgeGeom, cpGeom, startPoint);
+                    dCpStart = edgeGeom.startPoint().distance(startPoint);
+                    dCpEnd = edgeGeom.endPoint().distance(startPoint);
                 }
+                    
+                if (std::min(dCpStart, dCpEnd) <= snapDistance) {
+                    startPoint = dCpStart < dCpEnd ? edgeGeom.startPoint() : edgeGeom.endPoint();
+                } else {
+                    app::geometry::tools::LineStringSplitter lsSplitter(edgeGeom, 1e-5);
+                    lsSplitter.addCuttingGeometry(startPoint);
+                    std::vector<ign::geometry::LineString> vNewEdgeGeom = lsSplitter.getSubLineStringsZ();
 
-                app::geometry::tools::LineStringSplitter lsSplitter(intersectedEdgeGeom, 1e-5);
+                    if (vNewEdgeGeom.size() == 2) {
+                        startPoint = vNewEdgeGeom.front().endPoint();
+                    } else {
+                        startPoint = edgeGeom.startPoint().distance(cpGeom) < edgeGeom.endPoint().distance(cpGeom) ? edgeGeom.startPoint() : edgeGeom.endPoint();
+                    }
 
-                ign::geometry::Point projectedPoint;
-                epg::tools::geometry::projectZ(intersectedEdgeGeom, cpGeom, projectedPoint);
+                    if (vNewEdgeGeom.size() > 1) {
+                        _fsEdge->deleteFeature(edgeId);
 
-                ign::feature::Feature feat = fEdge;
-                feat.setGeometry(projectedPoint);
-                _shapeLogger->writeFeature("projected_cp_"+_countryCode, feat);
-
-                lsSplitter.addCuttingGeometry(projectedPoint);
-                ign::geometry::LineString newEdgeGeom = lsSplitter.truncAtEnds();
-
-                ign::geometry::Point displacementStart = newEdgeGeom.startPoint().distance(cpGeom) < newEdgeGeom.endPoint().distance(cpGeom) ? newEdgeGeom.startPoint() : newEdgeGeom.endPoint();
-                mDisplacements.insert(std::make_pair(displacementStart, cpGeom.toVec2d() - displacementStart.toVec2d()));
-
-                fEdge.setGeometry(newEdgeGeom);
-                if (bCreateNewFeature)
-                {
-                    fEdge.setId("");
-                    _fsEdge->createFeature(fEdge);
-                    _shapeLogger->writeFeature("created_edges_"+_countryCode, fEdge);
+                        auto r_mit = mParentChilds.right.find(edgeId);
+                        std::string parentId = r_mit != mParentChilds.right.end() ? r_mit->second : edgeId;
+                        if (r_mit != mParentChilds.right.end()) mParentChilds.right.erase(r_mit);
+                        for (size_t i = 0 ; i < vNewEdgeGeom.size() ; ++i) {
+                            foundEdge.second.setGeometry(vNewEdgeGeom[i]);
+                            
+                            _fsEdge->createFeature(foundEdge.second);
+                            mParentChilds.insert(value_type(parentId, foundEdge.second.getId()));
+                        }
+                    }
                 }
-                else
-                {
-                    _fsEdge->modifyFeature(fEdge);
-                }
-
-                ign::feature::Feature featLog;
-                featLog.setGeometry(newEdgeGeom);
-                _shapeLogger->writeFeature("resulting_edges_"+_countryCode, featLog);
+                mDisplacements.insert(std::make_pair(startPoint, cpGeom.toVec2d() - startPoint.toVec2d()));
             }
-
-            std::set< std::string >::const_iterator sit;
-            for( sit = sEdge2Delete.begin() ; sit != sEdge2Delete.end() ; ++sit ) {
-                _fsEdge->deleteFeature(*sit);
-            }
-
-            std::map<ign::geometry::Point, ign::math::Vec2d>::const_iterator mit;
-            for (mit = mDisplacements.begin(); mit != mDisplacements.end(); ++mit)
-            {
-                ign::feature::Feature feat;
-                feat.setGeometry(ign::geometry::LineString(mit->first, ign::geometry::Point(mit->first.x() + mit->second.x(), mit->first.y() + mit->second.y())));
-                _shapeLogger->writeFeature("cp_displacements_"+_countryCode, feat);
-            }
-
         }
 
         ///

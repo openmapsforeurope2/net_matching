@@ -602,6 +602,8 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 		ign::geometry::LineString lsFToMatch = fToMatch.getGeometry().asLineString();
 		ign::geometry::Geometry* geomPtr = lsFToMatch.Intersection(lsBorder);
 
+		_logger->log(epg::log::DEBUG, fToMatch.getId());
+
 		ign::feature::Feature fClArround;
 		bool hasClConnected = _isEdgeConnected2cl(lsFToMatch, lsFToMatch.getEnvelope().expandBy(distCLIntersected), fClArround, distCLIntersected);
 		

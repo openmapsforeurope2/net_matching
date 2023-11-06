@@ -914,6 +914,8 @@ bool app::calcul::CFeatGenerationOp::_areCollinear(
 	ign::geometry::LineString const& ls1,
 	ign::geometry::LineString const& ls2
 ) const {
+	return false
+
 	ign::geometry::algorithm::OptimizedHausdorffDistanceOp op(ls1, ls2, -1, 10 /*TODO a rendre parametrable*/);
 	double dAB = op.getDemiHausdorff(ign::geometry::algorithm::OptimizedHausdorffDistanceOp::DhdFromAtoB);
 	if (dAB >= 0) return true;
@@ -1699,6 +1701,9 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 		while (it->hasNext()) {
 			++display;
 			ign::feature::Feature fCl = it->next();
+
+			_logger->log(epg::log::DEBUG, fCl.getId());
+
 			//verifier si la cl n'est pas liée a au moins une cl à chaque extremite
 			edge_descriptor edCl = graphCl.getInducedEdges(fCl.getId()).second[0].descriptor;
 			if (graphCl.degree(graphCl.source(edCl)) > 1 && graphCl.degree(graphCl.target(edCl)) > 1)

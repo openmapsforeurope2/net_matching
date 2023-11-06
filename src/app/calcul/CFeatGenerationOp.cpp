@@ -914,7 +914,7 @@ bool app::calcul::CFeatGenerationOp::_areCollinear(
 	ign::geometry::LineString const& ls1,
 	ign::geometry::LineString const& ls2
 ) const {
-	return false
+	return false;
 
 	ign::geometry::algorithm::OptimizedHausdorffDistanceOp op(ls1, ls2, -1, 10 /*TODO a rendre parametrable*/);
 	double dAB = op.getDemiHausdorff(ign::geometry::algorithm::OptimizedHausdorffDistanceOp::DhdFromAtoB);

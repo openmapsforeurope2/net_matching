@@ -302,7 +302,7 @@ namespace app
                     _fsEdge->getFeatureById(edgeId, dFeat);
                     _shapeLogger->writeFeature("edge_cleaning_deleted_edges", dFeat);
 
-                    // _fsEdge->deleteFeature(edgeId);
+                    _fsEdge->deleteFeature(edgeId);
                 }
             }
         }

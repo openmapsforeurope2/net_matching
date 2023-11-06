@@ -56,7 +56,7 @@ namespace calcul{
 			ign::geometry::LineString const& ls2
 		) const;
 
-		bool app::calcul::CFeatGenerationOp::_isEdgeConnected2cl(ign::geometry::Geometry& geomObjNearCl, ign::geometry::Envelope& envArroundGeom, ign::feature::Feature& fCl2SnapOn, double distMinCl);
+		bool _isEdgeConnected2cl(ign::geometry::Geometry& geomObjNearCl, ign::geometry::Envelope& envArroundGeom, ign::feature::Feature& fCl2SnapOn, double distMinCl);
 
 		void _snapCPNearBy2(double distMergeCP, double snapOnVertexBorder);
 

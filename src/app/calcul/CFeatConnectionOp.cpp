@@ -698,6 +698,15 @@ namespace app
                 }
                 mDisplacements.insert(std::make_pair(startPoint, cpGeom.toVec2d() - startPoint.toVec2d()));
             }
+
+            std::map<ign::geometry::Point, ign::math::Vec2d>::const_iterator mit;
+            for (mit = mDisplacements.begin(); mit != mDisplacements.end(); ++mit)
+            {
+                ign::feature::Feature feat;
+                ign::geometry::Point p = mit->first;
+                feat.setGeometry(ign::geometry::LineString(p, ign::geometry::Point(mit->first.x() + mit->second.x(), mit->first.y() + mit->second.y())));
+                _shapeLogger->writeFeature("cp_displacements_"+_countryCode, feat);
+            }
         }
 
         ///
@@ -940,7 +949,7 @@ namespace app
             std::vector<edge_descriptor> & vDeformedEdges,
             std::set<std::string> & sCollapsedEdges
         ) const {
-            double influenceDist = 2;
+            double influenceDist = 0;
             // double mergingDist = 1e-5;
             epg::calcul::matching::detail::LineStringSimpleDampedDeformer deformer;
 

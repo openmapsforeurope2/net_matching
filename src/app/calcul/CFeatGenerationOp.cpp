@@ -1462,6 +1462,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 
 			std::string idCLNew = _idGeneratorCL->next();
 			fClNew.setId(idCLNew);
+			lsCl.setFillZ(0);
 			fClNew.setGeometry(lsCl);
 
 			_fsCL->createFeature(fClNew, idCLNew);
@@ -1651,6 +1652,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 
 			std::string idCLNew = _idGeneratorCL->next();
 			fCLNew.setId(idCLNew);
+			lsIntersectedCL.setFillZ(0);
 			fCLNew.setGeometry(lsIntersectedCL);
 
 			fCLNew.setAttribute(themeParameters->getValue(CF_STATUS).toString(), ign::data::String("edge_matched"));

@@ -556,7 +556,7 @@ namespace app
                 } else {
                     double ratioWithBuff = _getRatioWithBuff(graph, vpit->first, vpit->second);
 
-                    if (ratio < antennaRatioThresholdWithBuff) {
+                    if (ratioWithBuff < antennaRatioThresholdWithBuff) {
                         _removeEdges(graph, vpit->second);
                     }
                 }

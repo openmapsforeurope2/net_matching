@@ -126,7 +126,7 @@ namespace app
 
                 //on calcul la geometry de travail
                 _mCountryGeomPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(boundBuffPtr->Intersection(mpLandmask)) ));
-                _mCountryGeomPtr[*vit].reset(_mCountryGeomPtr[*vit]->buffer(landmaskBuffer));
+                _mCountryGeomWithBuffPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(_mCountryGeomPtr[*vit]->buffer(landmaskBuffer))));
 
                 ign::feature::Feature feat;
                 feat.setGeometry(*_mCountryGeomPtr[*vit]);
@@ -270,6 +270,25 @@ namespace app
         ///
         ///
         ///
+        void EdgeCleaningOp::_addLengthsWithBuff(std::string country, ign::geometry::LineString const& ls , double & lengthInCountry, double & length) const 
+        {
+            std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomWithBuffPtr.find(country);
+            if (mit == _mCountryGeomPtr.end()) {
+                _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
+                return;
+            }
+
+            ign::geometry::GeometryPtr resultPtr(mit->second->Intersection(ls));
+
+            double ratio = 0;
+
+            lengthInCountry += _getLength(*resultPtr);
+            length += ls.length();
+        }
+
+        ///
+        ///
+        ///
         double EdgeCleaningOp::_getRatio(GraphType const& graph, std::string country, std::list<edge_descriptor> const& lEdges) const
         {
             double lengthInCountry = 0;
@@ -278,6 +297,21 @@ namespace app
             for ( ; lit != lEdges.end() ; ++lit) {
                 ign::geometry::LineString edgeGeom = graph.getGeometry(*lit);
                 _addLengths(country, edgeGeom, lengthInCountry, length);
+            }
+            return lengthInCountry / length;
+        }
+
+        ///
+        ///
+        ///
+        double EdgeCleaningOp::_getRatioWithBuff(GraphType const& graph, std::string country, std::list<edge_descriptor> const& lEdges) const
+        {
+            double lengthInCountry = 0;
+            double length = 0;
+            std::list<edge_descriptor>::const_iterator lit = lEdges.begin();
+            for ( ; lit != lEdges.end() ; ++lit) {
+                ign::geometry::LineString edgeGeom = graph.getGeometry(*lit);
+                _addLengthsWithBuff(country, edgeGeom, lengthInCountry, length);
             }
             return lengthInCountry / length;
         }
@@ -324,6 +358,7 @@ namespace app
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
             double const slimSurfaceWidth = themeParameters->getValue( SLIM_SURFACE_WIDTH ).toDouble();
             double const antennaRatioThreshold = themeParameters->getValue( ANTENNA_RATIO_THRESHOLD ).toDouble();
+            double const antennaRatioThresholdWithBuff = themeParameters->getValue( ANTENNA_RATIO_WITH_BUFFER_THRESHOLD ).toDouble();
 
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, true);
@@ -518,6 +553,12 @@ namespace app
 
                 if (ratio < antennaRatioThreshold) {
                     _removeEdges(graph, vpit->second);
+                } else {
+                    double ratioWithBuff = _getRatioWithBuff(graph, vpit->first, vpit->second);
+
+                    if (ratio < antennaRatioThresholdWithBuff) {
+                        _removeEdges(graph, vpit->second);
+                    }
                 }
             }
 

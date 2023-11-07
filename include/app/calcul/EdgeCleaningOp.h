@@ -43,6 +43,8 @@ namespace calcul{
 		//--
 		std::map<std::string, ign::geometry::GeometryPtr>    _mCountryGeomPtr;
 		//--
+		std::map<std::string, ign::geometry::GeometryPtr>    _mCountryGeomWithBuffPtr;
+		//--
 		epg::log::EpgLogger*                                 _logger;
 		//--
 		epg::log::ShapeLogger*                               _shapeLogger;
@@ -79,10 +81,24 @@ namespace calcul{
 		double _getRatio(GraphType const& graph, std::string country, std::list<edge_descriptor> const& lEdges) const;
 
 		//--
+		double _getLengthWithBuff( ign::geometry::Geometry const& geom ) const;
+
+		//--
+		double _getRatioWithBuff(GraphType const& graph, std::string country, std::list<edge_descriptor> const& lEdges) const;
+
+		//--
 		void _removeEdges(GraphType const& graph, std::list<edge_descriptor> const& lEdges) const;
 
 		//--
 		void _addLengths(
+			std::string country,
+			ign::geometry::LineString const& ls,
+			double & lengthInCountry,
+			double & length
+		) const;
+
+		//--
+		void _addLengthsWithBuff(
 			std::string country,
 			ign::geometry::LineString const& ls,
 			double & lengthInCountry,

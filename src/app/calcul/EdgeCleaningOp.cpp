@@ -89,6 +89,7 @@ namespace app
             std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE).toString();
             std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
             std::string const clTableName = themeParameters->getValue(CL_TABLE).toString();
+            double const landmaskBuffer = themeParameters->getValue(LANDMASK_BUFFER).toDouble();
 
 
             // on recupere un buffer autour de la frontiere
@@ -125,6 +126,7 @@ namespace app
 
                 //on calcul la geometry de travail
                 _mCountryGeomPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(boundBuffPtr->Intersection(mpLandmask)) ));
+                _mCountryGeomPtr[*vit].reset(_mCountryGeomPtr[*vit]->buffer(landmaskBuffer));
 
                 ign::feature::Feature feat;
                 feat.setGeometry(*_mCountryGeomPtr[*vit]);

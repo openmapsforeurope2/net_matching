@@ -600,22 +600,22 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 
 		ign::feature::Feature fToMatch = itFeaturesToMatch->next();
 		ign::geometry::LineString lsFToMatch = fToMatch.getGeometry().asLineString();
-		ign::geometry::Geometry* geomPtr = lsFToMatch.Intersection(lsBorder);
+		ign::geometry::GeometryPtr geomPtr(lsFToMatch.Intersection(lsBorder));
 
 		_logger->log(epg::log::DEBUG, fToMatch.getId());
 
 		ign::feature::Feature fClArround;
 		bool hasClConnected = _isEdgeConnected2cl(lsFToMatch, lsFToMatch.getEnvelope().expandBy(distCLIntersected), fClArround, distCLIntersected);
 		
-		ign::geometry::Geometry* geomIntersectCl;
-		if (hasClConnected) 
-			geomIntersectCl = fClArround.getGeometry().Intersection(lsFToMatch);
-		
-		//si il existe une intersection entre l'edge et une CL, et qu'elle est sous un seuil, on prend cette intersection à la place de celle avec la frontière
-		if (!geomIntersectCl->isNull() ) {
-			if(geomIntersectCl->distance(lsBorder) < distCLIntersected ) {
-			if (geomPtr->isNull() || geomPtr->distance(*geomIntersectCl) < distCLIntersected) //utile ce test ou le precedent suffit?
-				geomPtr = geomIntersectCl;
+		if (hasClConnected) {
+			ign::geometry::GeometryPtr geomIntersectCl(fClArround.getGeometry().Intersection(lsFToMatch));
+
+			//si il existe une intersection entre l'edge et une CL, et qu'elle est sous un seuil, on prend cette intersection à la place de celle avec la frontière
+			if (!geomIntersectCl->isNull() ) {
+				if(geomIntersectCl->distance(lsBorder) < distCLIntersected ) {
+					if (geomPtr->isNull() || geomPtr->distance(*geomIntersectCl) < distCLIntersected) //utile ce test ou le precedent suffit?
+						geomPtr.reset(geomIntersectCl.release());
+					}
 			}
 		}
 

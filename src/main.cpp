@@ -97,13 +97,13 @@ int main(int argc, char *argv[])
 		epg::tools::StringTools::Split(countryCode, "#", vCountriesCodeName);
 		
 		app::calcul::CFeatGenerationOp cFeatGenerationOp(countryCode);
-		cFeatGenerationOp.computeCL();
+		// cFeatGenerationOp.computeCL();
 		
-		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
-			app::calcul::CFeatConnectionOp::computeCl(edgeTableName, clTableName, *vit, verbose);
-		 }
+		// for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
+		// 	app::calcul::CFeatConnectionOp::computeCl(edgeTableName, clTableName, *vit, verbose);
+		//  }
 
-		app::calcul::CFeatConnectionOp::computeClImport(edgeTableName, clTableName, countryCode,verbose);
+		// app::calcul::CFeatConnectionOp::computeClImport(edgeTableName, clTableName, countryCode,verbose);
 
 		cFeatGenerationOp.computeCP();
 

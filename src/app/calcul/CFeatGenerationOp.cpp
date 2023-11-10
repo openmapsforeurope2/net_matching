@@ -151,7 +151,7 @@ void app::calcul::CFeatGenerationOp::computeCP()
 	//CL
 	double distBuffer = 5;
 	double distCLIntersected = 5;
-	double distUnderShoot = 10;
+	double distUnderShoot = 25; //10
 	double distMergeCP = 5; //2
 	double distCp2snapCl = 5;
 	double snapDistOnVertexFromCl = 1;
@@ -165,7 +165,7 @@ void app::calcul::CFeatGenerationOp::computeCP()
 			continue;
 		ign::geometry::LineString lsBoundary = fBoundary.getGeometry().asLineString();
 		ign::geometry::algorithm::BufferOpGeos buffOp;
-		ign::geometry::GeometryPtr buffBorder(buffOp.buffer(lsBoundary, distBuffer, 0, ign::geometry::algorithm::BufferOpGeos::CAP_FLAT));
+		ign::geometry::GeometryPtr buffBorder(buffOp.buffer(lsBoundary, distUnderShoot, 0, ign::geometry::algorithm::BufferOpGeos::CAP_FLAT));
 
 		_getCPfromIntersectBorder(lsBoundary, distCLIntersected);
 

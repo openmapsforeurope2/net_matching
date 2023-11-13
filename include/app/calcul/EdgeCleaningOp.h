@@ -39,8 +39,6 @@ namespace calcul{
 		//--
 		ign::feature::sql::FeatureStorePostgis*              _fsEdge;
 		//--
-		ign::feature::sql::FeatureStorePostgis*              _fsCl;
-		//--
 		std::map<std::string, ign::geometry::GeometryPtr>    _mCountryGeomPtr;
 		//--
 		std::map<std::string, ign::geometry::GeometryPtr>    _mCountryGeomWithBuffPtr;

@@ -137,9 +137,6 @@ namespace app
             _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTable, idName, geomName);
 
             //--
-            _fsCl = context->getDataBaseManager().getFeatureStore(clTableName, idName, geomName);
-
-            //--
             _logger->log(epg::log::INFO, "[END] initialization: " + epg::tools::TimeTools::getTime());
         };
 
@@ -167,32 +164,12 @@ namespace app
                 ign::geometry::LineString const& ls = fEdge.getGeometry().asLineString();
                 std::string edgeId = fEdge.getId();
                 std::string country = fEdge.getAttribute(countryCodeName).toString();
+                bool isCl = country.find("#") != std::string::npos;
 
                 if (planarize) {
-                    graphManager.addEdge(ls, edgeId, EdgeCleaningEdge(country));
+                    graphManager.addEdge(ls, edgeId, EdgeCleaningEdge(country, isCl));
                 } else {
-                    graphManager.addEdgeSimple(ls, edgeId, EdgeCleaningEdge(country));
-                }
-            }
-
-            // chargement des CL
-            // patience
-            int numCl = epg::sql::tools::numFeatures(*_fsCl, ign::feature::FeatureFilter());
-            boost::progress_display displayCl(numCl, std::cout, "[ cl_loading  % complete ]\n");
-
-            ign::feature::FeatureIteratorPtr itCl = _fsCl->getFeatures(ign::feature::FeatureFilter());
-            while (itCl->hasNext())
-            {
-                ++displayCl;
-                ign::feature::Feature const& fCl = itCl->next();
-                ign::geometry::LineString const& ls = fCl.getGeometry().asLineString();
-                std::string clId = fCl.getId();
-                std::string country = fCl.getAttribute(countryCodeName).toString();
-
-                if (planarize) {
-                    graphManager.addEdge(ls, clId, EdgeCleaningEdge(country, true));
-                } else {
-                    graphManager.addEdgeSimple(ls, clId, EdgeCleaningEdge(country, true));
+                    graphManager.addEdgeSimple(ls, edgeId, EdgeCleaningEdge(country, isCl));
                 }
             }
 
@@ -461,28 +438,30 @@ namespace app
 
             // nettoyage des antennes
             _loadGraph(graphManager);
-
+            GraphType const& graph2 = graphManager.getGraph();
+            
             std::vector<std::pair<std::string, std::list<edge_descriptor>>> vpAntennas;
             std::set< vertex_descriptor > visitedVertices;
 
-            boost::progress_display display2(graph.numVertices(), std::cout, "[ cleaning antennas  % complete ]\n");
+            boost::progress_display display2(graph2.numVertices(), std::cout, "[ cleaning antennas  % complete ]\n");
             vertex_iterator vit, vend;
-            for( graph.vertices( vit, vend ) ; vit != vend ; ++vit )
+            for( graph2.vertices( vit, vend ) ; vit != vend ; ++vit )
             {
                 ++display2;
+
                 if( visitedVertices.find( *vit ) != visitedVertices.end() ) continue;
-                if( graph.degree( *vit ) != 1 ) continue;
+                if( graph2.degree( *vit ) != 1 ) continue;
 
                 // seulement les vertex qui touchent une CL ?
 
                 std::list<edge_descriptor> lAntennaEdges;
 
                 std::vector< oriented_edge_descriptor > vEdges;
-                graph.incidentEdges( *vit, vEdges );
+                graph2.incidentEdges( *vit, vEdges );
 
                 oriented_edge_descriptor nextEdge = vEdges.front(); // si nextEdge n'est pas une CL ?
                 if (graphManager.isCl(nextEdge.descriptor)) {
-                    _logger->log(epg::log::WARN, "Antenna is connecting line [cl id] "+graph.origins(nextEdge.descriptor)[0]);
+                    _logger->log(epg::log::WARN, "Antenna is connecting line [cl id] "+graph2.origins(nextEdge.descriptor)[0]);
                     continue;
                 }
                 std::string country = graphManager.getCountry(nextEdge.descriptor);
@@ -504,15 +483,15 @@ namespace app
 
                     lAntennaEdges.push_back(nextEdge.descriptor);
 
-                    vTarget = graph.target( nextEdge );
+                    vTarget = graph2.target( nextEdge );
 
-                    if (graphManager.isCl(nextEdge.descriptor) && graph.degree(graph.source( nextEdge )) == 2 ) {
-                        _logger->log(epg::log::WARN, "Antenna connected to connecting line [cl id] "+graph.origins(nextEdge.descriptor)[0]);
+                    if (graphManager.isCl(nextEdge.descriptor) && graph2.degree(graph2.source( nextEdge )) == 2 ) {
+                        _logger->log(epg::log::WARN, "Antenna connected to connecting line [cl id] "+graph2.origins(nextEdge.descriptor)[0]);
                         break;
                     }
 
-                    if( graph.degree( vTarget ) != 2 ) { // ou si nextEdge est une CL ?
-                        if( graph.degree( vTarget ) == 1 /*antenne isolee*/)
+                    if( graph2.degree( vTarget ) != 2 ) { // ou si nextEdge est une CL ?
+                        if( graph2.degree( vTarget ) == 1 /*antenne isolee*/)
                         {
                             visitedVertices.insert( vTarget );
                         }
@@ -520,7 +499,7 @@ namespace app
                     }
 
                     std::vector< oriented_edge_descriptor > vIncEdges;
-                    graph.incidentEdges( vTarget, vIncEdges );
+                    graph2.incidentEdges( vTarget, vIncEdges );
 
                     nextEdge = ( vIncEdges.front().descriptor == nextEdge.descriptor )? vIncEdges.back():vIncEdges.front();
                 }

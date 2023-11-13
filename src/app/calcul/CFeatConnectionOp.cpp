@@ -903,8 +903,8 @@ namespace app
 
             while (itEdge->hasNext())
             {
-                ign::feature::Feature const &fEdge = itEdge->next();
-                ign::geometry::LineString const &edgeGeom = fEdge.getGeometry().asLineString();
+                ign::feature::Feature const& fEdge = itEdge->next();
+                ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
 
                 graphBuilder.addEdge(edgeGeom, fEdge.getId());
 
@@ -1164,11 +1164,11 @@ namespace app
         {
             std::vector<edge_descriptor>::const_iterator vit;
             for ( vit = vDeformedEdges.begin() ; vit != vDeformedEdges.end() ; ++vit ) {
+                ign::geometry::LineString edgeGeom = graph.getGeometry(*vit);
+
                 std::string edgeId = graph.origins(*vit)[0];
 
                 _logger->log(epg::log::DEBUG, edgeId);
-
-                ign::geometry::LineString edgeGeom = graph.getGeometry(*vit);
                 
                 ign::feature::Feature fEdge;
                 _fsEdge->getFeatureById(edgeId, fEdge);

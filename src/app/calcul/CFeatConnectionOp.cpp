@@ -543,19 +543,14 @@ namespace app
                     }
                 }
             }
-            _logger->log(epg::log::DEBUG, "coucu");
 
             // on enregistre les modifications
             _persistEdgeDisplacement(graph, vDeformedEdges);
-
-            _logger->log(epg::log::DEBUG, "coucu2");
 
             //remove collapsed edges
             for (std::set<std::string>::const_iterator sit = sCollapsedEdges.begin() ; sit != sCollapsedEdges.end() ; ++sit) {
                 _fsEdge->deleteFeature(*sit);
             }
-
-            _logger->log(epg::log::DEBUG, "coucu3");
         };
 
         ///
@@ -1117,21 +1112,34 @@ namespace app
 
             // sur les sommets
             std::map<edge_descriptor, edge_descriptor> mOldNewEdges;
+            std::set<edge_descriptor> sEdges2remove;
+		    std::set<vertex_descriptor> sVertices2remove;
             typename std::map<vertex_descriptor, std::vector<ign::math::Vec2d>>::const_iterator dit;
             for (dit = mDisplacements.begin(); dit != mDisplacements.end(); ++dit)
             {
                 ign::math::Vec2d displacement = _computeDisplacement(dit->second);
-                tools::translateVertex( graph, dit->first, displacement, mOldNewEdges, true/*with merging*/, 1e-5 );
+                tools::translateVertex( graph, dit->first, displacement, mOldNewEdges, sEdges2remove, sVertices2remove, true/*with merging*/, 1e-5 );
                 // ign::geometry::Point oldGeom = graph.getGeometry(dit->first);
                 // graph.setGeometry(dit->first, ign::geometry::Point(oldGeom.x() + displacement.x(), oldGeom.y() + displacement.y(), oldGeom.z()));
             }
+            for ( std::set<edge_descriptor>::const_iterator sit = sEdges2remove.begin() ; sit != sEdges2remove.end() ; ++sit )
+                graph.removeEdge(*sit);
+            for ( std::set<vertex_descriptor>::const_iterator sit = sVertices2remove.begin() ; sit != sVertices2remove.end() ; ++sit )
+                graph.removeVertex(*sit);
 
-            std::vector<edge_descriptor>::iterator vit;
-            for (vit = vDeformedEdges.begin() ; vit != vDeformedEdges.end() ; ++vit) {
+            for ( std::vector<edge_descriptor>::iterator vit = vDeformedEdges.begin() ; vit != vDeformedEdges.end() ; ++vit) {
                 std::map<edge_descriptor, edge_descriptor>::const_iterator mit = mOldNewEdges.find(*vit);
                 if (mit != mOldNewEdges.end()) {
                     *vit = mit->second;
+
+                    // on fait une 2eme passe car l edge peut avoir ete deforme a la source et a la target
+                    // ce qui fait qu il a 2 parents dans la map mOldNewEdges
+                    mit = mOldNewEdges.find(*vit);
+                    if (mit != mOldNewEdges.end()) {
+                        *vit = mit->second;
+                    }
                 }
+                
             }
 
             if (_verbose)

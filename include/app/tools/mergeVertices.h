@@ -21,7 +21,9 @@ namespace tools{
 		GraphType& graph,
 		typename GraphType::vertex_descriptor v,
 		typename GraphType::vertex_descriptor vRef,
-		std::map<typename GraphType::edge_descriptor, typename GraphType::edge_descriptor> & mOldNewEdges
+		std::map<typename GraphType::edge_descriptor, typename GraphType::edge_descriptor> & mOldNewEdges,
+		std::set<typename GraphType::edge_descriptor> & sEdges2remove,
+		std::set<typename GraphType::vertex_descriptor> & sVertices2remove
 	)
 	{
 		epg::Context* context = epg::ContextS::getInstance();
@@ -35,6 +37,7 @@ namespace tools{
 		typename std::vector< edge_descriptor >::const_iterator eit;
 		for( eit = vIncidentEdges.begin() ; eit != vIncidentEdges.end() ; ++eit )
 		{
+			if (sEdges2remove.find(*eit) != sEdges2remove.end()) continue;
 			//
 			vertex_descriptor vSource = graph.source( *eit );
 			vertex_descriptor vTarget = graph.target( *eit );
@@ -50,7 +53,6 @@ namespace tools{
 			//copie des proprietes
 			typename GraphType::edge_properties properties = graph[*eit];
 
-            
             std::vector< ign::geometry::Point > vIntermediatePoints = graph.intermediatePoints(*eit);
 
 			oriented_edge_descriptor oe = graph.addEdge( vSource, vTarget, vIntermediatePoints, properties );
@@ -70,10 +72,10 @@ namespace tools{
 			}
 
 			mOldNewEdges.insert(std::make_pair(*eit, oe.descriptor));
-			graph.removeEdge( *eit);
+			sEdges2remove.insert(*eit);
 		}
 
-		graph.removeVertex( v );
+		sVertices2remove.insert(v);
 	}
 }
 }

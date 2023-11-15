@@ -1,7 +1,7 @@
 // APP
 #include <app/calcul/EdgeCleaningOp.h>
 #include <app/params/ThemeParameters.h>
-#include <app/tools/StringTools.h>
+#include <app/calcul/detail/graph/concept/EdgeCleaningGraphSpecializations.h>
 
 // BOOST
 #include <boost/progress.hpp>
@@ -14,11 +14,12 @@
 #include <epg/tools/StringTools.h>
 #include <epg/tools/TimeTools.h>
 #include <epg/tools/geometry/isSlimSurface.h>
+#include <epg/tools/FilterTools.h>
 
 // SOCLE
 #include <ign/geometry/graph/detail/NextEdge.h>
-#include <ign/tools/stringtools.h>
 #include <ign/geometry/algorithm/HausdorffDistanceOp.h>
+#include <ign/graph/algorithm/DijkstraShortestPaths.h>
 
 namespace app
 {
@@ -56,6 +57,7 @@ namespace app
         {
             _shapeLogger->closeShape("edge_cleaning_deleted_edges");
             _shapeLogger->closeShape("edge_cleaning_country");
+            _shapeLogger->closeShape("edge_cleaning_paths_out_of_country");
         }
 
         ///
@@ -71,12 +73,13 @@ namespace app
             _shapeLogger = epg::log::ShapeLoggerS::getInstance();
             _shapeLogger->addShape("edge_cleaning_deleted_edges", epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("edge_cleaning_country", epg::log::ShapeLogger::POLYGON);
+            _shapeLogger->addShape("edge_cleaning_paths_out_of_country", epg::log::ShapeLogger::LINESTRING);
 
             //--
             epg::Context *context = epg::ContextS::getInstance();
 
             // epg parameters
-            epg::params::EpgParameters const &epgParams = context->getEpgParameters();
+            epg::params::EpgParameters const& epgParams = context->getEpgParameters();
 
             std::string const boundaryTableName = epgParams.getValue(TARGET_BOUNDARY_TABLE).toString();
             std::string const idName = epgParams.getValue(ID).toString();
@@ -85,12 +88,12 @@ namespace app
             
             // app parameters
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
+            std::string const cpTableName = themeParameters->getValue(CP_TABLE).toString();
             std::string const landmaskTableName = themeParameters->getValue(LANDMASK_TABLE).toString();
             std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE).toString();
             std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
             std::string const clTableName = themeParameters->getValue(CL_TABLE).toString();
             double const landmaskBuffer = themeParameters->getValue(LANDMASK_BUFFER).toDouble();
-
 
             // on recupere un buffer autour de la frontiere
             ign::geometry::GeometryPtr boundBuffPtr(new ign::geometry::Polygon());
@@ -137,13 +140,20 @@ namespace app
             _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTable, idName, geomName);
 
             //--
+            _fsCp = context->getDataBaseManager().getFeatureStore(cpTableName, idName, geomName);
+
+            //--
             _logger->log(epg::log::INFO, "[END] initialization: " + epg::tools::TimeTools::getTime());
         };
 
         ///
         ///
         ///
-        void EdgeCleaningOp::_loadGraph(app::calcul::detail::EdgeCleaningGraphManager & graphManager, bool planarize) const
+        void EdgeCleaningOp::_loadGraph(
+            app::calcul::detail::EdgeCleaningGraphManager & graphManager, 
+            bool planarize,
+            ign::feature::FeatureFilter filter
+            ) const 
         {
             graphManager.clear();
 
@@ -153,10 +163,10 @@ namespace app
 
             // chargement des edges
             // patience
-            int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, ign::feature::FeatureFilter());
+            int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, filter);
             boost::progress_display display(numFeatures, std::cout, "[ edge_loading  % complete ]\n");
 
-            ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(ign::feature::FeatureFilter());
+            ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
             while (itEdge->hasNext())
             {
                 ++display;
@@ -167,9 +177,9 @@ namespace app
                 bool isCl = country.find("#") != std::string::npos;
 
                 if (planarize) {
-                    graphManager.addEdge(ls, edgeId, EdgeCleaningEdge(country, isCl));
+                    graphManager.addEdge(ls, edgeId, OriginEdgeProperties(country, isCl));
                 } else {
-                    graphManager.addEdgeSimple(ls, edgeId, EdgeCleaningEdge(country, isCl));
+                    graphManager.addEdgeSimple(ls, edgeId, OriginEdgeProperties(country, isCl));
                 }
             }
 
@@ -296,46 +306,11 @@ namespace app
         ///
         ///
         ///
-        void EdgeCleaningOp::_removeEdges(GraphType const& graph, std::list<edge_descriptor> const& lEdges) const
+        void EdgeCleaningOp::_cleanFaces() const
         {
-            std::list<edge_descriptor>::const_iterator lit = lEdges.begin();
-            for ( ; lit != lEdges.end() ; ++lit) {
-                if (graph.origins(*lit).size() > 1) {
-                    _logger->log(epg::log::WARN, "Edge with multiple origins [edge id] "+tools::StringTools::toString(graph.origins(*lit)));
-                }
-                for (size_t i = 0 ; i < graph.origins(*lit).size() ; ++i) {
-                    std::string edgeId = graph.origins(*lit)[i];
-
-                    if (ign::tools::StringManip::FindSubString(edgeId,"CONNECTINGLINE")) {
-                        _logger->log(epg::log::WARN, "Edge has a cl as origin [cl id] "+edgeId);
-                        continue;
-                    }
-
-                    ign::feature::Feature dFeat;
-                    _fsEdge->getFeatureById(edgeId, dFeat);
-                    _shapeLogger->writeFeature("edge_cleaning_deleted_edges", dFeat);
-
-                    _fsEdge->deleteFeature(edgeId);
-                }
-            }
-        }
-
-        ///
-        ///
-        ///
-        void EdgeCleaningOp::_clean() const
-        {
-            epg::Context *context = epg::ContextS::getInstance();
-
-            // epg parameters
-            epg::params::EpgParameters const &epgParams = context->getEpgParameters();
-            std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
-
             // app parameters
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
             double const slimSurfaceWidth = themeParameters->getValue( SLIM_SURFACE_WIDTH ).toDouble();
-            double const antennaRatioThreshold = themeParameters->getValue( ANTENNA_RATIO_THRESHOLD ).toDouble();
-            double const antennaRatioThresholdWithBuff = themeParameters->getValue( ANTENNA_RATIO_WITH_BUFFER_THRESHOLD ).toDouble();
 
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, true);
@@ -435,33 +410,179 @@ namespace app
                     }
                 }
 			}
+        }
 
-            // nettoyage des antennes
-            _loadGraph(graphManager);
-            GraphType const& graph2 = graphManager.getGraph();
+        ///
+        ///
+        ///
+        bool EdgeCleaningOp::_vertexIsConnected2Cl(detail::EdgeCleaningGraphManager const& graphManager, vertex_descriptor v) const
+        {
+            std::vector< oriented_edge_descriptor > vEdges;
+            graphManager.getGraph().incidentEdges( v, vEdges );
+            bool hasincidentCl = false;
+            bool hasIncidentNotCl = false;
+            for (std::vector< oriented_edge_descriptor >::const_iterator vit = vEdges.begin() ; vit != vEdges.end() ; ++vit) {
+                if (graphManager.isCl(vit->descriptor)) {
+                    hasincidentCl = true;
+                } else {
+                    hasIncidentNotCl = true;
+                }
+            }
+            return hasincidentCl && hasIncidentNotCl;
+        }
+
+        ///
+        ///
+        ///
+        bool EdgeCleaningOp::_vertexIsCp(GraphType const& graph, vertex_descriptor v) const
+        {
+            epg::Context *context = epg::ContextS::getInstance();
+            epg::params::EpgParameters const& epgParams = context->getEpgParameters();
+            std::string const geomName = epgParams.getValue(GEOM).toString();
+            
+            double threshold = 1e-5;
+            ign::geometry::Point const& vGeom = graph.getGeometry(v);
+
+            // ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + ign::geometry::GeometryPtr(vGeom.buffer(threshold))->toString() + "'),3035))");
+            ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_GeomFromText('" + ign::geometry::GeometryPtr(vGeom.buffer(threshold))->toString() + "'))");
+            ign::feature::FeatureIteratorPtr itCp = _fsCp->getFeatures(filter);
+
+            double dMax = threshold;
+            ign::geometry::Point closestCpGeom;
+            while (itCp->hasNext())
+            {
+                ign::feature::Feature const& fCp = itCp->next();
+                ign::geometry::Point const& cpGeom = fCp.getGeometry().asPoint();
+
+                double distance = vGeom.distance(cpGeom);
+                if (distance < dMax ) {
+                    dMax = distance;
+                    closestCpGeom = cpGeom;
+                }
+            }
+
+            if (!closestCpGeom.isNull()) {
+                std::set< vertex_descriptor > sVertices;
+		        graph.getVertices( closestCpGeom.getEnvelope().expandBy( threshold ), sVertices );
+
+                double dMax2 = threshold;
+                vertex_descriptor closestVertex;
+                for (std::set< vertex_descriptor >::const_iterator sit = sVertices.begin() ; sit != sVertices.end() ; ++sit) {
+                    ign::geometry::Point const& vGeom2 = graph.getGeometry(*sit);
+
+                    double distance2 = vGeom2.distance(closestCpGeom);
+                    if (distance2 < dMax2 ) {
+                        dMax2 = distance2;
+                        closestVertex = *sit;
+                    }
+                }
+                if (closestVertex == v) return true;
+            }
+            return false;
+        }
+
+        ///
+        ///
+        ///
+        void EdgeCleaningOp::_cleanPathsOutOfCountry() const
+        {
+            epg::Context *context = epg::ContextS::getInstance();
+            epg::params::EpgParameters const& epgParams = context->getEpgParameters();
+            std::string const geomName = epgParams.getValue(GEOM).toString();
+            std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
+
+
+            std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit;
+            for (mit = _mCountryGeomPtr.begin() ; mit != _mCountryGeomPtr.end() ; ++mit) {
+                ign::feature::FeatureFilter filter("NOT ST_INTERSECTS(ST_LineInterpolatePoint(" + geomName + ", 0.5), ST_SetSRID(ST_GeomFromText('" + mit->second->toString() + "'),3035))");
+                epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" LIKE '%"+mit->first+"%'" );
+
+                detail::EdgeCleaningGraphManager graphManager;
+
+                _loadGraph(graphManager, false, filter);
+                graphManager.initWeight();
+
+                GraphType & graph = graphManager.getGraph();
+
+                std::list<vertex_descriptor> lEndingVertices;
+                // on recherche les ending vertices
+                vertex_iterator vit, vend;
+                for( graph.vertices( vit, vend ) ; vit != vend ; ++vit )
+                {
+                    if (_vertexIsConnected2Cl(graphManager, *vit) || _vertexIsCp(graph, *vit))
+                        lEndingVertices.push_back(*vit);
+                }
+
+                //on retire les cl du graph pour le calcul de chemin
+                edge_iterator eit, eend;
+                std::set<edge_descriptor> sEdge2remove;
+                for( graph.edges( eit, eend ) ; eit != eend ; ++eit )
+                    if (graphManager.isCl(*eit)) sEdge2remove.insert(*eit);
+                for (std::set<edge_descriptor>::const_iterator sit = sEdge2remove.begin() ; sit != sEdge2remove.end() ; ++sit )
+                    graph.removeEdge(*sit);
+
+
+                boost::progress_display display(lEndingVertices.size()-1, std::cout, "[ cleaning paths out of country  % complete ]\n");
+
+                ign::graph::algorithm::DijkstraShortestPaths<GraphType> dijkstraOp(graph, true);
+                std::set<edge_descriptor> sEdges;
+                for (std::list<vertex_descriptor>::const_iterator lit1 = lEndingVertices.begin() ; lit1 != --lEndingVertices.end() ; ++lit1 ) {
+                    ++display;
+                    std::list<vertex_descriptor>::const_iterator lit2 = lit1;
+                    ++lit2;
+                    for ( ; lit2 != lEndingVertices.end() ; ++lit2 ) {
+                        edges_path path;
+                        dijkstraOp.getPath(*lit1, *lit2, path);
+
+                        for (edges_path_const_iterator pit = path.begin() ; pit != path.end() ; ++pit) {
+                            sEdges.insert(pit->descriptor);
+
+                            ign::feature::Feature feat;
+                            feat.setGeometry(graph.getGeometry(pit->descriptor));
+                            _shapeLogger->writeFeature("edge_cleaning_paths_out_of_country", feat);
+                        }
+                    }
+                }
+                _removeEdges(graph, std::list<edge_descriptor>(sEdges.begin(), sEdges.end()));
+            }
+        }
+
+        ///
+        ///
+        ///
+        void EdgeCleaningOp::_cleanAntennas() const
+        {
+            // app parameters
+            params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+            double const antennaRatioThreshold = themeParameters->getValue( ANTENNA_RATIO_THRESHOLD ).toDouble();
+            double const antennaRatioThresholdWithBuff = themeParameters->getValue( ANTENNA_RATIO_WITH_BUFFER_THRESHOLD ).toDouble();
+
+            detail::EdgeCleaningGraphManager graphManager;
+            _loadGraph(graphManager, false);
+            GraphType const& graph = graphManager.getGraph();
             
             std::vector<std::pair<std::string, std::list<edge_descriptor>>> vpAntennas;
             std::set< vertex_descriptor > visitedVertices;
 
-            boost::progress_display display2(graph2.numVertices(), std::cout, "[ cleaning antennas  % complete ]\n");
+            boost::progress_display display2(graph.numVertices(), std::cout, "[ cleaning antennas  % complete ]\n");
             vertex_iterator vit, vend;
-            for( graph2.vertices( vit, vend ) ; vit != vend ; ++vit )
+            for( graph.vertices( vit, vend ) ; vit != vend ; ++vit )
             {
                 ++display2;
 
                 if( visitedVertices.find( *vit ) != visitedVertices.end() ) continue;
-                if( graph2.degree( *vit ) != 1 ) continue;
+                if( graph.degree( *vit ) != 1 ) continue;
 
                 // seulement les vertex qui touchent une CL ?
 
                 std::list<edge_descriptor> lAntennaEdges;
 
                 std::vector< oriented_edge_descriptor > vEdges;
-                graph2.incidentEdges( *vit, vEdges );
+                graph.incidentEdges( *vit, vEdges );
 
                 oriented_edge_descriptor nextEdge = vEdges.front(); // si nextEdge n'est pas une CL ?
                 if (graphManager.isCl(nextEdge.descriptor)) {
-                    _logger->log(epg::log::WARN, "Antenna is connecting line [cl id] "+graph2.origins(nextEdge.descriptor)[0]);
+                    _logger->log(epg::log::WARN, "Antenna is connecting line [cl id] "+graph.origins(nextEdge.descriptor)[0]);
                     continue;
                 }
                 std::string country = graphManager.getCountry(nextEdge.descriptor);
@@ -483,15 +604,15 @@ namespace app
 
                     lAntennaEdges.push_back(nextEdge.descriptor);
 
-                    vTarget = graph2.target( nextEdge );
+                    vTarget = graph.target( nextEdge );
 
-                    if (graphManager.isCl(nextEdge.descriptor) && graph2.degree(graph2.source( nextEdge )) == 2 ) {
-                        _logger->log(epg::log::WARN, "Antenna connected to connecting line [cl id] "+graph2.origins(nextEdge.descriptor)[0]);
+                    if (graphManager.isCl(nextEdge.descriptor) && graph.degree(graph.source( nextEdge )) == 2 ) {
+                        _logger->log(epg::log::WARN, "Antenna connected to connecting line [cl id] "+graph.origins(nextEdge.descriptor)[0]);
                         break;
                     }
 
-                    if( graph2.degree( vTarget ) != 2 ) { // ou si nextEdge est une CL ?
-                        if( graph2.degree( vTarget ) == 1 /*antenne isolee*/)
+                    if( graph.degree( vTarget ) != 2 ) { // ou si nextEdge est une CL ?
+                        if( graph.degree( vTarget ) == 1 /*antenne isolee*/)
                         {
                             visitedVertices.insert( vTarget );
                         }
@@ -499,7 +620,7 @@ namespace app
                     }
 
                     std::vector< oriented_edge_descriptor > vIncEdges;
-                    graph2.incidentEdges( vTarget, vIncEdges );
+                    graph.incidentEdges( vTarget, vIncEdges );
 
                     nextEdge = ( vIncEdges.front().descriptor == nextEdge.descriptor )? vIncEdges.back():vIncEdges.front();
                 }
@@ -540,9 +661,16 @@ namespace app
                     }
                 }
             }
+        }
 
-             // nettoyage des edges superposes
-            _loadGraph(graphManager);
+        ///
+        ///
+        ///
+        void EdgeCleaningOp::_cleanParalelleEdges() const
+        {
+            detail::EdgeCleaningGraphManager graphManager;
+            _loadGraph(graphManager, false);
+            GraphType const& graph = graphManager.getGraph();
 
             std::set<edge_descriptor> sVisitedEdge;
 
@@ -572,6 +700,17 @@ namespace app
                 }
                 sVisitedEdge.insert(sVisitedTemp.begin(), sVisitedTemp.end());
             }
+        }
+
+        ///
+        ///
+        ///
+        void EdgeCleaningOp::_clean() const
+        {
+            _cleanFaces();
+            _cleanPathsOutOfCountry();
+            _cleanAntennas();
+            _cleanParalelleEdges();
         };
     }
 }

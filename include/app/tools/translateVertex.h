@@ -23,6 +23,8 @@ namespace tools{
 		typename GraphType::vertex_descriptor v,
 		ign::math::Vec2d const& vect,
 		std::map<typename GraphType::edge_descriptor, typename GraphType::edge_descriptor> & mOldNewEdges,
+		std::set<typename GraphType::edge_descriptor> & sEdges2remove,
+		std::set<typename GraphType::vertex_descriptor> & sVertices2remove,
 		bool withMerging,
 		double precision = 1e-7
 	)
@@ -45,6 +47,7 @@ namespace tools{
 		for( vit = sVertices.begin() ; vit != sVertices.end() ; ++vit )
 		{
 			if( *vit == v ) continue;
+			if( sVertices2remove.find(*vit) != sVertices2remove.end()) continue;
 			double distance = newGeom.distance(graph.getGeometry(*vit));
 			if( distance < distMin )
 			{
@@ -55,7 +58,7 @@ namespace tools{
 		}
 		if( merged && withMerging )
 		{
-			mergeVertices( graph, v, minVertex, mOldNewEdges );
+			mergeVertices( graph, v, minVertex, mOldNewEdges, sEdges2remove, sVertices2remove );
 		}
 		else
 		{

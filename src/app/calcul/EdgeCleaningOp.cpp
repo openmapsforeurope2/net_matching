@@ -495,7 +495,8 @@ namespace app
             std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit;
             for (mit = _mCountryGeomPtr.begin() ; mit != _mCountryGeomPtr.end() ; ++mit) {
                 ign::feature::FeatureFilter filter("NOT ST_INTERSECTS(ST_LineInterpolatePoint(" + geomName + ", 0.5), ST_SetSRID(ST_GeomFromText('" + mit->second->toString() + "'),3035))");
-                epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" LIKE '%"+mit->first+"%'" );
+                epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" = '"+mit->first+"'" );
+                epg::tools::FilterTools::addOrConditions(filter, countryCodeName +" LIKE '%#%'" );
 
                 detail::EdgeCleaningGraphManager graphManager;
 

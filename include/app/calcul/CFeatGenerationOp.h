@@ -50,7 +50,17 @@ namespace calcul{
 
 
 		//void mergeCPNearBy(double distMergeCP, double snapOnVertexBorder);
-		void _snapCPNearBy(double distMergeCP, double snapOnVertexBorder);
+		void _snapCPNearBy(double snapOnVertexBorder) const;
+		bool _areMergeable(
+			ign::feature::Feature const& feat1,
+			ign::feature::Feature const& feat2,
+			double distance
+		) const;
+		bool _areDistanceTypeCompatible(
+			ign::feature::Feature const& feat1,
+			ign::feature::Feature const& feat2,
+			double distance
+		) const ;
 		bool _areCollinear(
 			ign::geometry::LineString const& ls1,
 			ign::geometry::LineString const& ls2
@@ -58,13 +68,11 @@ namespace calcul{
 
 		bool _isEdgeConnected2cl(ign::geometry::Geometry& geomObjNearCl, ign::geometry::Envelope& envArroundGeom, ign::feature::Feature& fCl2SnapOn, double distMinCl);
 
-		void _snapCPNearBy2(double distMergeCP, double snapOnVertexBorder);
-
 		void _snapCpOnClNearBy(double distCp2snapCl, double snapDistOnVertexFromCl, std::map< std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint> > & mClSplitedByCp);
 
 		void _cutClByCp(std::map< std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint> > & mClSplittedByCp);
 
-		bool _getNearestCP(ign::feature::Feature fCP,double distMergeCP, std::map < std::string, ign::feature::Feature>& mCPNear);
+		bool _getNearestCP(ign::feature::Feature const& fCP, double distMergeCP, std::map < std::string, ign::feature::Feature>& mCPNear) const;
 
 		void _addFeatAttributeMergingOnBorder(ign::feature::Feature& featMergedAttr, ign::feature::Feature& featAttrToAdd, std::string separator);
 

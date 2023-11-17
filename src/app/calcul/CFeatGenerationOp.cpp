@@ -342,7 +342,8 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 
 	ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + buffBorder->toString() + "'),3035))");
 	//ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_GeomFromText('" + buffBorder->toString() + "'))");
-	epg::tools::FilterTools::addAndConditions(filter, _reqFilterEdges2generateCF);
+	if (_reqFilterEdges2generateCF != "")
+		epg::tools::FilterTools::addAndConditions(filter, _reqFilterEdges2generateCF);
 
 	ign::feature::FeatureIteratorPtr eit = _fsEdge->getFeatures(filter);
 	int numFeatures = context->getDataBaseManager().numFeatures(*_fsEdge, filter);
@@ -473,7 +474,8 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 
 	//ign::feature::FeatureFilter filterBuffBorder("ST_INTERSECTS(" + geomName + ", ST_GeomFromText('" + buffBorder->toString() + "'))");
 	ign::feature::FeatureFilter filterBuffBorder("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + buffBorder->toString() + "'),3035))");
-	epg::tools::FilterTools::addAndConditions(filterBuffBorder, _reqFilterEdges2generateCF);
+	if (_reqFilterEdges2generateCF != "")
+		epg::tools::FilterTools::addAndConditions(filterBuffBorder, _reqFilterEdges2generateCF);
 	//on ne prend que les edes ayant un cc simple pour ne pas créer de CP là où il y a des CLs
 	epg::tools::FilterTools::addAndConditions(filterBuffBorder, "(" + countryCodeName + " = '" + _vCountriesCodeName[0] + "' or " + countryCodeName + " = '" + _vCountriesCodeName[1] + "')");
 
@@ -511,7 +513,8 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 		
 		//on verifie que le point est un dangle, sinon on fait rien
 		ign::feature::FeatureFilter filterArroundPt;
-		filterArroundPt.setPropertyConditions(_reqFilterEdges2generateCF);
+		if (_reqFilterEdges2generateCF != "")
+			filterArroundPt.setPropertyConditions(_reqFilterEdges2generateCF);
 		filterArroundPt.setExtent(ptClosestBorder.getEnvelope().expandBy(1));
 		ign::feature::FeatureIteratorPtr eitArroundPt = _fsEdge->getFeatures(filterArroundPt);
 		bool isPtADangle = true;
@@ -599,7 +602,8 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 	ign::feature::FeatureFilter filterFeaturesToMatch("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + lsBorder.toString() + "'),3035))"
 		" OR ST_INTERSECTS(" + geomName + ", (SELECT ST_Union(array(SELECT "+geomName+" FROM "+ _fsEdge->getTableName()+" WHERE "+ countryCodeName + " = '" + _countryCodeDouble + "'))))");
 
-	epg::tools::FilterTools::addAndConditions(filterFeaturesToMatch, _reqFilterEdges2generateCF);
+	if (_reqFilterEdges2generateCF != "")
+		epg::tools::FilterTools::addAndConditions(filterFeaturesToMatch, _reqFilterEdges2generateCF);
 	//on ne prend que les edes ayant un cc simple pour ne pas créer de CP là où il y a des CLs
 	epg::tools::FilterTools::addAndConditions(filterFeaturesToMatch,"("+ countryCodeName+" = '" +_vCountriesCodeName[0]+"' or "+countryCodeName + " = '" + _vCountriesCodeName[1] +"')");
 	ign::feature::FeatureIteratorPtr itFeaturesToMatch = _fsEdge->getFeatures(filterFeaturesToMatch);

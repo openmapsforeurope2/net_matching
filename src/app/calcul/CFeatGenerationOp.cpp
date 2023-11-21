@@ -273,10 +273,10 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 			<< countryCodeName << " type varchar(255);"
 			<< "ALTER TABLE " << cpTableName << " ALTER COLUMN "
 			<< "w_national_identifier" << " type varchar(255);"
-			<< "ALTER TABLE " << cpTableName << " ALTER COLUMN "
+/*			<< "ALTER TABLE " << cpTableName << " ALTER COLUMN "
 			<< "national_road_code" << " type varchar(255);"
 			<< "ALTER TABLE " << cpTableName << " ALTER COLUMN "
-			<< "european_route_number" << " type varchar(255);"
+			<< "european_route_number" << " type varchar(255);"*/
 			<< "ALTER TABLE " << cpTableName << " ADD COLUMN " << context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString() << " character varying(255);";
 
 		context->getDataBaseManager().getConnection()->update(ss.str());
@@ -298,10 +298,10 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 			<< countryCodeName << " type varchar(255);"
 			<< "ALTER TABLE " << clTableName << " ALTER COLUMN "
 			<< "w_national_identifier" << " type varchar(255);"
-			<< "ALTER TABLE " << clTableName << " ALTER COLUMN "
+/*			<< "ALTER TABLE " << clTableName << " ALTER COLUMN "
 			<< "national_road_code" << " type varchar(255);"
 			<< "ALTER TABLE " << clTableName << " ALTER COLUMN "
-			<< "european_route_number" << " type varchar(255);"
+			<< "european_route_number" << " type varchar(255);"*/
 			<< "ALTER TABLE " << clTableName << " ADD COLUMN " << context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString() << " character varying(255);";
 		//patch pour ne pas avoir des enums et eviter les soucis lors de la fusion des attributs	
 		for (std::set<std::string>::iterator sit = _sAttrNameToConcat.begin(); sit != _sAttrNameToConcat.end(); ++sit)

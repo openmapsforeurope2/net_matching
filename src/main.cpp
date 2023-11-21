@@ -82,6 +82,7 @@ int main(int argc, char *argv[])
         epg::log::ShapeLogger* shapeLogger = epg::log::ShapeLoggerS::getInstance();
 	    shapeLogger->setDataDirectory( context->getLogDirectory()+"/shape" );
         
+		logger->log(epg::log::INFO, "[START EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
         
         //theme parameters
         themeParametersFile = context->getConfigParameters().getValue( THEME_PARAMETER_FILE ).toString();
@@ -113,6 +114,8 @@ int main(int argc, char *argv[])
 
 		// nettoyage
 		app::calcul::EdgeCleaningOp::clean(edgeTableName, countryCode, verbose);
+
+		logger->log(epg::log::INFO, "[END EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 
     }
     catch( ign::Exception &e )

@@ -37,6 +37,7 @@ namespace detail{
 		    typedef typename GraphType::vertex_iterator             vertex_iterator;
             typedef typename GraphType::edges_path                  edges_path;
 		    typedef typename GraphType::edges_path_const_iterator   edges_path_const_iterator;
+            typedef typename GraphType::linear_origin_iterator      linear_origin_iterator;
         
         private:
 
@@ -49,15 +50,16 @@ namespace detail{
 
 
             //--
-            EdgeCleaningGraphManager() {
-                _builder = new ign::geometry::graph::tools::SnapRoundPlanarizer<GraphType>(_graph);
-                _simpleBuilder = new ign::geometry::graph::builder::SimpleGraphBuilder<GraphType>(_graph, 1e-5);
+            EdgeCleaningGraphManager() :
+                _builder(0),
+                _simpleBuilder(0)
+            {
             };
 
             //--
             ~EdgeCleaningGraphManager() {
-                delete _builder;
-                delete _simpleBuilder;
+                if (_builder) delete _builder;
+                if (_simpleBuilder) delete _simpleBuilder;
             };
 
             inline GraphType const& getGraph() const {
@@ -74,6 +76,7 @@ namespace detail{
                 std::string const& idOrigin,
                 OriginEdgeProperties const& edgeProperties
 			) {
+                if ( !_builder ) _builder = new ign::geometry::graph::tools::SnapRoundPlanarizer<GraphType>(_graph);
                 _mEdges.insert(std::make_pair(idOrigin, edgeProperties));
                 return _builder->addEdge(ls, idOrigin);
             };
@@ -98,13 +101,14 @@ namespace detail{
                 std::string const& idOrigin,
                 OriginEdgeProperties const& edgeProperties
 			) {
+                if ( !_simpleBuilder ) _simpleBuilder = new ign::geometry::graph::builder::SimpleGraphBuilder<GraphType>(_graph, 1e-5);
                 _mEdges.insert(std::make_pair(idOrigin, edgeProperties));
                 return _simpleBuilder->addEdge(ls, idOrigin);
             };
 
             //--
             void planarize() {
-                _builder->planarize();
+                if (_builder) _builder->planarize();
             };
 
             //--
@@ -123,6 +127,10 @@ namespace detail{
             //--
             void clear() {
                 _graph.clear();
+                delete _builder;
+                delete _simpleBuilder;
+                _builder = 0;
+                _simpleBuilder = 0;
             };
 
             //--

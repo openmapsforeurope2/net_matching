@@ -190,6 +190,7 @@ ign::geometry::Point	LengthIndexedLineString::locateAlong( double const& s ) con
 ///
 double  LengthIndexedLineString::project( ign::geometry::Point const& p )const
 {
+	bool pIs3D = p.is3D();
 	double minDistance = std::numeric_limits<double>::max();
 
 	ign::geometry::LineString::const_iterator it1 = _lineString.begin();
@@ -201,11 +202,11 @@ double  LengthIndexedLineString::project( ign::geometry::Point const& p )const
 	{
         ign::math::Vec3d pt1 = it1->toVec3d();
         ign::math::Vec3d pt2 = it2->toVec3d();
-        if (!_is3d) {pt1[2]=0; pt2[2]=0;} // on ajoute le z a zero
+        if (!_is3d || !pIs3D) {pt1[2]=0; pt2[2]=0;} // on ajoute le z a zero
         
         ign::math::Line3d line( pt1, pt2);
         ign::math::Vec3d v = p.toVec3d();
-        if (!_is3d) {v[2]=0;} // on ajoute le z a zero
+        if (!_is3d || !pIs3D) {v[2]=0;} // on ajoute le z a zero
             
         double RelativeAbs = line.project( v, true );
         ign::math::Vec3d vProj = line.interpolate( RelativeAbs ) ;

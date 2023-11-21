@@ -12,6 +12,7 @@
 #include <app/calcul/CFeatConnectionOp.h>
 #include <app/calcul/CFeatGenerationOp.h>
 #include <app/calcul/EdgeCleaningOp.h>
+#include <app/calcul/EdgeConnectorOp.h>
 
 
 namespace po = boost::program_options;
@@ -110,6 +111,8 @@ int main(int argc, char *argv[])
 		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
 			app::calcul::CFeatConnectionOp::computeCp(edgeTableName, cpTableName, *vit, verbose);
 		}
+
+        app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
 
 		// nettoyage
 		app::calcul::EdgeCleaningOp::clean(edgeTableName, countryCode, verbose);

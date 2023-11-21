@@ -104,7 +104,7 @@ namespace app
                 ign::feature::Feature const& fBoundary = itBoundary->next();
                 ign::geometry::LineString const& ls = fBoundary.getGeometry().asLineString();
 
-                ign::geometry::GeometryPtr tmpBuffPtr(ls.buffer(3000));
+                ign::geometry::GeometryPtr tmpBuffPtr(ls.buffer(10000));
 
                 boundBuffPtr.reset(boundBuffPtr->Union(*tmpBuffPtr));
             }
@@ -260,7 +260,7 @@ namespace app
         void EdgeCleaningOp::_addLengthsWithBuff(std::string country, ign::geometry::LineString const& ls , double & lengthInCountry, double & length) const 
         {
             std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomWithBuffPtr.find(country);
-            if (mit == _mCountryGeomPtr.end()) {
+            if (mit == _mCountryGeomWithBuffPtr.end()) {
                 _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
                 return;
             }
@@ -285,6 +285,9 @@ namespace app
                 ign::geometry::LineString edgeGeom = graph.getGeometry(*lit);
                 _addLengths(country, edgeGeom, lengthInCountry, length);
             }
+			if (length == 0)
+				return 0;
+
             return lengthInCountry / length;
         }
 
@@ -300,7 +303,10 @@ namespace app
                 ign::geometry::LineString edgeGeom = graph.getGeometry(*lit);
                 _addLengthsWithBuff(country, edgeGeom, lengthInCountry, length);
             }
-            return lengthInCountry / length;
+			if (length == 0)
+				return 0;
+			
+			return lengthInCountry / length;
         }
 
         ///
@@ -522,6 +528,9 @@ namespace app
                 for (std::set<edge_descriptor>::const_iterator sit = sEdge2remove.begin() ; sit != sEdge2remove.end() ; ++sit )
                     graph.removeEdge(*sit);
 
+				if (lEndingVertices.size() == 0)
+					return;
+
 
                 boost::progress_display display(lEndingVertices.size()-1, std::cout, "[ cleaning paths out of country  % complete ]\n");
 
@@ -652,9 +661,10 @@ namespace app
                 //DEBUG
                 _logger->log(epg::log::DEBUG, std::to_string(ratio));
 
-                if (ratio < antennaRatioThreshold) {
+				if (ratio < antennaRatioThreshold) {
                     _removeEdges(graph, vpit->second);
-                } else {
+                } 
+				else {
                     double ratioWithBuff = _getRatioWithBuff(graph, vpit->first, vpit->second);
 
                     if (ratioWithBuff < antennaRatioThresholdWithBuff) {

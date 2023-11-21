@@ -33,6 +33,7 @@ namespace params{
 		_initParameter( CP_CP_2_CL_SNAP_DIST, "CP_CP_2_CL_SNAP_DIST");
 		_initParameter( CP_VERTEX_CL_SNAP_DIST, "CP_VERTEX_CL_SNAP_DIST");
 
+		_initParameter( CL_COMPUTE, "CL_COMPUTE");
 		_initParameter( CL_BUFFER_DIST, "CL_BUFFER_DIST");
 		_initParameter( CL_THRESHOLD_NO_CL, "CL_THRESHOLD_NO_CL");
 		_initParameter( CL_RATIO_IN_BUFFER, "CL_RATIO_IN_BUFFER");

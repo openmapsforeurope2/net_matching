@@ -93,7 +93,7 @@ namespace app
             std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE).toString();
             std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
             std::string const clTableName = themeParameters->getValue(CL_TABLE).toString();
-            double const landmaskBuffer = themeParameters->getValue(LANDMASK_BUFFER).toDouble();
+            double const landmaskBuffer = themeParameters->getValue(ECL_LANDMASK_BUFFER).toDouble();
 
             // on recupere un buffer autour de la frontiere
             ign::geometry::GeometryPtr boundBuffPtr(new ign::geometry::Polygon());
@@ -276,6 +276,20 @@ namespace app
         ///
         ///
         ///
+        double EdgeCleaningOp::_getAntennaLength(GraphType const& graph, std::list<edge_descriptor> const& lEdges) const
+        {
+            double length = 0;
+            std::list<edge_descriptor>::const_iterator lit = lEdges.begin();
+            for ( ; lit != lEdges.end() ; ++lit) {
+                ign::geometry::LineString edgeGeom = graph.getGeometry(*lit);
+                length += edgeGeom.length();
+            }
+            return length;
+        }
+
+        ///
+        ///
+        ///
         double EdgeCleaningOp::_getRatio(GraphType const& graph, std::string country, std::list<edge_descriptor> const& lEdges) const
         {
             double lengthInCountry = 0;
@@ -316,7 +330,7 @@ namespace app
         {
             // app parameters
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-            double const slimSurfaceWidth = themeParameters->getValue( SLIM_SURFACE_WIDTH ).toDouble();
+            double const slimSurfaceWidth = themeParameters->getValue( ECL_SLIM_SURFACE_WIDTH ).toDouble();
 
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, true);
@@ -564,14 +578,16 @@ namespace app
         {
             // app parameters
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-            double const antennaRatioThreshold = themeParameters->getValue( ANTENNA_RATIO_THRESHOLD ).toDouble();
-            double const antennaRatioThresholdWithBuff = themeParameters->getValue( ANTENNA_RATIO_WITH_BUFFER_THRESHOLD ).toDouble();
+            double const antennaRatioThreshold = themeParameters->getValue( ECL_ANTENNA_RATIO_THRESHOLD ).toDouble();
+            double const antennaRatioThresholdWithBuff = themeParameters->getValue( ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD ).toDouble();
+            double const antennaMinLength = themeParameters->getValue( ECL_ANTENNA_MIN_LENGTH ).toDouble();
 
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, false);
             GraphType const& graph = graphManager.getGraph();
             
             std::vector<std::pair<std::string, std::list<edge_descriptor>>> vpAntennas;
+            std::vector<bool> vAntennaIsConnected2CF;
             std::set< vertex_descriptor > visitedVertices;
 
             boost::progress_display display2(graph.numVertices(), std::cout, "[ cleaning antennas  % complete ]\n");
@@ -586,6 +602,7 @@ namespace app
                 // seulement les vertex qui touchent une CL ?
 
                 std::list<edge_descriptor> lAntennaEdges;
+                bool isConnected2CF = false;
 
                 std::vector< oriented_edge_descriptor > vEdges;
                 graph.incidentEdges( *vit, vEdges );
@@ -610,7 +627,10 @@ namespace app
                 
                 while( true )
                 {
-                    if (graphManager.getCountry(nextEdge.descriptor) != country) break;
+                    if (graphManager.getCountry(nextEdge.descriptor) != country) {
+                        isConnected2CF = true;
+                        break;
+                    }
 
                     lAntennaEdges.push_back(nextEdge.descriptor);
 
@@ -618,10 +638,14 @@ namespace app
 
                     if (graphManager.isCl(nextEdge.descriptor) && graph.degree(graph.source( nextEdge )) == 2 ) {
                         _logger->log(epg::log::WARN, "Antenna connected to connecting line [cl id] "+graph.origins(nextEdge.descriptor)[0]);
+                        isConnected2CF = true;
                         break;
                     }
 
                     if( graph.degree( vTarget ) != 2 ) { // ou si nextEdge est une CL ?
+                        if (_vertexIsConnected2Cl(graphManager, vTarget) || _vertexIsCp(graph, vTarget)) {
+                            isConnected2CF = true;
+                        }
                         if( graph.degree( vTarget ) == 1 /*antenne isolee*/)
                         {
                             visitedVertices.insert( vTarget );
@@ -635,15 +659,24 @@ namespace app
                     nextEdge = ( vIncEdges.front().descriptor == nextEdge.descriptor )? vIncEdges.back():vIncEdges.front();
                 }
 
-                if (!lAntennaEdges.empty()) vpAntennas.push_back(std::make_pair(country, lAntennaEdges));
+                if (!lAntennaEdges.empty()) {
+                    vpAntennas.push_back(std::make_pair(country, lAntennaEdges));
+                    vAntennaIsConnected2CF.push_back(isConnected2CF);
+                }
             }
 
             boost::progress_display display3(vpAntennas.size(), std::cout, "[ removing antennas  % complete ]\n");
             std::vector<std::pair<std::string, std::list<edge_descriptor>>>::const_iterator vpit;
-            for (vpit = vpAntennas.begin() ; vpit != vpAntennas.end() ; ++vpit) {
+            std::vector<bool>::const_iterator vbit;
+            for (vpit = vpAntennas.begin(), vbit = vAntennaIsConnected2CF.begin(); vpit != vpAntennas.end() ; ++vpit, ++vbit) {
                 ++display3;
-               
 
+                double antennaLength = _getAntennaLength(graph, vpit->second);
+                if (*vbit && antennaLength < antennaMinLength) {
+                    _removeEdges(graph, vpit->second);
+                    continue;
+                }
+               
                 //DEBUG
                 _logger->log(epg::log::DEBUG, "Antenna info :");
                 std::list<edge_descriptor>::const_iterator lit;

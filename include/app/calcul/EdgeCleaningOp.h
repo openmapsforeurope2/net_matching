@@ -86,6 +86,9 @@ namespace calcul{
 		double _getLength( ign::geometry::Geometry const& geom ) const;
 
 		//--
+		double _getAntennaLength(GraphType const& graph, std::list<edge_descriptor> const& lEdges) const;
+
+		//--
 		double _getRatio(GraphType const& graph, std::string country, std::list<edge_descriptor> const& lEdges) const;
 
 		//--

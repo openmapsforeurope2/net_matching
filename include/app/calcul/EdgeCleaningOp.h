@@ -99,7 +99,7 @@ namespace calcul{
 
 		//--
 		template < typename ContainerType >
-        void _removeEdges(GraphType const& graph, ContainerType const& container) const
+        void _removeEdges(GraphType & graph, ContainerType const& container) const
         {
             std::list<edge_descriptor>::const_iterator lit = container.begin();
             for ( ; lit != container.end() ; ++lit) {
@@ -120,6 +120,8 @@ namespace calcul{
 
                     _fsEdge->deleteFeature(edgeId);
                 }
+
+				graph.removeEdge(*lit);
             }
         }
 
@@ -153,6 +155,14 @@ namespace calcul{
 
         //--
 		void _cleanAntennas() const;
+
+		//--
+		void _cleanAntenna(
+            GraphType & graph,
+            std::string const& country,
+            std::list<edge_descriptor> const& lAntennas,
+            bool bAntennaIsConnected2CF
+        ) const;
 
         //--
 		void _cleanParalelleEdges() const;

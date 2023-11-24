@@ -335,7 +335,7 @@ namespace app
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, true);
 
-            GraphType const& graph = graphManager.getGraph();
+            GraphType & graph = graphManager.getGraph();
             boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning faces  % complete ]\n");
             face_iterator fit, fend;
 			for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
@@ -486,7 +486,7 @@ namespace app
 		        graph.getVertices( closestCpGeom.getEnvelope().expandBy( threshold ), sVertices );
 
                 double dMax2 = threshold;
-                vertex_descriptor closestVertex;
+                vertex_descriptor closestVertex = GraphType::nullVertex();
                 for (std::set< vertex_descriptor >::const_iterator sit = sVertices.begin() ; sit != sVertices.end() ; ++sit) {
                     ign::geometry::Point const& vGeom2 = graph.getGeometry(*sit);
 
@@ -576,18 +576,10 @@ namespace app
         ///
         void EdgeCleaningOp::_cleanAntennas() const
         {
-            // app parameters
-            params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-            double const antennaRatioThreshold = themeParameters->getValue( ECL_ANTENNA_RATIO_THRESHOLD ).toDouble();
-            double const antennaRatioThresholdWithBuff = themeParameters->getValue( ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD ).toDouble();
-            double const antennaMinLength = themeParameters->getValue( ECL_ANTENNA_MIN_LENGTH ).toDouble();
-
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, false);
-            GraphType const& graph = graphManager.getGraph();
+            GraphType & graph = graphManager.getGraph();
             
-            std::vector<std::pair<std::string, std::list<edge_descriptor>>> vpAntennas;
-            std::vector<bool> vAntennaIsConnected2CF;
             std::set< vertex_descriptor > visitedVertices;
 
             boost::progress_display display2(graph.numVertices(), std::cout, "[ cleaning antennas  % complete ]\n");
@@ -600,6 +592,9 @@ namespace app
                 if( graph.degree( *vit ) != 1 ) continue;
 
                 // seulement les vertex qui touchent une CL ?
+
+                // DEBUG
+                // ign::geometry::Point p = graph.getGeometry(*vit);
 
                 std::list<edge_descriptor> lAntennaEdges;
                 bool isConnected2CF = false;
@@ -660,49 +655,57 @@ namespace app
                 }
 
                 if (!lAntennaEdges.empty()) {
-                    vpAntennas.push_back(std::make_pair(country, lAntennaEdges));
-                    vAntennaIsConnected2CF.push_back(isConnected2CF);
+                    _cleanAntenna(graph, country, lAntennaEdges, isConnected2CF);
                 }
             }
+        }
 
-            boost::progress_display display3(vpAntennas.size(), std::cout, "[ removing antennas  % complete ]\n");
-            std::vector<std::pair<std::string, std::list<edge_descriptor>>>::const_iterator vpit;
-            std::vector<bool>::const_iterator vbit;
-            for (vpit = vpAntennas.begin(), vbit = vAntennaIsConnected2CF.begin(); vpit != vpAntennas.end() ; ++vpit, ++vbit) {
-                ++display3;
-
-                double antennaLength = _getAntennaLength(graph, vpit->second);
-                if (*vbit && antennaLength < antennaMinLength) {
-                    _removeEdges(graph, vpit->second);
-                    continue;
+        ///
+        ///
+        ///
+        void EdgeCleaningOp::_cleanAntenna(
+            GraphType & graph,
+            std::string const& country,
+            std::list<edge_descriptor> const& lAntennas,
+            bool bAntennaIsConnected2CF
+        ) const {
+            // app parameters
+            params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+            double const antennaRatioThreshold = themeParameters->getValue( ECL_ANTENNA_RATIO_THRESHOLD ).toDouble();
+            double const antennaRatioThresholdWithBuff = themeParameters->getValue( ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD ).toDouble();
+            double const antennaMinLength = themeParameters->getValue( ECL_ANTENNA_MIN_LENGTH ).toDouble();
+            
+            double antennaLength = _getAntennaLength(graph, lAntennas);
+            if (bAntennaIsConnected2CF && antennaLength < antennaMinLength) {
+                _removeEdges(graph, lAntennas);
+                return;
+            }
+            
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "Antenna info :");
+            std::list<edge_descriptor>::const_iterator lit;
+            std::set<std::string> sOrigins;
+            for (lit = lAntennas.begin() ; lit != lAntennas.end() ; ++lit) {
+                for (size_t j = 0 ; j < graph.origins(*lit).size() ; ++j) {
+                    sOrigins.insert( graph.origins(*lit)[j] );
                 }
-               
-                //DEBUG
-                _logger->log(epg::log::DEBUG, "Antenna info :");
-                std::list<edge_descriptor>::const_iterator lit;
-                std::set<std::string> sOrigins;
-                for (lit = vpit->second.begin() ; lit != vpit->second.end() ; ++lit) {
-                    for (size_t j = 0 ; j < graph.origins(*lit).size() ; ++j) {
-                        sOrigins.insert( graph.origins(*lit)[j] );
-                    }
-                }
-                _logger->log(epg::log::DEBUG, tools::StringTools::toString(sOrigins));
+            }
+            _logger->log(epg::log::DEBUG, tools::StringTools::toString(sOrigins));
 
 
 
-                 double ratio = _getRatio(graph, vpit->first, vpit->second);
-                //DEBUG
-                _logger->log(epg::log::DEBUG, std::to_string(ratio));
+            double ratio = _getRatio(graph, country, lAntennas);
+            //DEBUG
+            _logger->log(epg::log::DEBUG, std::to_string(ratio));
 
-				if (ratio < antennaRatioThreshold) {
-                    _removeEdges(graph, vpit->second);
-                } 
-				else {
-                    double ratioWithBuff = _getRatioWithBuff(graph, vpit->first, vpit->second);
+            if (ratio < antennaRatioThreshold) {
+                _removeEdges(graph, lAntennas);
+            } 
+            else {
+                double ratioWithBuff = _getRatioWithBuff(graph, country, lAntennas);
 
-                    if (ratioWithBuff < antennaRatioThresholdWithBuff) {
-                        _removeEdges(graph, vpit->second);
-                    }
+                if (ratioWithBuff < antennaRatioThresholdWithBuff) {
+                    _removeEdges(graph, lAntennas);
                 }
             }
         }
@@ -714,7 +717,7 @@ namespace app
         {
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, false);
-            GraphType const& graph = graphManager.getGraph();
+            GraphType & graph = graphManager.getGraph();
 
             std::set<edge_descriptor> sVisitedEdge;
 
@@ -753,8 +756,8 @@ namespace app
         {
             _cleanFaces();
             _cleanPathsOutOfCountry();
-            _cleanAntennas();
             _cleanParalelleEdges();
+            _cleanAntennas();
         };
     }
 }

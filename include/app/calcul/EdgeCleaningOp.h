@@ -111,7 +111,7 @@ namespace calcul{
 
 		//--
 		template < typename ContainerType >
-        void _removeEdges(GraphType & graph, ContainerType const& container) const
+        void _removeEdges(GraphType & graph, ContainerType const& container, std::list<edge_descriptor>& lEdge2Remove) const
         {
             std::list<edge_descriptor>::const_iterator lit = container.begin();
             for ( ; lit != container.end() ; ++lit) {
@@ -133,9 +133,20 @@ namespace calcul{
                     _fsEdge->deleteFeature(edgeId);
                 }
 
-				graph.removeEdge(*lit);
+				lEdge2Remove.push_back(*lit);
             }
         }
+
+		//--
+		template < typename ContainerType >
+        void _removeEdgesAndGraphEdges(GraphType & graph, ContainerType const& container) const
+        {
+			std::list<edge_descriptor> lEdge2Remove;
+			_removeEdges(graph, container, lEdge2Remove);
+
+			for ( std::list<edge_descriptor>::const_iterator lit = lEdge2Remove.begin() ; lit != lEdge2Remove.end() ; ++lit )
+				graph.removeEdge(*lit);
+		}
 
 		//--
 		void _addLengths(

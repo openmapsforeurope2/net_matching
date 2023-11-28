@@ -333,6 +333,8 @@ namespace app
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, true);
 
+            std::list<edge_descriptor> lEdge2Remove;
+
             GraphType & graph = graphManager.getGraph();
             boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning faces  % complete ]\n");
             face_iterator fit, fend;
@@ -422,12 +424,14 @@ namespace app
                     bool hasConnection2 = sHasConnection.find(mlEdges.rbegin()->first) != sHasConnection.end();
 
                     if ( ratio1 > ratio2 && !hasConnection2 ) {
-                        _removeEdges(graph, mlEdges.rbegin()->second);
+                        _removeEdges(graph, mlEdges.rbegin()->second, lEdge2Remove);
                     } else if ( !hasConnection1 ) {
-                        _removeEdges(graph, mlEdges.begin()->second);
+                        _removeEdges(graph, mlEdges.begin()->second, lEdge2Remove);
                     }
                 }
 			}
+            for ( std::list<edge_descriptor>::const_iterator lit = lEdge2Remove.begin() ; lit != lEdge2Remove.end() ; ++lit )
+                graph.removeEdge(*lit);
         }
 
         ///
@@ -565,7 +569,7 @@ namespace app
                         }
                     }
                 }
-                _removeEdges(graph, std::list<edge_descriptor>(sEdges.begin(), sEdges.end()));
+                _removeEdgesAndGraphEdges(graph, std::list<edge_descriptor>(sEdges.begin(), sEdges.end()));
             }
         }
 
@@ -664,7 +668,7 @@ namespace app
         void EdgeCleaningOp::_cleanAntenna(
             GraphType & graph,
             std::string const& country,
-            std::list<edge_descriptor> const& lAntennas,
+            std::list<edge_descriptor> const& lAntennaEdges,
             bool bAntennaIsConnected2CF
         ) const {
             // app parameters
@@ -673,9 +677,9 @@ namespace app
             double const antennaRatioThresholdWithBuff = themeParameters->getValue( ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD ).toDouble();
             double const antennaMinLength = themeParameters->getValue( ECL_ANTENNA_MIN_LENGTH ).toDouble();
             
-            double antennaLength = _getAntennaLength(graph, lAntennas);
+            double antennaLength = _getAntennaLength(graph, lAntennaEdges);
             if (bAntennaIsConnected2CF && antennaLength < antennaMinLength) {
-                _removeEdges(graph, lAntennas);
+                _removeEdgesAndGraphEdges(graph, lAntennaEdges);
                 return;
             }
             
@@ -683,7 +687,7 @@ namespace app
             _logger->log(epg::log::DEBUG, "Antenna info :");
             std::list<edge_descriptor>::const_iterator lit;
             std::set<std::string> sOrigins;
-            for (lit = lAntennas.begin() ; lit != lAntennas.end() ; ++lit) {
+            for (lit = lAntennaEdges.begin() ; lit != lAntennaEdges.end() ; ++lit) {
                 for (size_t j = 0 ; j < graph.origins(*lit).size() ; ++j) {
                     sOrigins.insert( graph.origins(*lit)[j] );
                 }
@@ -692,18 +696,18 @@ namespace app
 
 
 
-            double ratio = _getRatio(graph, country, lAntennas);
+            double ratio = _getRatio(graph, country, lAntennaEdges);
             //DEBUG
             _logger->log(epg::log::DEBUG, std::to_string(ratio));
 
             if (ratio < antennaRatioThreshold) {
-                _removeEdges(graph, lAntennas);
+                _removeEdgesAndGraphEdges(graph, lAntennaEdges);
             } 
             else {
-                double ratioWithBuff = _getRatioWithBuff(graph, country, lAntennas);
+                double ratioWithBuff = _getRatioWithBuff(graph, country, lAntennaEdges);
 
                 if (ratioWithBuff < antennaRatioThresholdWithBuff) {
-                    _removeEdges(graph, lAntennas);
+                    _removeEdgesAndGraphEdges(graph, lAntennaEdges);
                 }
             }
         }
@@ -716,6 +720,8 @@ namespace app
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, false);
             GraphType & graph = graphManager.getGraph();
+
+            std::list<edge_descriptor> lEdge2Remove;
 
             std::set<edge_descriptor> sVisitedEdge;
 
@@ -740,11 +746,14 @@ namespace app
 
                     ign::geometry::LineString ls = graph.getGeometry(vit->descriptor);
                     if ( ign::geometry::algorithm::HausdorffDistanceOp::distance(lsRef, ls) < 0.1 /*todo a ajuster*/ ) {
-                        _removeEdges(graph, std::list<edge_descriptor>(1,vit->descriptor));
+                        _removeEdges(graph, std::list<edge_descriptor>(1,vit->descriptor), lEdge2Remove);
                     }
                 }
                 sVisitedEdge.insert(sVisitedTemp.begin(), sVisitedTemp.end());
             }
+
+            for ( std::list<edge_descriptor>::const_iterator lit = lEdge2Remove.begin() ; lit != lEdge2Remove.end() ; ++lit )
+                graph.removeEdge(*lit);
         }
 
         ///

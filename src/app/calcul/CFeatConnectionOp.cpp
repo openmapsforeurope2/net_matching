@@ -750,7 +750,6 @@ namespace app
             ign::geometry::graph::builder::SimpleGraphBuilder<GraphType> graphBuilder(graph, 1e-5);
 
             ign::feature::FeatureFilter filterEdge(countryCodeName + " LIKE '%" + country + "%'");
-            // ign::feature::FeatureFilter filterEdge(countryCodeName + " LIKE '%" + _countryCode + "%' AND inspireid='02d8e754-05bc-44bf-96c1-3bcc75ff740e'");
             ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filterEdge);
 
             // patience

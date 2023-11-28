@@ -35,56 +35,13 @@ namespace app
         ///
         ///
         ///
-        void CFeatConnectionOp::computeCp(
-            std::string edgeTable,
-            std::string cpTable,
-            std::string countryCode,
-            bool verbose)
-        {
-            CFeatConnectionOp CFeatConnectionOp(edgeTable, cpTable, "", countryCode, verbose);
-            CFeatConnectionOp._computeCp();
-        }
-
-        ///
-        ///
-        ///
-        void CFeatConnectionOp::computeCl(
-            std::string edgeTable,
-            std::string clTable,
-            std::string countryCode,
-            bool verbose)
-        {
-            CFeatConnectionOp CFeatConnectionOp(edgeTable, "", clTable, countryCode, verbose);
-            CFeatConnectionOp._computeCl();
-        }
-
-        ///
-        ///
-        ///
-        void CFeatConnectionOp::computeCpCl(
-            std::string edgeTable,
-            std::string cpTable,
-            std::string clTable,
-            std::string countryCode,
-            bool verbose)
-        {
-            CFeatConnectionOp CFeatConnectionOp(edgeTable, cpTable, clTable, countryCode, verbose);
-            CFeatConnectionOp._computeCpCl();
-        }
-
-        ///
-        ///
-        ///
         CFeatConnectionOp::CFeatConnectionOp(
-            std::string edgeTable,
-            std::string cpTable,
-            std::string clTable,
             std::string countryCode,
             bool verbose
         ) : _countryCode(countryCode),
             _verbose(verbose)
         {
-            _init(edgeTable, cpTable, clTable);
+            _init();
         }
 
         ///
@@ -92,24 +49,51 @@ namespace app
         ///
         CFeatConnectionOp::~CFeatConnectionOp()
         {
-            _shapeLogger->closeShape("resulting_edges_"+_countryCode);
-            _shapeLogger->closeShape("projected_cp_"+_countryCode);
-            _shapeLogger->closeShape("multiple_result_"+_countryCode);
-            _shapeLogger->closeShape("cp_displacements_"+_countryCode);
-            _shapeLogger->closeShape("created_edges_"+_countryCode);
-            _shapeLogger->closeShape("cl_displacements_"+_countryCode);
-            _shapeLogger->closeShape("cl_created_features_"+_countryCode);
-            _shapeLogger->closeShape("cl_deleted_features_"+_countryCode);
-            _shapeLogger->closeShape("cl_superposed_edges_"+_countryCode);
         }
 
         ///
         ///
         ///
-        void CFeatConnectionOp::_init(
-            std::string edgeTable,
-            std::string cpTable,
-            std::string clTable)
+        void CFeatConnectionOp::computeCp()
+        {
+            std::vector<std::string> vCountriesCodeName;
+		    epg::tools::StringTools::Split(_countryCode, "#", vCountriesCodeName);
+
+			for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
+                _computeCp(*vit);
+            }
+        }
+
+        ///
+        ///
+        ///
+        void CFeatConnectionOp::computeCl()
+        {
+            std::vector<std::string> vCountriesCodeName;
+		    epg::tools::StringTools::Split(_countryCode, "#", vCountriesCodeName);
+            
+            for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
+                _computeCl(*vit);
+            }
+        }
+
+        ///
+        ///
+        ///
+        void CFeatConnectionOp::computeCpCl()
+        {
+            std::vector<std::string> vCountriesCodeName;
+		    epg::tools::StringTools::Split(_countryCode, "#", vCountriesCodeName);
+            
+            for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
+                _computeCpCl(*vit);
+            }
+        }
+
+        ///
+        ///
+        ///
+        void CFeatConnectionOp::_init()
         {
             //--
             _logger = epg::log::EpgLoggerS::getInstance();
@@ -123,126 +107,40 @@ namespace app
 
             std::string const idName = epgParams.getValue(ID).toString();
             std::string const geomName = epgParams.getValue(GEOM).toString();
+            std::string const edgeTableName = epgParams.getValue(EDGE_TABLE).toString();
 
             // app parameters
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
             std::string const landmaskTableName = themeParameters->getValue(LANDMASK_TABLE).toString();
+            std::string const clTableName = themeParameters->getValue(CL_TABLE).toString();
+		    std::string const cpTableName = themeParameters->getValue(CP_TABLE).toString();
 
             //--
             _fsLandmask = context->getDataBaseManager().getFeatureStore(landmaskTableName, idName, geomName);
 
             //--
-            if (cpTable != "")
+            if (cpTableName != "")
             {
-                _fsCp = context->getDataBaseManager().getFeatureStore(cpTable, idName, geomName);
+                _fsCp = context->getDataBaseManager().getFeatureStore(cpTableName, idName, geomName);
             }
 
             //--
-            if (clTable != "")
+            if (clTableName != "")
             {
-                _fsCl = context->getDataBaseManager().getFeatureStore(clTable, idName, geomName);
+                _fsCl = context->getDataBaseManager().getFeatureStore(clTableName, idName, geomName);
             }
 
             //--
-            _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTable, idName, geomName);
-
-            //--
-            _shapeLogger = epg::log::ShapeLoggerS::getInstance();
-            _shapeLogger->addShape("resulting_edges_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("projected_cp_"+_countryCode, epg::log::ShapeLogger::POINT);
-            _shapeLogger->addShape("multiple_result_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("cp_displacements_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("created_edges_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("cl_displacements_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("cl_created_features_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("cl_deleted_features_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("cl_superposed_edges_"+_countryCode, epg::log::ShapeLogger::LINESTRING);
+            _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTableName, idName, geomName);
 
             //--
             _logger->log(epg::log::INFO, "[END] initialization: " + epg::tools::TimeTools::getTime());
         };
 
-        // ///
-        // ///
-        // ///
-        // ign::geometry::LineString CFeatConnectionOp::_mergecl(ign::feature::Feature const& refClFeat, std::string const& linkedFeatureId, std::set<std::string> & sTreatedCl) const {
-        //     epg::Context* context = epg::ContextS::getInstance();
-        //     epg::params::EpgParameters const& epgParams = context->getEpgParameters();
-        //     std::string const linkedFeatureIdName = epgParams.getValue(LINKED_FEATURE_ID).toString();
-
-        //     ign::geometry::LineString const& refClGeom = refClFeat.getGeometry().asLineString();
-        //     ign::geometry::Point startPoint = refClGeom.startPoint();
-        //     ign::geometry::Point endPoint = refClGeom.endPoint();
-        //     bool bNewStart = true;
-        //     bool bNewEnd = true;
-
-        //     std::vector<ign::feature::Feature> vCandidates;
-        //     ign::feature::FeatureIteratorPtr itCl = _fsCl->getFeatures(linkedFeatureIdName + " LIKE '%" + linkedFeatureId + "%'");
-        //     while (itCl->hasNext())
-        //     {
-        //         ign::feature::Feature const& fCl = itCl->next();
-        //         vCandidates.push_back(fCl);
-        //     }
-
-        //     // std::set<std::string> sMergedCl;
-        //     sTreatedCl.insert(refClFeat.getId());
-        //     std::vector<ign::geometry::LineString> vGeom2Merge;
-        //     vGeom2Merge.push_back(refClGeom);
-
-        //     do {
-        //         std::vector<ign::feature::Feature>::const_iterator vit;
-        //         size_t before = sTreatedCl.size();
-        //         for ( vit = vCandidates.begin() ; vit != vCandidates.end() ; ++vit ) {
-        //             if (sTreatedCl.find(vit->getId()) != sTreatedCl.end()) continue;
-                    
-        //             ign::geometry::LineString const& clGeom = vit->getGeometry().asLineString();
-        //             bool bTouchingEnd = startPoint.distance(clGeom.endPoint()) < 1e-1;
-        //             bool bTouchingStart = startPoint.distance(clGeom.startPoint()) < 1e-1;
-        //             if ( bTouchingEnd || bTouchingStart ) {
-        //                 sTreatedCl.insert(vit->getId());
-        //                 vGeom2Merge.push_back(clGeom);
-        //                 if (bTouchingEnd) vGeom2Merge.back().endPoint() = startPoint;
-        //                 if (bTouchingStart) vGeom2Merge.back().startPoint() = startPoint;
-        //                 startPoint = bTouchingEnd ? clGeom.startPoint() : clGeom.endPoint();
-        //                 break;
-        //             }
-        //         }
-        //         if (before == sTreatedCl.size()) bNewStart = false;
-        //     }while (bNewStart);
-
-        //     do {
-        //         std::vector<ign::feature::Feature>::const_iterator vit;
-        //         size_t before = sTreatedCl.size();
-        //         for ( vit = vCandidates.begin() ; vit != vCandidates.end() ; ++vit ) {
-        //             if (sTreatedCl.find(vit->getId()) != sTreatedCl.end()) continue;
-
-        //             ign::geometry::LineString const& clGeom = vit->getGeometry().asLineString();
-        //             bool bTouchingEnd = endPoint.distance(clGeom.endPoint()) < 1e-5;
-        //             bool bTouchingStart = endPoint.distance(clGeom.startPoint()) < 1e-5;
-        //             if ( bTouchingEnd || bTouchingStart ) {
-        //                 sTreatedCl.insert(vit->getId());
-        //                 vGeom2Merge.push_back(clGeom);
-        //                 if (bTouchingEnd) vGeom2Merge.back().endPoint() = endPoint;
-        //                 if (bTouchingStart) vGeom2Merge.back().startPoint() = endPoint;
-        //                 endPoint = bTouchingEnd ? clGeom.startPoint() : clGeom.endPoint();
-        //                 break;
-        //             }
-        //         }
-        //         if (before == sTreatedCl.size()) bNewEnd = false;
-        //     } while (bNewEnd);
-
-        //     if (vGeom2Merge.size() == 1) return vGeom2Merge.front();
-
-        //     std::vector<ign::geometry::LineString> vMergedGeom = ign::geometry::algorithm::LineMergerOpGeos::MergeLineStrings(vGeom2Merge);
-        //     if ( vMergedGeom.size() > 1 ) _logger->log(epg::log::WARN, "Merging adjacent CL gives a MultilineString [ref CL id] " + refClFeat.getId());
-
-        //     return vMergedGeom.front();
-        // };
-
         ///
         ///
         ///
-        void CFeatConnectionOp::_computeClDisplacements(std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements) const
+        void CFeatConnectionOp::_computeClDisplacements(std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements, std::string const& country) const
         {
             epg::Context *context = epg::ContextS::getInstance();
 
@@ -260,7 +158,7 @@ namespace app
             std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
             double snapDistance = themeParameters->getValue(SNAP_DIST).toDouble();
 
-            ign::feature::FeatureFilter filterCl(countryCodeName + " LIKE '%" + _countryCode + "%'");
+            ign::feature::FeatureFilter filterCl(countryCodeName + " LIKE '%" + country + "%'");
 
             // patience
             int numFeatures = epg::sql::tools::numFeatures(*_fsCl, filterCl);
@@ -291,7 +189,7 @@ namespace app
                 // }
                 // if ( idDebug != "CONNECTINGLINE2218" && idDebug != "CONNECTINGLINE2230") continue;
 
-                std::pair<bool, std::string> foundFeatureId = _getSingleValue(linkedFeatureId, countryCode, _countryCode);
+                std::pair<bool, std::string> foundFeatureId = _getSingleValue(linkedFeatureId, countryCode, country);
                 if (!foundFeatureId.first)
                 {
                     _logger->log(epg::log::ERROR, "Feature id not found [connecting edge id] " + fCl.getId());
@@ -320,17 +218,6 @@ namespace app
                     _logger->log(epg::log::ERROR, "No candidate edge found [" + linkedFeatureIdName + "] " + foundFeatureId.second);
                     continue;
                 }
-
-                // std::pair<bool, std::string> foundEdge = _getNearestEdge(mergedClGeom, countryCodeName, edgeLinkName, foundEdgeLink.second, sEdge2Delete);
-                // if (!foundEdge.first)
-                // {
-                //     _logger->log(epg::log::ERROR, "No candidate edge found [" + edgeLinkName + "] " + foundEdgeLink.second);
-                //     continue;
-                // }
-                
-                // if (foundEdge.second ==  "50ab969e-2186-4c19-a0bb-ddc2d8ada2b8" || foundEdge.second ==  "38cb0d6f-50cf-4ce3-ae74-9d6f8a5915d4") {
-                //     bool test =true;
-                // }
 
                 if (_verbose) _logger->log(epg::log::DEBUG, "  "+edgeId);
 
@@ -468,7 +355,7 @@ namespace app
                 }
 
                 //on supprime l'edge
-                _shapeLogger->writeFeature("cl_deleted_features_"+_countryCode, foundEdge.second);
+                _shapeLogger->writeFeature("cl_deleted_features_"+country, foundEdge.second);
                 _fsEdge->deleteFeature(edgeId);
 
                 auto r_mit = mParentChilds.right.find(edgeId);
@@ -481,7 +368,7 @@ namespace app
                     _fsEdge->createFeature(foundEdge.second);
                     mParentChilds.insert(value_type(parentId, foundEdge.second.getId()));
 
-                    _shapeLogger->writeFeature("cl_created_features_"+_countryCode, foundEdge.second);
+                    _shapeLogger->writeFeature("cl_created_features_"+country, foundEdge.second);
                 }
             }
 
@@ -491,21 +378,27 @@ namespace app
                 ign::feature::Feature feat;
                 ign::geometry::Point p = mit->first;
                 feat.setGeometry(ign::geometry::LineString(p, ign::geometry::Point(mit->first.x() + mit->second.x(), mit->first.y() + mit->second.y())));
-                _shapeLogger->writeFeature("cl_displacements_"+_countryCode, feat);
+                _shapeLogger->writeFeature("cl_displacements_"+country, feat);
             }
         }
 
         ///
         ///
         ///
-        void CFeatConnectionOp::_computeCl()
+        void CFeatConnectionOp::_computeCl(std::string const& country)
         {
+            _shapeLogger = epg::log::ShapeLoggerS::getInstance();
+            _shapeLogger->addShape("cl_displacements_"+country, epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("cl_created_features_"+country, epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("cl_deleted_features_"+country, epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("cl_superposed_edges_"+country, epg::log::ShapeLogger::LINESTRING);
+
             std::map<ign::geometry::Point, ign::math::Vec2d> mDisplacements;
-            _computeClDisplacements(mDisplacements);
+            _computeClDisplacements(mDisplacements, country);
 
             // on charge le graph
             GraphType graph;
-            _loadEdgeGraph(graph);
+            _loadEdgeGraph(graph, country);
 
             // On calcul les déplacements
             std::set<std::string> sCollapsedEdges;
@@ -538,7 +431,7 @@ namespace app
                             sVisitedEdge.insert(vit2->descriptor);
                             ign::feature::Feature eFeat;
                             eFeat.setGeometry(ls);
-                            _shapeLogger->writeFeature("cl_superposed_edges_"+_countryCode, eFeat);
+                            _shapeLogger->writeFeature("cl_superposed_edges_"+country, eFeat);
                         }
                     }
                 }
@@ -551,12 +444,17 @@ namespace app
             for (std::set<std::string>::const_iterator sit = sCollapsedEdges.begin() ; sit != sCollapsedEdges.end() ; ++sit) {
                 _fsEdge->deleteFeature(*sit);
             }
+
+            _shapeLogger->closeShape("cl_displacements_"+country);
+            _shapeLogger->closeShape("cl_created_features_"+country);
+            _shapeLogger->closeShape("cl_deleted_features_"+country);
+            _shapeLogger->closeShape("cl_superposed_edges_"+country);
         };
 
         ///
         ///
         ///
-        void CFeatConnectionOp::_computeCpDisplacements(std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements) const 
+        void CFeatConnectionOp::_computeCpDisplacements(std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements, std::string const& country) const 
         {
             epg::Context *context = epg::ContextS::getInstance();
 
@@ -586,7 +484,7 @@ namespace app
             //     }
             // }
 
-            ign::feature::FeatureFilter filterCp(countryCodeName + " LIKE '%" + _countryCode + "%'");
+            ign::feature::FeatureFilter filterCp(countryCodeName + " LIKE '%" + country + "%'");
 
             // patience
             int numFeatures = epg::sql::tools::numFeatures(*_fsCp, filterCp);
@@ -600,6 +498,9 @@ namespace app
             {
                 ++display;
                 ign::feature::Feature const& fCp = itCp->next();
+
+                if (_verbose) _logger->log(epg::log::DEBUG, fCp.getId());
+
                 ign::geometry::Point const& cpGeom = fCp.getGeometry().asPoint();
                 std::string const linkedFeatureId = fCp.getAttribute(linkedFeatureIdName).toString();
                 std::string const countryCode = fCp.getAttribute(countryCodeName).toString();
@@ -610,17 +511,7 @@ namespace app
                 //     continue;
                 // }
 
-                if (_verbose) _logger->log(epg::log::DEBUG, fCp.getId());
-
-                // std::pair<bool, std::string> foundEdge = _getNearestEdge(cpGeom, countryCodeName, edgeLinkName, edgeLink, sEdge2Delete);
-
-                // if (!foundEdge.first)
-                // {
-                //     _logger->log(epg::log::ERROR, "No candidate edge found [" + edgeLinkName + "] " + edgeLink);
-                //     continue;
-                // }
-
-                std::pair<bool, std::string> foundFeatureId = _getSingleValue(linkedFeatureId, countryCode, _countryCode);
+                std::pair<bool, std::string> foundFeatureId = _getSingleValue(linkedFeatureId, countryCode, country);
                 if (!foundFeatureId.first)
                 {
                     _logger->log(epg::log::ERROR, "Feature id not found [connecting point id] " + fCp.getId());
@@ -700,21 +591,24 @@ namespace app
                 ign::feature::Feature feat;
                 ign::geometry::Point p = mit->first;
                 feat.setGeometry(ign::geometry::LineString(p, ign::geometry::Point(mit->first.x() + mit->second.x(), mit->first.y() + mit->second.y())));
-                _shapeLogger->writeFeature("cp_displacements_"+_countryCode, feat);
+                _shapeLogger->writeFeature("cp_displacements_"+country, feat);
             }
         }
 
         ///
         ///
         ///
-        void CFeatConnectionOp::_computeCp()
+        void CFeatConnectionOp::_computeCp(std::string const& country)
         {
+            _shapeLogger = epg::log::ShapeLoggerS::getInstance();
+            _shapeLogger->addShape("cp_displacements_"+country, epg::log::ShapeLogger::LINESTRING);
+
             std::map<ign::geometry::Point, ign::math::Vec2d> mDisplacements;
-            _computeCpDisplacements(mDisplacements);
+            _computeCpDisplacements(mDisplacements, country);
 
             // on charge le graph
             GraphType graph;
-            _loadEdgeGraph(graph);
+            _loadEdgeGraph(graph, country);
 
             // On calcul les déplacements
             std::set<std::string> sCollapsedEdges;
@@ -728,20 +622,22 @@ namespace app
             for (std::set<std::string>::const_iterator sit = sCollapsedEdges.begin() ; sit != sCollapsedEdges.end() ; ++sit) {
                 _fsEdge->deleteFeature(*sit);
             }
+
+            _shapeLogger->closeShape("cp_displacements_"+country);
         }
 
         ///
         ///
         ///
-        void CFeatConnectionOp::_computeCpCl()
+        void CFeatConnectionOp::_computeCpCl(std::string const& country)
         {
             std::map<ign::geometry::Point, ign::math::Vec2d> mDisplacements;
-            _computeCpDisplacements(mDisplacements);
-            _computeClDisplacements(mDisplacements);
+            _computeCpDisplacements(mDisplacements, country);
+            _computeClDisplacements(mDisplacements, country);
 
             // on charge le graph
             GraphType graph;
-            _loadEdgeGraph(graph);
+            _loadEdgeGraph(graph, country);
 
             // On calcul les déplacements
             std::set<std::string> sCollapsedEdges;
@@ -815,41 +711,6 @@ namespace app
         ///
         ///
         ///
-        std::pair<bool, std::string> CFeatConnectionOp::_getNearestEdge(
-            ign::geometry::Geometry const& refGeom,
-            std::string countryCodeName,
-            std::string edgeLinkName,
-            std::string edgeLink,
-            std::set<std::string> const& sEdge2Delete ) const
-        {
-
-            ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(countryCodeName + " LIKE '%" + _countryCode + "%' AND " + edgeLinkName + " = '" + edgeLink + "'");
-
-            double dMax = std::numeric_limits<double>::infinity();
-            std::string idMax = "";
-            while (itEdge->hasNext())
-            {
-                ign::feature::Feature const& fEdge = itEdge->next();
-                if ( sEdge2Delete.find(fEdge.getId()) != sEdge2Delete.end()  ) continue;
-
-                ign::geometry::LineString const &edgeGeom = fEdge.getGeometry().asLineString();
-                double distance = edgeGeom.distance(refGeom);
-
-                if (distance < dMax)
-                {
-                    dMax = distance;
-                    idMax = fEdge.getId();
-                }
-            }
-
-            bool found = (dMax != std::numeric_limits<double>::infinity());
-
-            return std::make_pair(found, idMax);
-        }
-
-        ///
-        ///
-        ///
         std::pair<bool, std::string> CFeatConnectionOp::_getSingleValue(
             std::string edgeLinks,
             std::string countryCodes,
@@ -880,7 +741,7 @@ namespace app
         ///
         ///
         ///
-        void CFeatConnectionOp::_loadEdgeGraph(GraphType & graph) const {
+        void CFeatConnectionOp::_loadEdgeGraph(GraphType & graph, std::string const& country) const {
             epg::Context *context = epg::ContextS::getInstance();
             epg::params::EpgParameters const &epgParams = context->getEpgParameters();
             std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
@@ -888,7 +749,7 @@ namespace app
 
             ign::geometry::graph::builder::SimpleGraphBuilder<GraphType> graphBuilder(graph, 1e-5);
 
-            ign::feature::FeatureFilter filterEdge(countryCodeName + " LIKE '%" + _countryCode + "%'");
+            ign::feature::FeatureFilter filterEdge(countryCodeName + " LIKE '%" + country + "%'");
             // ign::feature::FeatureFilter filterEdge(countryCodeName + " LIKE '%" + _countryCode + "%' AND inspireid='02d8e754-05bc-44bf-96c1-3bcc75ff740e'");
             ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filterEdge);
 
@@ -1191,7 +1052,7 @@ namespace app
 		///
 		///
 		///
-		void CFeatConnectionOp::_importCLintoEdgeTable()
+		void CFeatConnectionOp::computeClImport()
 		{
 
 			epg::Context* context = epg::ContextS::getInstance();
@@ -1210,17 +1071,6 @@ namespace app
 				_fsEdge->createFeature(fNewEdge);
 			}
 		}
-
-
-		///
-		///
-		///
-		void CFeatConnectionOp::computeClImport(std::string edgeTable, std::string clTable, std::string countryCode, bool verbose)
-		{
-			CFeatConnectionOp CFeatConnectionOp(edgeTable, "", clTable, countryCode, verbose);
-			CFeatConnectionOp._importCLintoEdgeTable();
-		}
-
     }
 }
 

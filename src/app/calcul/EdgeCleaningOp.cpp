@@ -30,24 +30,22 @@ namespace app
         ///
         ///
         void EdgeCleaningOp::clean(
-            std::string edgeTable,
             std::string borderCode,
             bool verbose)
         {
-            EdgeCleaningOp op(edgeTable, borderCode, verbose);
-            op._clean();
+            EdgeCleaningOp op(borderCode, verbose);
+            op.cleanAll();
         }
 
         ///
         ///
         ///
         EdgeCleaningOp::EdgeCleaningOp(
-            std::string edgeTable,
             std::string borderCode,
             bool verbose
         ) : _verbose(verbose)
         {
-            _init(edgeTable, borderCode);
+            _init(borderCode);
         }
 
         ///
@@ -63,7 +61,7 @@ namespace app
         ///
         ///
         ///
-        void EdgeCleaningOp::_init(std::string edgeTable, std::string borderCode)
+        void EdgeCleaningOp::_init(std::string borderCode)
         {
             //--
             _logger = epg::log::EpgLoggerS::getInstance();
@@ -80,11 +78,11 @@ namespace app
 
             // epg parameters
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
-
             std::string const boundaryTableName = epgParams.getValue(TARGET_BOUNDARY_TABLE).toString();
             std::string const idName = epgParams.getValue(ID).toString();
             std::string const geomName = epgParams.getValue(GEOM).toString();
             std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
+            std::string const edgeTableName = epgParams.getValue(EDGE_TABLE).toString();
             
             // app parameters
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
@@ -137,7 +135,7 @@ namespace app
             }
 
             //--
-            _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTable, idName, geomName);
+            _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTableName, idName, geomName);
 
             //--
             _fsCp = context->getDataBaseManager().getFeatureStore(cpTableName, idName, geomName);
@@ -326,7 +324,7 @@ namespace app
         ///
         ///
         ///
-        void EdgeCleaningOp::_cleanFaces() const
+        void EdgeCleaningOp::cleanFaces() const
         {
             // app parameters
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
@@ -504,7 +502,7 @@ namespace app
         ///
         ///
         ///
-        void EdgeCleaningOp::_cleanPathsOutOfCountry() const
+        void EdgeCleaningOp::cleanPathsOutOfCountry() const
         {
             epg::Context *context = epg::ContextS::getInstance();
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
@@ -574,7 +572,7 @@ namespace app
         ///
         ///
         ///
-        void EdgeCleaningOp::_cleanAntennas() const
+        void EdgeCleaningOp::cleanAntennas() const
         {
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, false);
@@ -594,7 +592,7 @@ namespace app
                 // seulement les vertex qui touchent une CL ?
 
                 // DEBUG
-                // ign::geometry::Point p = graph.getGeometry(*vit);
+                ign::geometry::Point p = graph.getGeometry(*vit);
 
                 std::list<edge_descriptor> lAntennaEdges;
                 bool isConnected2CF = false;
@@ -713,7 +711,7 @@ namespace app
         ///
         ///
         ///
-        void EdgeCleaningOp::_cleanParalelleEdges() const
+        void EdgeCleaningOp::cleanParalelleEdges() const
         {
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, false);
@@ -752,12 +750,12 @@ namespace app
         ///
         ///
         ///
-        void EdgeCleaningOp::_clean() const
+        void EdgeCleaningOp::cleanAll() const
         {
-            _cleanFaces();
-            _cleanPathsOutOfCountry();
-            _cleanParalelleEdges();
-            _cleanAntennas();
+            cleanFaces();
+            cleanPathsOutOfCountry();
+            cleanParalelleEdges();
+            cleanAntennas();
         };
     }
 }

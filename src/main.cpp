@@ -91,37 +91,29 @@ int main(int argc, char *argv[])
         epg::params::tools::loadParams( *themeParameters, themeParametersFile );
 
         //lancement du traitement
-		std::string edgeTableName = context->getEpgParameters().getValue(EDGE_TABLE).toString();
-		std::string clTableName = themeParameters->getValue(CL_TABLE).toString();
-		std::string cpTableName = themeParameters->getValue(CP_TABLE).toString();
 		bool clCompute = themeParameters->getValue(CL_COMPUTE).toBoolean();
-
-		std::vector<std::string> vCountriesCodeName;
-		epg::tools::StringTools::Split(countryCode, "#", vCountriesCodeName);
 		
 		app::calcul::CFeatGenerationOp cFeatGenerationOp(countryCode);
+        app::calcul::CFeatConnectionOp cFeatConnectionOp(countryCode, verbose);
 		
 		if (clCompute)
 		{
 			cFeatGenerationOp.computeCL();
-
-			for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
-				app::calcul::CFeatConnectionOp::computeCl(edgeTableName, clTableName, *vit, verbose);
-			}
-
-			app::calcul::CFeatConnectionOp::computeClImport(edgeTableName, clTableName, countryCode, verbose);
+            cFeatConnectionOp.computeCl();
+            cFeatConnectionOp.computeClImport();
 		}
 
 		cFeatGenerationOp.computeCP();
+        cFeatConnectionOp.computeCp();
 
-		for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
-			app::calcul::CFeatConnectionOp::computeCp(edgeTableName, cpTableName, *vit, verbose);
-		}
+        // nettoyage
+		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCode, verbose);
+        edgeCleaningOp.cleanAll();
 
         app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
 
-		// nettoyage
-		app::calcul::EdgeCleaningOp::clean(edgeTableName, countryCode, verbose);
+        // nettoyage
+		edgeCleaningOp.cleanParalelleEdges();
 
 		logger->log(epg::log::INFO, "[END EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 

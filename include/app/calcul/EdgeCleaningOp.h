@@ -34,10 +34,33 @@ namespace calcul{
 
 		/// \brief
 		static void clean(
-			std::string edgeTable,
 			std::string borderCode,
 			bool verbose
 		);
+
+		/// \brief
+		EdgeCleaningOp( 
+			std::string borderCode,
+            bool verbose 
+        );
+
+		/// \brief
+		~EdgeCleaningOp();
+
+		/// \brief
+		void cleanAll() const;
+
+		/// \brief
+		void cleanFaces() const;
+
+		/// \brief
+		void cleanPathsOutOfCountry() const;
+
+        /// \brief
+		void cleanAntennas() const;
+
+		/// \brief
+		void cleanParalelleEdges() const;
 
 	private:
 		//--
@@ -60,18 +83,7 @@ namespace calcul{
 	private:
 
 		//--
-		EdgeCleaningOp( 
-            std::string edgeTable,
-			std::string borderCode,
-            bool verbose 
-        );
-
-		//--
-		~EdgeCleaningOp();
-
-		//--
 		void _init( 
-            std::string edgeTable,
 			std::string borderCode
         );
 
@@ -148,27 +160,12 @@ namespace calcul{
 		bool _vertexIsCp(GraphType const& graph, vertex_descriptor v) const;
 
 		//--
-		void _cleanFaces() const;
-
-		//--
-		void _cleanPathsOutOfCountry() const;
-
-        //--
-		void _cleanAntennas() const;
-
-		//--
 		void _cleanAntenna(
             GraphType & graph,
             std::string const& country,
             std::list<edge_descriptor> const& lAntennas,
             bool bAntennaIsConnected2CF
         ) const;
-
-        //--
-		void _cleanParalelleEdges() const;
-
-		//--
-		void _clean() const;
     };
 
 }

@@ -34,37 +34,25 @@ namespace calcul{
         typedef typename GraphType::edge_iterator edge_iterator;
 
 		/// \brief
-		static void computeCp(
-			std::string edgeTable, 
-            std::string cpTable,
-			std::string countryCode, 
-			bool verbose
-		);
+		CFeatConnectionOp( 
+            std::string countryCode, 
+            bool verbose 
+        );
 
 		/// \brief
-		static void computeCl(
-			std::string edgeTable, 
-            std::string clTable,
-			std::string countryCode, 
-			bool verbose
-		);
+		~CFeatConnectionOp();
 
 		/// \brief
-		static void computeCpCl(
-			std::string edgeTable,
-			std::string cpTable,
-            std::string clTable,
-			std::string countryCode, 
-			bool verbose
-		);
+		void computeCp();
 
 		/// \brief
-		static void computeClImport(
-			std::string edgeTable,
-			std::string clTable,
-			std::string countryCode,
-			bool verbose
-		);
+		void computeCl();
+
+		/// \brief
+		void computeCpCl();
+
+		/// \brief
+		void computeClImport();
 		
 
 	private:
@@ -88,45 +76,22 @@ namespace calcul{
 	private:
 
 		//--
-		CFeatConnectionOp( 
-            std::string edgeTable, 
-            std::string cpTable,
-			std::string clTable,
-            std::string countryCode, 
-            bool verbose 
-        );
+		void _init();
 
 		//--
-		~CFeatConnectionOp();
+		void _computeCpDisplacements(std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements, std::string const& country) const;
 
 		//--
-		void _init( 
-            std::string edgeTable, 
-            std::string cpTable,
-			std::string clTable
-        );
+		void _computeClDisplacements(std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements, std::string const& country) const;
 
 		//--
-		void _computeCpDisplacements(std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements) const;
+		void _computeCp(std::string const& country);
 
 		//--
-		void _computeClDisplacements(std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements) const;
+		void _computeCl(std::string const& country);
 
 		//--
-		void _computeCp();
-
-		//--
-		void _computeCl();
-
-		//--
-		void _computeCpCl();
-
-		// //--
-		// ign::geometry::LineString _mergecl(
-		// 	ign::feature::Feature const& refClFeat,
-		// 	std::string const& edgeLink,
-		// 	std::set<std::string> & sTreatedCl
-		// ) const;
+		void _computeCpCl(std::string const& country);
 
 		//--
 		std::pair<bool, std::string> _getSingleValue(
@@ -143,16 +108,7 @@ namespace calcul{
 		) const;
 
 		//--
-		std::pair<bool, std::string> _getNearestEdge(
-			ign::geometry::Geometry const& refGeom,
-            std::string countryCodeName,
-            std::string edgeLinkName,
-            std::string edgeLink,
-			std::set<std::string> const& sEdge2Delete
-		) const;
-
-		//--
-		void _loadEdgeGraph(GraphType & graph) const;
+		void _loadEdgeGraph(GraphType & graph, std::string const& country) const;
 
 		//--
 		std::pair<bool, vertex_descriptor> _getNearestVertex(

@@ -2126,8 +2126,11 @@ void app::calcul::CFeatGenerationOp::_loadGraphEdges(std::string countryCodeSimp
 
 bool app::calcul::CFeatGenerationOp::_isConnectedEdges(GraphType& graph, std::string idEdge1, std::string idEdge2)
 {
+	_logger->log(epg::log::DEBUG, "log100");
 	edge_descriptor edCl1 = graph.getInducedEdges(idEdge1).second[0].descriptor;
+	_logger->log(epg::log::DEBUG, "log101");
 	edge_descriptor edCl2 = graph.getInducedEdges(idEdge2).second[0].descriptor;
+	_logger->log(epg::log::DEBUG, "log102");
 
 	if (graph.source(edCl1) == graph.source(edCl2) || graph.source(edCl1) == graph.target(edCl2) || graph.target(edCl1) == graph.source(edCl2) || graph.target(edCl1) == graph.target(edCl2))
 		return true;
@@ -2136,11 +2139,14 @@ bool app::calcul::CFeatGenerationOp::_isConnectedEdges(GraphType& graph, std::st
 }
 
 std::pair<std::string, std::string> app::calcul::CFeatGenerationOp::_getClLinkedEdges( std::string const& linkedFeatIdName, GraphType& graphCL, GraphType::edge_descriptor eCl ) {
+	_logger->log(epg::log::DEBUG, "loga");
 	std::string idCl = graphCL.origins(eCl)[0];
+	_logger->log(epg::log::DEBUG, "logb");
 	ign::feature::Feature clFeat;
 	_fsCL->getFeatureById(idCl, clFeat);
 	std::vector<std::string> vEdgeslinkedJ;
 	epg::tools::StringTools::Split(clFeat.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinkedJ);
+	_logger->log(epg::log::DEBUG, "logc");
 
 	return std::make_pair(vEdgeslinkedJ[0], vEdgeslinkedJ[1]);
 }
@@ -2213,6 +2219,8 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl( GraphType& graphCL)
 				_logger->log(epg::log::DEBUG, "log5");
 
 				std::pair<std::string, std::string> pLinkedEdgesJ = _getClLinkedEdges(linkedFeatIdName, graphCL, vClsIncidentTemp[j].descriptor);
+
+				_logger->log(epg::log::DEBUG, "log5b");
 
 				bool isConnected1 = pLinkedEdgesI.first == pLinkedEdgesJ.first || _isConnectedEdges(graphEdges1, pLinkedEdgesI.first, pLinkedEdgesJ.first);
 				bool isConnected2 = pLinkedEdgesI.second == pLinkedEdgesJ.second || _isConnectedEdges(graphEdges2, pLinkedEdgesI.second, pLinkedEdgesJ.second);

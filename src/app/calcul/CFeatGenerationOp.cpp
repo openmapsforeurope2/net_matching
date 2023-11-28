@@ -2218,6 +2218,10 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl( GraphType& graphCL)
 
 			std::pair<std::string, std::string> pLinkedEdgesI = _getClLinkedEdges(linkedFeatIdName, graphCL, vClsIncidentTemp[i].descriptor);
 
+			//si CL n'existe plus
+			if (pLinkedEdgesI.first.empty() || pLinkedEdgesI.second.empty())
+				continue;
+
 			_logger->log(epg::log::DEBUG, "log4");
 
 			for (size_t j = i + 1; j < vClsIncidentTemp.size(); ++j) {

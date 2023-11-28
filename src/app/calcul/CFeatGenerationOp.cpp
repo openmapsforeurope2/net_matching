@@ -2143,11 +2143,14 @@ bool app::calcul::CFeatGenerationOp::_isConnectedEdges(GraphType& graph, std::st
 std::pair<std::string, std::string> app::calcul::CFeatGenerationOp::_getClLinkedEdges( std::string const& linkedFeatIdName, GraphType& graphCL, GraphType::edge_descriptor eCl ) {
 	_logger->log(epg::log::DEBUG, "loga");
 	std::string idCl = graphCL.origins(eCl)[0];
+	_logger->log(epg::log::DEBUG, idCl);
 	_logger->log(epg::log::DEBUG, "logb");
 	ign::feature::Feature clFeat;
 	_fsCL->getFeatureById(idCl, clFeat);
 	std::vector<std::string> vEdgeslinkedJ;
-	epg::tools::StringTools::Split(clFeat.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinkedJ);
+	std::string linkedFeat = clFeat.getAttribute(linkedFeatIdName).toString();
+	_logger->log(epg::log::DEBUG, linkedFeat);
+	epg::tools::StringTools::Split(linkedFeat, "#", vEdgeslinkedJ);
 	_logger->log(epg::log::DEBUG, "logc");
 
 	return std::make_pair(vEdgeslinkedJ[0], vEdgeslinkedJ[1]);
@@ -2210,6 +2213,8 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl( GraphType& graphCL)
 
 			std::vector< GraphType::oriented_edge_descriptor > vClsIncidentTempConnectI;
 			vClsIncidentTempConnectI.push_back(vClsIncidentTemp[i]);
+
+			_logger->log(epg::log::DEBUG, "log3b");
 
 			std::pair<std::string, std::string> pLinkedEdgesI = _getClLinkedEdges(linkedFeatIdName, graphCL, vClsIncidentTemp[i].descriptor);
 

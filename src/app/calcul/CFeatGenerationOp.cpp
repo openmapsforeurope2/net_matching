@@ -2140,20 +2140,22 @@ bool app::calcul::CFeatGenerationOp::_isConnectedEdges(GraphType& graph, std::st
 	return false;
 }
 
-std::pair<std::string, std::string> app::calcul::CFeatGenerationOp::_getClLinkedEdges( std::string const& linkedFeatIdName, GraphType& graphCL, GraphType::edge_descriptor eCl ) {
+std::pair<bool,std::pair<std::string, std::string>> app::calcul::CFeatGenerationOp::_getClLinkedEdges( std::string const& linkedFeatIdName, GraphType& graphCL, GraphType::edge_descriptor eCl ) {
 	_logger->log(epg::log::DEBUG, "loga");
 	std::string idCl = graphCL.origins(eCl)[0];
 	_logger->log(epg::log::DEBUG, idCl);
 	_logger->log(epg::log::DEBUG, "logb");
 	ign::feature::Feature clFeat;
 	_fsCL->getFeatureById(idCl, clFeat);
+	if (clFeat.getId().empty())
+		return std::make_pair(false, std::make_pair("", ""));
 	std::vector<std::string> vEdgeslinkedJ;
 	std::string linkedFeat = clFeat.getAttribute(linkedFeatIdName).toString();
 	_logger->log(epg::log::DEBUG, linkedFeat);
 	epg::tools::StringTools::Split(linkedFeat, "#", vEdgeslinkedJ);
 	_logger->log(epg::log::DEBUG, "logc");
 
-	return std::make_pair(vEdgeslinkedJ[0], vEdgeslinkedJ[1]);
+	return std::make_pair(true,std::make_pair(vEdgeslinkedJ[0], vEdgeslinkedJ[1]));
 }
 
 bool app::calcul::CFeatGenerationOp::_areParallelEdges( GraphType& graphCL, GraphType::edge_descriptor e1,  GraphType::edge_descriptor e2 ) {
@@ -2216,10 +2218,10 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl( GraphType& graphCL)
 
 			_logger->log(epg::log::DEBUG, "log3b");
 
-			std::pair<std::string, std::string> pLinkedEdgesI = _getClLinkedEdges(linkedFeatIdName, graphCL, vClsIncidentTemp[i].descriptor);
+			std::pair<bool,std::pair<std::string, std::string>> pLinkedEdgesI = _getClLinkedEdges(linkedFeatIdName, graphCL, vClsIncidentTemp[i].descriptor);
 
 			//si CL n'existe plus
-			if (pLinkedEdgesI.first.empty() || pLinkedEdgesI.second.empty())
+			if (!pLinkedEdgesI.first)
 				continue;
 
 			_logger->log(epg::log::DEBUG, "log4");
@@ -2229,12 +2231,15 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl( GraphType& graphCL)
 
 				_logger->log(epg::log::DEBUG, "log5");
 
-				std::pair<std::string, std::string> pLinkedEdgesJ = _getClLinkedEdges(linkedFeatIdName, graphCL, vClsIncidentTemp[j].descriptor);
+				std::pair<bool, std::pair<std::string, std::string>> pLinkedEdgesJ = _getClLinkedEdges(linkedFeatIdName, graphCL, vClsIncidentTemp[j].descriptor);
+
+				if (!pLinkedEdgesJ.first)
+					continue;
 
 				_logger->log(epg::log::DEBUG, "log5b");
 
-				bool isConnected1 = pLinkedEdgesI.first == pLinkedEdgesJ.first || _isConnectedEdges(graphEdges1, pLinkedEdgesI.first, pLinkedEdgesJ.first);
-				bool isConnected2 = pLinkedEdgesI.second == pLinkedEdgesJ.second || _isConnectedEdges(graphEdges2, pLinkedEdgesI.second, pLinkedEdgesJ.second);
+				bool isConnected1 = pLinkedEdgesI.first == pLinkedEdgesJ.first || _isConnectedEdges(graphEdges1, pLinkedEdgesI.second.first, pLinkedEdgesJ.second.first);
+				bool isConnected2 = pLinkedEdgesI.second == pLinkedEdgesJ.second || _isConnectedEdges(graphEdges2, pLinkedEdgesI.second.second, pLinkedEdgesJ.second.second);
 
 				_logger->log(epg::log::DEBUG, "log6");
 
@@ -2252,8 +2257,8 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl( GraphType& graphCL)
 
 
 					ign::geometry::MultiPoint mpLinkedEdgesConnectingPoints;
-					mpLinkedEdgesConnectingPoints.addGeometry(_getLinkedEdgesConnectingPoint(graphEdges1, pLinkedEdgesI.first, pLinkedEdgesJ.first));
-					mpLinkedEdgesConnectingPoints.addGeometry(_getLinkedEdgesConnectingPoint(graphEdges2, pLinkedEdgesI.second, pLinkedEdgesJ.second));
+					mpLinkedEdgesConnectingPoints.addGeometry(_getLinkedEdgesConnectingPoint(graphEdges1, pLinkedEdgesI.second.first, pLinkedEdgesJ.second.first));
+					mpLinkedEdgesConnectingPoints.addGeometry(_getLinkedEdgesConnectingPoint(graphEdges2, pLinkedEdgesI.second.second, pLinkedEdgesJ.second.second));
 					ign::geometry::Point linkedEdgesConnectingPoint = mpLinkedEdgesConnectingPoints.getCentroid();
 
 					// si il ne l'est pas (et que les linkeEdges ne sont pas egalement paralleles?) --> continue

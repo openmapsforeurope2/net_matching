@@ -104,7 +104,7 @@ namespace calcul{
 
 		bool _isConnectedEdges(GraphType& graph, std::string idEdge1, std::string idEdge2);
 
-		std::pair<std::string, std::string> _getClLinkedEdges( std::string const& linkedFeatIdName, GraphType& graphCL, GraphType::edge_descriptor eCl );
+		std::pair<bool,std::pair<std::string, std::string>> _getClLinkedEdges( std::string const& linkedFeatIdName, GraphType& graphCL, GraphType::edge_descriptor eCl );
 
 		bool _areParallelEdges( GraphType& graphCL, GraphType::edge_descriptor e1,  GraphType::edge_descriptor e2 );
 

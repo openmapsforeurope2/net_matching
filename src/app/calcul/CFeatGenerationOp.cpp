@@ -2127,8 +2127,10 @@ void app::calcul::CFeatGenerationOp::_loadGraphEdges(std::string countryCodeSimp
 bool app::calcul::CFeatGenerationOp::_isConnectedEdges(GraphType& graph, std::string idEdge1, std::string idEdge2)
 {
 	_logger->log(epg::log::DEBUG, "log100");
+	_logger->log(epg::log::DEBUG, idEdge1);
 	edge_descriptor edCl1 = graph.getInducedEdges(idEdge1).second[0].descriptor;
 	_logger->log(epg::log::DEBUG, "log101");
+	_logger->log(epg::log::DEBUG, idEdge2);
 	edge_descriptor edCl2 = graph.getInducedEdges(idEdge2).second[0].descriptor;
 	_logger->log(epg::log::DEBUG, "log102");
 

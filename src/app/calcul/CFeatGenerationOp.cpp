@@ -82,6 +82,7 @@ void app::calcul::CFeatGenerationOp::computeCL()
 	while (itBoundary->hasNext())
 	{
 		ign::feature::Feature fBoundary = itBoundary->next();
+		_logger->log(epg::log::INFO, "id boundary :"+ fBoundary.getId());
 
 		std::string boundaryType = fBoundary.getAttribute("boundary_type").toString();
 
@@ -160,6 +161,7 @@ void app::calcul::CFeatGenerationOp::computeCP()
 	ign::feature::FeatureIteratorPtr itBoundary = _fsBoundary->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCodeDouble + "'"));
 	while (itBoundary->hasNext()) {
 		ign::feature::Feature fBoundary = itBoundary->next();
+		_logger->log(epg::log::INFO, "id boundary :" + fBoundary.getId());
 		std::string boundaryType = fBoundary.getAttribute("boundary_type").toString();
 		if (boundaryType != "international_boundary" && boundaryType.find("coastline_sea_limit") == -1)
 			continue;

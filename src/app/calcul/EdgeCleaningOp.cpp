@@ -13,13 +13,14 @@
 #include <epg/sql/DataBaseManager.h>
 #include <epg/tools/StringTools.h>
 #include <epg/tools/TimeTools.h>
-#include <epg/tools/geometry/isSlimSurface.h>
 #include <epg/tools/FilterTools.h>
 
 // SOCLE
 #include <ign/geometry/graph/detail/NextEdge.h>
 #include <ign/geometry/algorithm/HausdorffDistanceOp.h>
 #include <ign/graph/algorithm/DijkstraShortestPaths.h>
+#include <ign/math/LineT.h>
+#include <ign/math/Line2T.h>
 
 namespace app
 {
@@ -53,9 +54,10 @@ namespace app
         ///
         EdgeCleaningOp::~EdgeCleaningOp()
         {
-            _shapeLogger->closeShape("edge_cleaning_deleted_edges");
-            _shapeLogger->closeShape("edge_cleaning_country");
-            _shapeLogger->closeShape("edge_cleaning_paths_out_of_country");
+            _shapeLogger->closeShape("ecl_deleted_edges");
+            _shapeLogger->closeShape("ecl_country");
+            _shapeLogger->closeShape("ecl_paths_out_of_country");
+            _shapeLogger->closeShape("ecl_slim_surface");
         }
 
         ///
@@ -69,9 +71,10 @@ namespace app
 
             //--
             _shapeLogger = epg::log::ShapeLoggerS::getInstance();
-            _shapeLogger->addShape("edge_cleaning_deleted_edges", epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("edge_cleaning_country", epg::log::ShapeLogger::POLYGON);
-            _shapeLogger->addShape("edge_cleaning_paths_out_of_country", epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("ecl_deleted_edges", epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("ecl_country", epg::log::ShapeLogger::POLYGON);
+            _shapeLogger->addShape("ecl_paths_out_of_country", epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("ecl_slim_surface", epg::log::ShapeLogger::POLYGON);
 
             //--
             epg::Context *context = epg::ContextS::getInstance();
@@ -131,7 +134,7 @@ namespace app
 
                 ign::feature::Feature feat;
                 feat.setGeometry(*_mCountryGeomPtr[*vit]);
-                _shapeLogger->writeFeature("edge_cleaning_country", feat);
+                _shapeLogger->writeFeature("ecl_country", feat);
             }
 
             //--
@@ -342,7 +345,8 @@ namespace app
 			{
                 ++display;
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
-				if (epg::tools::geometry::isSlimSurface(faceGeom, slimSurfaceWidth)) {
+
+				if (_isSlimSurface(faceGeom, slimSurfaceWidth)) {
 
                     std::map<std::string, std::list<edge_descriptor>> mlEdges;
 
@@ -425,6 +429,211 @@ namespace app
 
                     if ( ratio1 > ratio2 && !hasConnection2 ) {
                         _removeEdges(graph, mlEdges.rbegin()->second, lEdge2Remove);
+                    } else if ( !hasConnection1 ) {
+                        _removeEdges(graph, mlEdges.begin()->second, lEdge2Remove);
+                    }
+                }
+			}
+            for ( std::list<edge_descriptor>::const_iterator lit = lEdge2Remove.begin() ; lit != lEdge2Remove.end() ; ++lit )
+                graph.removeEdge(*lit);
+        }
+
+        ///
+        ///
+        ///
+        std::pair<ign::geometry::LineString,ign::geometry::LineString> EdgeCleaningOp::_getSubLineStrings(
+            size_t id1, 
+            size_t id2, 
+            ign::geometry::LineString const& closedLs
+        ) const {
+            std::pair<ign::geometry::LineString, ign::geometry::LineString> pLs;
+            size_t lastId = closedLs.numPoints()-1;
+            if (id1 == id2 || id2 < id1 || id1 == 0 && id2 == lastId) {
+                _logger->log(epg::log::ERROR, "Error in getSubLinestrings : bad indexes values");
+                return pLs;
+            }
+                
+            size_t id = id1;
+            do {
+                if (id == id2 || id == 0 && id2 == lastId) {
+                    pLs.first.addPoint(closedLs.pointN(id));
+                    pLs.second.addPoint(closedLs.pointN(id));
+                } else if (id < id1)
+                    pLs.second.addPoint(closedLs.pointN(id));
+                else if (id < id2)
+                    pLs.first.addPoint(closedLs.pointN(id));
+                else
+                    pLs.second.addPoint(closedLs.pointN(id));
+
+                ++id;
+                if (id == lastId) id = 0;
+            } while (id != id1);
+
+            pLs.second.addPoint(closedLs.pointN(id1));
+
+            return pLs;
+        }
+
+        ///
+        ///
+        ///
+        bool EdgeCleaningOp::_isSlimSurface( 
+            ign::geometry::LineString const& closedLs, 
+            double maxWidth
+		) const {
+            // trouver les 2 points les plus distants du contour
+            // separer le contour en 2 polylignes
+            // calculer hausdorff entre ces 2 polylignes
+            int indexI = -1;
+            int indexJ = -1;
+
+            double maxDist = 0;
+            for( size_t i = 0 ; i < closedLs.numPoints()-1 ; ++i )
+            {
+                for( size_t j = i+1 ; j < closedLs.numPoints() ; ++j )
+                {
+                    double dist = closedLs.pointN(i).distance(closedLs.pointN(j));
+                    if ( dist > maxDist ) {
+                        maxDist = dist;
+                        indexI = i;
+                        indexJ = j;
+                    }
+                }
+            }
+
+            std::pair<ign::geometry::LineString,ign::geometry::LineString> pLs = _getSubLineStrings(indexI, indexJ, closedLs);
+
+            double hausdorffDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(pLs.first, pLs.second);
+
+            if (hausdorffDist < 0)
+                _logger->log(epg::log::ERROR, "Error in slim surface calculation : hausdorff distance < 0");
+
+            return hausdorffDist >= 0 && hausdorffDist < maxWidth;
+        }
+
+        ///
+        ///
+        ///
+        bool EdgeCleaningOp::_isSlimSurface( 
+            ign::geometry::Polygon const& poly, 
+            double maxWidth
+		) const {
+            return _isSlimSurface( poly.exteriorRing(), maxWidth );
+        }
+
+        ///
+        ///
+        ///
+        void EdgeCleaningOp::cleanFaces2() const
+        {
+            // app parameters
+            params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+            double const slimSurfaceWidth = themeParameters->getValue( ECL_SLIM_SURFACE_WIDTH ).toDouble();
+
+            detail::EdgeCleaningGraphManager graphManager;
+            _loadGraph(graphManager, true);
+
+            std::list<edge_descriptor> lEdge2Remove;
+
+            GraphType & graph = graphManager.getGraph();
+            boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning faces 2  % complete ]\n");
+            face_iterator fit, fend;
+			for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
+			{
+                ++display;
+				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
+
+                //DEBUG
+                // bool test = false;
+                // if (faceGeom.distance(ign::geometry::Point(3823437.97,3093497.89)) < 1) {
+                //     test = true;
+                // }
+                // // DEBUG
+                // _logger->log(epg::log::DEBUG, faceGeom.toString());
+                // if (faceGeom.intersects(ign::geometry::Point(3823392.232,3093616.929))) {
+                //     bool test = true;
+                // }
+
+				if (_isSlimSurface(faceGeom, slimSurfaceWidth)) {
+
+                    ign::feature::Feature feat;
+                    feat.setGeometry(faceGeom);
+                    _shapeLogger->writeFeature("ecl_slim_surface", feat);
+
+                    std::map<std::string, std::list<edge_descriptor>> mlEdges;
+
+                    oriented_edge_descriptor startEdge = graph.getIncidentEdge( *fit );
+                    oriented_edge_descriptor currentEdge = startEdge;
+                    std::string currentCountry = graphManager.getCountry(currentEdge.descriptor);
+                    bool endingPointPassed = false;
+                    size_t nbPassedEndPoints = 0;
+                    std::set<std::string> sHasConnection;
+                    bool aborded = false;
+                    do{
+                        //DEBUG
+                        // std::string pouet = graph.origins(nextEdge.descriptor)[0];
+                        // if (pouet == "23aca9e2-5fd0-4c4f-823a-1f9c52ac54f9" || pouet == "16071668-add2-4735-bf5d-3d430987428f" || pouet == "03cb00ed-9a26-4b68-9412-4ca33b5f9014") {
+                        //     bool test = true;
+                        // }
+
+                        // on ne doit pas avoir de cl dans la boucle
+                        if (graphManager.isCl(currentEdge.descriptor)) {
+                            _logger->log(epg::log::WARN, "Loop contains a CL [cl id] "+graph.origins(currentEdge.descriptor)[0]);
+                            aborded = true;
+                            break;
+                        }
+
+                        std::map<std::string, std::list<edge_descriptor>>::iterator mlit = mlEdges.find(currentCountry);
+                        if (mlit == mlEdges.end()) mlit = mlEdges.insert(std::make_pair( currentCountry, std::list<edge_descriptor>())).first;
+                        mlit->second.push_back(currentEdge.descriptor);
+
+                        oriented_edge_descriptor nextEdge = ign::geometry::graph::detail::nextEdge( currentEdge, graph );
+                        std::string nextCountry = graphManager.getCountry(nextEdge.descriptor);
+
+                        if (graph.degree(graph.target(currentEdge)) > 2) {
+                            if ( currentCountry != nextCountry) {
+                                endingPointPassed = true;
+                                ++nbPassedEndPoints;
+                            } else {
+                                sHasConnection.insert(currentCountry);
+                            }
+                        } else if ( currentCountry != nextCountry ) {
+                            _logger->log(epg::log::WARN, "Mixed country on path [edge id] "+graph.origins( currentEdge.descriptor)[0]);
+                            aborded = true;
+                            break;
+                        }
+                        currentCountry = nextCountry;
+                        currentEdge = nextEdge;
+                    }while( currentEdge != startEdge );
+
+                    if (aborded) continue;
+                    if (nbPassedEndPoints != 2) continue;
+                    if (sHasConnection.size() > 1) continue;
+
+                    if ( mlEdges.size() > 2 ) {
+                        _logger->log(epg::log::WARN, "More than 2 paths found path [edge id] "+graph.origins(startEdge.descriptor)[0]);
+                        continue;
+                    }
+
+                    if ( mlEdges.size() == 1 ) {
+                        _logger->log(epg::log::WARN, "Only 1 path found path [edge id] "+graph.origins(startEdge.descriptor)[0]);
+                        continue;
+                    }
+
+                    if ( mlEdges.size() == 0 ) {
+                        _logger->log(epg::log::WARN, "No path found path [edge id] "+graph.origins(startEdge.descriptor)[0]);
+                        continue;
+                    }
+
+                    // quel chemin doit-on garder ?
+                    double ratio1 = _getRatio(graph, mlEdges.begin()->first, mlEdges.begin()->second);
+                    bool hasConnection1 = sHasConnection.find(mlEdges.begin()->first) != sHasConnection.end();
+                    double ratio2 = _getRatio(graph, mlEdges.rbegin()->first, mlEdges.rbegin()->second);
+                    bool hasConnection2 = sHasConnection.find(mlEdges.rbegin()->first) != sHasConnection.end();
+
+                    if ( ratio1 > ratio2 ) {
+                        if (!hasConnection2 ) 
+                            _removeEdges(graph, mlEdges.rbegin()->second, lEdge2Remove);
                     } else if ( !hasConnection1 ) {
                         _removeEdges(graph, mlEdges.begin()->second, lEdge2Remove);
                     }
@@ -565,7 +774,7 @@ namespace app
 
                             ign::feature::Feature feat;
                             feat.setGeometry(graph.getGeometry(pit->descriptor));
-                            _shapeLogger->writeFeature("edge_cleaning_paths_out_of_country", feat);
+                            _shapeLogger->writeFeature("ecl_paths_out_of_country", feat);
                         }
                     }
                 }
@@ -717,6 +926,10 @@ namespace app
         ///
         void EdgeCleaningOp::cleanParalelleEdges() const
         {
+            // app parameters
+            params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+            double const maxDist = themeParameters->getValue( ECL_PARALELLE_EDGE_MAX_DIST ).toDouble();
+
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, false);
             GraphType & graph = graphManager.getGraph();
@@ -745,7 +958,7 @@ namespace app
                     sVisitedTemp.insert(vit->descriptor);
 
                     ign::geometry::LineString ls = graph.getGeometry(vit->descriptor);
-                    if ( ign::geometry::algorithm::HausdorffDistanceOp::distance(lsRef, ls) < 0.1 /*todo a ajuster*/ ) {
+                    if ( ign::geometry::algorithm::HausdorffDistanceOp::distance(lsRef, ls) < maxDist ) {
                         _removeEdges(graph, std::list<edge_descriptor>(1,vit->descriptor), lEdge2Remove);
                     }
                 }

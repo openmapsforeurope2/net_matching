@@ -93,27 +93,28 @@ int main(int argc, char *argv[])
         //lancement du traitement
 		bool clCompute = themeParameters->getValue(CL_COMPUTE).toBoolean();
 		
-		app::calcul::CFeatGenerationOp cFeatGenerationOp(countryCode);
-        app::calcul::CFeatConnectionOp cFeatConnectionOp(countryCode, verbose);
+		// app::calcul::CFeatGenerationOp cFeatGenerationOp(countryCode);
+        // app::calcul::CFeatConnectionOp cFeatConnectionOp(countryCode, verbose);
 		
-		if (clCompute)
-		{
-			cFeatGenerationOp.computeCL();
-            cFeatConnectionOp.computeCl();
-            cFeatConnectionOp.computeClImport();
-		}
+		// if (clCompute)
+		// {
+		// 	cFeatGenerationOp.computeCL();
+        //     cFeatConnectionOp.computeCl();
+        //     cFeatConnectionOp.computeClImport();
+		// }
 
-		cFeatGenerationOp.computeCP();
-        cFeatConnectionOp.computeCp();
+		// cFeatGenerationOp.computeCP();
+        // cFeatConnectionOp.computeCp();
 
-        // nettoyage
-		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCode, verbose);
-        edgeCleaningOp.cleanAll();
+        // // nettoyage
+		// app::calcul::EdgeCleaningOp edgeCleaningOp(countryCode, verbose);
+        // edgeCleaningOp.cleanAll();
 
         app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
 
-        // nettoyage
-		edgeCleaningOp.cleanParalelleEdges();
+        // // nettoyage
+		// edgeCleaningOp.cleanParalelleEdges();
+        // edgeCleaningOp.cleanFaces2();
 
 		logger->log(epg::log::INFO, "[END EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 

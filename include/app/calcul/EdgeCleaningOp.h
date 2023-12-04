@@ -54,6 +54,9 @@ namespace calcul{
 		void cleanFaces() const;
 
 		/// \brief
+		void cleanFaces2() const;
+
+		/// \brief
 		void cleanPathsOutOfCountry() const;
 
         /// \brief
@@ -128,7 +131,7 @@ namespace calcul{
 
                     ign::feature::Feature dFeat;
                     _fsEdge->getFeatureById(edgeId, dFeat);
-                    _shapeLogger->writeFeature("edge_cleaning_deleted_edges", dFeat);
+                    _shapeLogger->writeFeature("ecl_deleted_edges", dFeat);
 
                     _fsEdge->deleteFeature(edgeId);
                 }
@@ -177,6 +180,25 @@ namespace calcul{
             std::list<edge_descriptor> const& lAntennas,
             bool bAntennaIsConnected2CF
         ) const;
+
+		//--
+		std::pair<ign::geometry::LineString, ign::geometry::LineString> _getSubLineStrings(
+			size_t id1, 
+            size_t id2, 
+			ign::geometry::LineString const& ls
+		) const;
+
+		//--
+		bool _isSlimSurface( 
+            ign::geometry::Polygon const& poly, 
+            double maxWidth
+		) const;
+
+		//--
+		bool _isSlimSurface( 
+            ign::geometry::LineString const& closedLs, 
+            double maxWidth
+		) const;
     };
 
 }

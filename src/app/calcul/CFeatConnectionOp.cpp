@@ -934,7 +934,6 @@ namespace app
                 }
                 else
                 {
-
                     if (_verbose)
                     {
                         ign::feature::Feature feat;

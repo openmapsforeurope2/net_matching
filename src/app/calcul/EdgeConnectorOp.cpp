@@ -157,6 +157,7 @@ namespace app
 
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
             double const snapDist = themeParameters->getValue(EC_SNAP_DIST).toDouble();
+            double const snap2EdgeEndingsDist = themeParameters->getValue(EC_SNAP_2_EDGE_END_DIST).toDouble();
 
             std::vector<std::string> vCountry;
 		    epg::tools::StringTools::Split(_borderCode, "#", vCountry);
@@ -251,7 +252,9 @@ namespace app
                 ign::geometry::Polygon bbox = dangleEndPoint.getEnvelope().expandBy(2*snapDist).toPolygon();
 
                 double maxDist = snapDist;
+                double maxOrthoDist = snapDist/2;
                 ign::geometry::Point maxPt;
+                ign::geometry::Point maxOrthoPt;
                 
                 ign::feature::FeatureFilter filter(countryCodeName +" = '"+otherCountry+"'");
                 epg::tools::FilterTools::addAndConditions(filter, "ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + bbox.toString() + "'),3035))");
@@ -261,18 +264,44 @@ namespace app
                     ign::feature::Feature const& fEdge = itEdge->next();
                     ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
 
-                    ign::geometry::Point projPt;
-                    epg::tools::geometry::projectZ(edgeGeom, dangleEndPoint, projPt);
+                    // projection ortho
+                    ign::geometry::Point projOrthoPt;
+                    epg::tools::geometry::projectZ(edgeGeom, dangleEndPoint, projOrthoPt);
+                    double distanceOrtho = dangleEndPoint.distance(projOrthoPt);
+                    if (distanceOrtho < maxOrthoDist) {
+                        maxOrthoDist = distanceOrtho;
+                        maxOrthoPt = projOrthoPt;
+                        
+                        // snap
+                        double startDist = maxOrthoPt.distance(edgeGeom.startPoint());
+                        double endDist = maxOrthoPt.distance(edgeGeom.endPoint());
+                        if (std::min(startDist, endDist) < snap2EdgeEndingsDist) {
+                            maxOrthoPt = startDist < endDist ? edgeGeom.startPoint() : edgeGeom.endPoint();
+                        }
+                    }
 
+                    // projection axiale
+                    bool foundNewPt = false;
                     std::vector< ign::geometry::Point > vPtIntersect = epg::tools::geometry::LineIntersector::compute(dangleEndPoint, dangleNextPoint, edgeGeom);
                     for (std::vector< ign::geometry::Point >::iterator vit2 = vPtIntersect.begin(); vit2 != vPtIntersect.end(); ++vit2) {
                         double distance = dangleEndPoint.distance(*vit2);
                         if (distance < maxDist) {
                             maxDist = distance;
                             maxPt = *vit2;
+                            foundNewPt = true;
+                        }
+                    }
+                    // snap
+                    if (foundNewPt) {
+                        double startDist = maxPt.distance(edgeGeom.startPoint());
+                        double endDist = maxPt.distance(edgeGeom.endPoint());
+                        if (std::min(startDist, endDist) < snap2EdgeEndingsDist) {
+                            maxPt = startDist < endDist ? edgeGeom.startPoint() : edgeGeom.endPoint();
                         }
                     }
                 }
+                if (maxPt.isEmpty())
+                    maxPt = maxOrthoPt;
 
                 if (maxPt.isEmpty()) continue;
 

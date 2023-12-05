@@ -46,8 +46,9 @@
 #include <boost/bimap/set_of.hpp>
 #include <boost/bimap/multiset_of.hpp>
 
-
-
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 
 
 
@@ -230,19 +231,27 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	///recuperation de la liste des attributs à concatener dans la fusion des attributs
 	std::string listAttr2concatName = themeParameters->getValue(LIST_ATTR_TO_CONCAT).toString();
 	//on recup les attribut a concat et on les mets dans un vecteur en splitant
-	std::vector<std::string> _vAttrNameToConcat;
-	epg::tools::StringTools::Split(listAttr2concatName, "/", _vAttrNameToConcat);
-	for (size_t i = 0; i < _vAttrNameToConcat.size(); ++i) {
-		_sAttrNameToConcat.insert(_vAttrNameToConcat[i]);
+	std::vector<std::string> vAttrNameToConcat;
+	epg::tools::StringTools::Split(listAttr2concatName, "/", vAttrNameToConcat);
+	for (size_t i = 0; i < vAttrNameToConcat.size(); ++i) {
+		_sAttrNameToConcat.insert(vAttrNameToConcat[i]);
 	}
 
 	///recuperation de la liste des attributs à concatener dans la fusion des attributs
 	std::string listAttrWName = themeParameters->getValue(LIST_ATTR_W).toString();
 	//on recup les attribut a concat et on les mets dans un vecteur en splitant
-	std::vector<std::string> _vAttrNameW;
-	epg::tools::StringTools::Split(listAttrWName, "/", _vAttrNameW);
-	for (size_t i = 0; i < _vAttrNameW.size(); ++i) {
-		_sAttrNameW.insert(_vAttrNameW[i]);
+	std::vector<std::string> vAttrNameW;
+	epg::tools::StringTools::Split(listAttrWName, "/", vAttrNameW);
+	for (size_t i = 0; i < vAttrNameW.size(); ++i) {
+		_sAttrNameW.insert(vAttrNameW[i]);
+	}
+
+	std::string listAttrJsonName = themeParameters->getValue(LIST_ATTR_JSON).toString();
+	//on recup les attribut a concat et on les mets dans un vecteur en splitant
+	std::vector<std::string> vAttrNameJson;
+	epg::tools::StringTools::Split(listAttrJsonName, "/", vAttrNameJson);
+	for (size_t i = 0; i < vAttrNameJson.size(); ++i) {
+		_sAttrNameJson.insert(vAttrNameJson[i]);
 	}
 
 	///recuperation des features
@@ -1164,14 +1173,50 @@ void app::calcul::CFeatGenerationOp::_addFeatAttributeMergingOnBorder(
 		std::string attrName = vAttrNames[i];
 		if (_sAttrNameW.find(attrName) != _sAttrNameW.end()) //on ne fusionne pas les attributs de travail
 			continue;
-		std::string attrValueToMerge = featMerged.getAttribute(attrName).toString();
-		std::string attrValueToAdd = featAttrToAdd.getAttribute(attrName).toString();
-		if (attrValueToMerge != attrValueToAdd)
-			attrValueMerged = attrValueToMerge + separator + attrValueToAdd;
-		else
-			attrValueMerged = attrValueToMerge;
-	
-		featMerged.setAttribute(attrName,ign::data::String(attrValueMerged));
+
+		if (_sAttrNameJson.find(attrName) != _sAttrNameJson.end()) { // on ajoute les json aux jsonArray
+
+			std::string attrValueToMerge = featMerged.getAttribute(attrName).toString();
+			std::string attrValueToAdd = featAttrToAdd.getAttribute(attrName).toString();
+			QJsonDocument attrValueToMergeJsonDoc = QJsonDocument::fromJson(QString(attrValueToMerge.c_str()).toUtf8());
+			QJsonDocument attrValueToAddJsonDoc = QJsonDocument::fromJson(QString(attrValueToAdd.c_str()).toUtf8());
+			
+			if (attrValueToMerge == "{}")
+				attrValueMerged = attrValueToAdd;
+			else if (attrValueToAdd == "{}")
+				attrValueMerged = attrValueToMerge;
+			else {
+				QJsonArray attrArrayJsonToMerge;
+				QJsonArray attrArrayJsonToAdd;
+
+				if (attrValueToMergeJsonDoc.isArray())
+					attrArrayJsonToMerge = attrValueToMergeJsonDoc.array();
+				if (attrValueToAddJsonDoc.isArray())
+					attrArrayJsonToAdd = attrValueToAddJsonDoc.array();
+
+				QJsonArray attrValueMergedJsonArray;
+				
+				for (QJsonArray::iterator itA = attrArrayJsonToMerge.begin(); itA != attrArrayJsonToMerge.end(); ++itA)
+					attrValueMergedJsonArray.push_back(*itA);
+				for (QJsonArray::iterator itA = attrArrayJsonToAdd.begin(); itA != attrArrayJsonToAdd.end(); ++itA)
+					attrValueMergedJsonArray.push_back(*itA);
+
+				QJsonDocument attrValueMergedJsonDoc;
+				attrValueMergedJsonDoc.setArray(attrValueMergedJsonArray);
+				attrValueMerged = attrValueMergedJsonDoc.toJson(QJsonDocument::Compact).toStdString().c_str();
+			}
+			featMerged.setAttribute(attrName, ign::data::String(attrValueMerged));
+		}
+		else {
+			std::string attrValueToMerge = featMerged.getAttribute(attrName).toString();
+			std::string attrValueToAdd = featAttrToAdd.getAttribute(attrName).toString();
+			if (attrValueToMerge != attrValueToAdd)
+				attrValueMerged = attrValueToMerge + separator + attrValueToAdd;
+			else
+				attrValueMerged = attrValueToMerge;
+			featMerged.setAttribute(attrName, ign::data::String(attrValueMerged));
+		}
+
 	}
 }
 

@@ -149,6 +149,7 @@ namespace calcul{
 
 		std::set<std::string> _sAttrNameToConcat;
 		std::set<std::string> _sAttrNameW;
+		std::set<std::string> _sAttrNameJson;
 		
 
 	};

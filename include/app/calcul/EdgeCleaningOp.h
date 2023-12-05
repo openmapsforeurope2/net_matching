@@ -104,6 +104,9 @@ namespace calcul{
 		double _getAntennaLength(GraphType const& graph, std::list<edge_descriptor> const& lEdges) const;
 
 		//--
+		double _getRatio(GraphType const& graph, std::string country, std::list<oriented_edge_descriptor> const& path) const;
+
+		//--
 		double _getRatio(GraphType const& graph, std::string country, std::list<edge_descriptor> const& lEdges) const;
 
 		//--
@@ -111,6 +114,12 @@ namespace calcul{
 
 		//--
 		double _getRatioWithBuff(GraphType const& graph, std::string country, std::list<edge_descriptor> const& lEdges) const;
+
+		//--
+        void _removePath(
+			GraphType & graph, std::list<oriented_edge_descriptor> const& path, 
+			std::list<edge_descriptor>& lEdge2Remove
+		) const;
 
 		//--
 		template < typename ContainerType >
@@ -199,6 +208,19 @@ namespace calcul{
             ign::geometry::LineString const& closedLs, 
             double maxWidth
 		) const;
+
+		//--
+        bool _getFacePaths(
+            detail::EdgeCleaningGraphManager const& graphManager, 
+            face_descriptor fd, 
+            std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges
+        ) const;
+
+		//--
+		double _getPathLength(
+            GraphType const& graph, 
+            std::list<oriented_edge_descriptor> const& path
+        ) const;
     };
 
 }

@@ -58,6 +58,9 @@ namespace app
             _shapeLogger->closeShape("ecl_country");
             _shapeLogger->closeShape("ecl_paths_out_of_country");
             _shapeLogger->closeShape("ecl_slim_surface");
+            _shapeLogger->closeShape("ecl_big_face_removed");
+            _shapeLogger->closeShape("ecl_slim_face_1_path");
+            _shapeLogger->closeShape("ecl_slim_face_2_path_same_country");
         }
 
         ///
@@ -75,6 +78,9 @@ namespace app
             _shapeLogger->addShape("ecl_country", epg::log::ShapeLogger::POLYGON);
             _shapeLogger->addShape("ecl_paths_out_of_country", epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("ecl_slim_surface", epg::log::ShapeLogger::POLYGON);
+            _shapeLogger->addShape("ecl_big_face_removed", epg::log::ShapeLogger::POLYGON);
+            _shapeLogger->addShape("ecl_slim_face_1_path", epg::log::ShapeLogger::POLYGON);
+            _shapeLogger->addShape("ecl_slim_face_2_path_same_country", epg::log::ShapeLogger::POLYGON);
 
             //--
             epg::Context *context = epg::ContextS::getInstance();
@@ -286,6 +292,18 @@ namespace app
                 length += edgeGeom.length();
             }
             return length;
+        }
+
+        ///
+        ///
+        ///
+        double EdgeCleaningOp::_getRatio(GraphType const& graph, std::string country, std::list<oriented_edge_descriptor> const& path) const
+        {
+            std::list<edge_descriptor> lEdges;
+            for (std::list<oriented_edge_descriptor>::const_iterator lit = path.begin() ; lit != path.end() ; ++lit)
+                lEdges.push_back(lit->descriptor);
+
+            return _getRatio(graph, country, lEdges);
         }
 
         ///
@@ -524,6 +542,92 @@ namespace app
         ///
         ///
         ///
+        bool EdgeCleaningOp::_getFacePaths(
+            detail::EdgeCleaningGraphManager const& graphManager, 
+            face_descriptor fd, 
+            std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges
+        ) const {
+            GraphType const& graph = graphManager.getGraph();
+
+            oriented_edge_descriptor startEdge = graph.getIncidentEdge( fd );
+            oriented_edge_descriptor currentEdge = startEdge;
+            std::string currentCountry = graphManager.getCountry(currentEdge.descriptor);
+            vpCountryEdges.push_back(std::make_pair(currentCountry, std::list<oriented_edge_descriptor>()));
+
+            _logger->log(epg::log::DEBUG, "cf4");
+
+            do{
+                // on ne doit pas avoir de cl dans la boucle
+                if (graphManager.isCl(currentEdge.descriptor)) {
+                    _logger->log(epg::log::WARN, "Loop contains a CL [cl id] "+graph.origins(currentEdge.descriptor)[0]);
+                    return false;
+                }
+
+                vpCountryEdges.back().second.push_back(currentEdge);
+
+                oriented_edge_descriptor nextEdge = ign::geometry::graph::detail::nextEdge( currentEdge, graph );
+                std::string nextCountry = graphManager.getCountry(nextEdge.descriptor);
+
+                if (graph.degree(graph.target(currentEdge)) > 2) {
+                    if (nextEdge != startEdge)
+                        vpCountryEdges.push_back(std::make_pair(nextCountry, std::list<oriented_edge_descriptor>()));
+                } else if ( currentCountry != nextCountry ) {
+                    _logger->log(epg::log::WARN, "Mixed country on path [edge id] "+graph.origins( currentEdge.descriptor)[0]);
+                    return false;
+                }
+                currentCountry = nextCountry;
+                currentEdge = nextEdge;
+            }while( currentEdge != startEdge );
+
+            if (vpCountryEdges.size() > 1 && vpCountryEdges.front().first == vpCountryEdges.back().first) {
+                if ( graph.degree(graph.target(vpCountryEdges.back().second.back())) == 2 ){
+                    for (std::list<oriented_edge_descriptor>::const_reverse_iterator rlit = vpCountryEdges.back().second.rbegin() ; rlit != vpCountryEdges.back().second.rend() ; ++rlit) {
+                        vpCountryEdges.front().second.push_front(*rlit);
+                    }
+                }
+                vpCountryEdges.pop_back();
+            }
+
+            if ( vpCountryEdges.size() == 0 ) {
+                _logger->log(epg::log::WARN, "No path found path [edge id] "+graph.origins(startEdge.descriptor)[0]);
+                return false;
+            }
+
+            return true;
+        }
+
+        ///
+        ///
+        ///
+        double EdgeCleaningOp::_getPathLength(
+            GraphType const& graph, 
+            std::list<oriented_edge_descriptor> const& path
+        ) const {
+            double length = 0;
+            for (std::list<oriented_edge_descriptor>::const_iterator lit = path.begin() ; lit != path.end() ; ++lit) {
+                ign::geometry::LineString edgeGeom = graph.getGeometry(lit->descriptor);
+                length += edgeGeom.length();
+            }
+            return length;
+        }
+
+        ///
+        ///
+        ///
+        void EdgeCleaningOp::_removePath(
+            GraphType & graph, std::list<oriented_edge_descriptor> const& path, 
+            std::list<edge_descriptor>& lEdge2Remove
+        ) const {
+            std::list<edge_descriptor> lEdges;
+            for (std::list<oriented_edge_descriptor>::const_iterator lit = path.begin() ; lit != path.end() ; ++lit)
+                lEdges.push_back(lit->descriptor);
+
+            _removeEdges(graph, lEdges, lEdge2Remove);
+        }
+
+        ///
+        ///
+        ///
         void EdgeCleaningOp::cleanFaces2() const
         {
             // app parameters
@@ -568,95 +672,80 @@ namespace app
                     feat.setGeometry(faceGeom);
                     _shapeLogger->writeFeature("ecl_slim_surface", feat);
 
-                    std::map<std::string, std::list<edge_descriptor>> mlEdges;
-
-                    oriented_edge_descriptor startEdge = graph.getIncidentEdge( *fit );
-                    oriented_edge_descriptor currentEdge = startEdge;
-                    std::string currentCountry = graphManager.getCountry(currentEdge.descriptor);
-                    bool endingPointPassed = false;
-                    size_t nbPassedEndPoints = 0;
-                    std::set<std::string> sHasConnection;
-                    bool aborded = false;
-
-                    _logger->log(epg::log::DEBUG, "cf4");
-
-                    do{
-                        //DEBUG
-                        // std::string pouet = graph.origins(nextEdge.descriptor)[0];
-                        // if (pouet == "23aca9e2-5fd0-4c4f-823a-1f9c52ac54f9" || pouet == "16071668-add2-4735-bf5d-3d430987428f" || pouet == "03cb00ed-9a26-4b68-9412-4ca33b5f9014") {
-                        //     bool test = true;
-                        // }
-
-                        // on ne doit pas avoir de cl dans la boucle
-                        if (graphManager.isCl(currentEdge.descriptor)) {
-                            _logger->log(epg::log::WARN, "Loop contains a CL [cl id] "+graph.origins(currentEdge.descriptor)[0]);
-                            aborded = true;
-                            break;
-                        }
-
-                        std::map<std::string, std::list<edge_descriptor>>::iterator mlit = mlEdges.find(currentCountry);
-                        if (mlit == mlEdges.end()) mlit = mlEdges.insert(std::make_pair( currentCountry, std::list<edge_descriptor>())).first;
-                        mlit->second.push_back(currentEdge.descriptor);
-
-                        oriented_edge_descriptor nextEdge = ign::geometry::graph::detail::nextEdge( currentEdge, graph );
-                        std::string nextCountry = graphManager.getCountry(nextEdge.descriptor);
-
-                        if (graph.degree(graph.target(currentEdge)) > 2) {
-                            if ( currentCountry != nextCountry) {
-                                endingPointPassed = true;
-                                ++nbPassedEndPoints;
-                            } else {
-                                sHasConnection.insert(currentCountry);
-                            }
-                        } else if ( currentCountry != nextCountry ) {
-                            _logger->log(epg::log::WARN, "Mixed country on path [edge id] "+graph.origins( currentEdge.descriptor)[0]);
-                            aborded = true;
-                            break;
-                        }
-                        currentCountry = nextCountry;
-                        currentEdge = nextEdge;
-                    }while( currentEdge != startEdge );
+                    std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
+                    if (!_getFacePaths(graphManager, *fit, vpCountryEdges))
+                        continue;
 
                     _logger->log(epg::log::DEBUG, "cf5");
+                    
+                    if (vpCountryEdges.size() == 1) {
+                        ign::feature::Feature feat;
+                        feat.setGeometry(faceGeom);
+                        _shapeLogger->writeFeature("ecl_slim_face_1_path", feat);
 
-                    if (aborded) continue;
-                    if (nbPassedEndPoints != 2) continue;
-                    if (sHasConnection.size() > 1) continue;
-
-                    if ( mlEdges.size() > 2 ) {
-                        _logger->log(epg::log::WARN, "More than 2 paths found path [edge id] "+graph.origins(startEdge.descriptor)[0]);
+                        _removePath(graph, vpCountryEdges.front().second, lEdge2Remove);
                         continue;
                     }
 
-                    if ( mlEdges.size() == 1 ) {
-                        _logger->log(epg::log::WARN, "Only 1 path found path [edge id] "+graph.origins(startEdge.descriptor)[0]);
-                        continue;
-                    }
-
-                    if ( mlEdges.size() == 0 ) {
-                        _logger->log(epg::log::WARN, "No path found path [edge id] "+graph.origins(startEdge.descriptor)[0]);
-                        continue;
-                    }
+                    if (vpCountryEdges.size() != 2) continue;
 
                     _logger->log(epg::log::DEBUG, "cf6");
 
-                    // quel chemin doit-on garder ?
-                    double ratio1 = _getRatio(graph, mlEdges.begin()->first, mlEdges.begin()->second);
-                    bool hasConnection1 = sHasConnection.find(mlEdges.begin()->first) != sHasConnection.end();
-                    double ratio2 = _getRatio(graph, mlEdges.rbegin()->first, mlEdges.rbegin()->second);
-                    bool hasConnection2 = sHasConnection.find(mlEdges.rbegin()->first) != sHasConnection.end();
+                    if (vpCountryEdges.front().first != vpCountryEdges.back().first) {
+                        // quel chemin doit-on garder ?
+                        double ratio1 = _getRatio(graph, vpCountryEdges.front().first, vpCountryEdges.front().second);
+                        bool hasConnection1 = false; /*todo*/
+                        double ratio2 = _getRatio(graph, vpCountryEdges.back().first, vpCountryEdges.back().second);
+                        bool hasConnection2 = false; /*todo*/
 
-                    _logger->log(epg::log::DEBUG, "cf7");
+                        _logger->log(epg::log::DEBUG, "cf7");
 
-                    if ( ratio1 > ratio2 ) {
-                        if (!hasConnection2 ) {
-                            _logger->log(epg::log::DEBUG, "cf8");
-                            _removeEdges(graph, mlEdges.rbegin()->second, lEdge2Remove);
+                        if ( ratio1 > ratio2 ) {
+                            if (!hasConnection2 ) {
+                                _logger->log(epg::log::DEBUG, "cf8");
+                                _removePath(graph, vpCountryEdges.back().second, lEdge2Remove);
+                            }
+                        } else if ( !hasConnection1 ) {
+                            _logger->log(epg::log::DEBUG, "cf9");
+                            _removePath(graph, vpCountryEdges.front().second, lEdge2Remove);
                         }
-                    } else if ( !hasConnection1 ) {
-                        _logger->log(epg::log::DEBUG, "cf9");
-                        _removeEdges(graph, mlEdges.begin()->second, lEdge2Remove);
+                    } else {
+                        // 2 chemins dans le même pays, on garde le plus court
+                        double lengthFront = _getPathLength(graph, vpCountryEdges.front().second);
+                        double lengthBack = _getPathLength(graph, vpCountryEdges.back().second);
+                        if (lengthFront < lengthBack) {
+                            _removePath(graph, vpCountryEdges.back().second, lEdge2Remove);
+                        } else {
+                            _removePath(graph, vpCountryEdges.front().second, lEdge2Remove);
+                        }
+                        ign::feature::Feature feat;
+                        feat.setGeometry(faceGeom);
+                        _shapeLogger->writeFeature("ecl_slim_face_2_path_same_country", feat);
                     }
+                } else {
+                    // grande face
+                    // si dans mauvais pays on supprime
+                    _logger->log(epg::log::DEBUG, "gf1");
+
+                    std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
+                    if (!_getFacePaths(graphManager, *fit, vpCountryEdges))
+                        continue;
+
+                    _logger->log(epg::log::DEBUG, "gf2");
+                    
+                    if (vpCountryEdges.size() == 1) {
+                        double ratio = _getRatio(graph, vpCountryEdges.front().first, vpCountryEdges.front().second);
+
+                        if(ratio == 0) {
+                            ign::feature::Feature feat;
+                            feat.setGeometry(faceGeom);
+                            _shapeLogger->writeFeature("ecl_big_face_removed", feat);
+
+                            _logger->log(epg::log::DEBUG, "gf3");
+                            _removePath(graph, vpCountryEdges.front().second, lEdge2Remove);
+                        }
+                    }
+                    _logger->log(epg::log::DEBUG, "gf4");
                 }
 			}
             _logger->log(epg::log::DEBUG, "cf10");

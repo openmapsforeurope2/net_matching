@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 		cFeatGenerationOp.computeCP();
         cFeatConnectionOp.computeCp();
 
-        // nettoyage
+        // // nettoyage
 		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCode, verbose);
         edgeCleaningOp.cleanAll();
 

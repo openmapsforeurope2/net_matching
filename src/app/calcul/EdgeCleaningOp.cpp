@@ -541,7 +541,13 @@ namespace app
 			for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
 			{
                 ++display;
+
+                _logger->log(epg::log::DEBUG, "cf1");
+
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
+
+                _logger->log(epg::log::DEBUG, faceGeom.toString());
+                _logger->log(epg::log::DEBUG, "cf2");
 
                 //DEBUG
                 // bool test = false;
@@ -556,6 +562,8 @@ namespace app
 
 				if (_isSlimSurface(faceGeom, slimSurfaceWidth)) {
 
+                    _logger->log(epg::log::DEBUG, "cf3");
+
                     ign::feature::Feature feat;
                     feat.setGeometry(faceGeom);
                     _shapeLogger->writeFeature("ecl_slim_surface", feat);
@@ -569,6 +577,9 @@ namespace app
                     size_t nbPassedEndPoints = 0;
                     std::set<std::string> sHasConnection;
                     bool aborded = false;
+
+                    _logger->log(epg::log::DEBUG, "cf4");
+
                     do{
                         //DEBUG
                         // std::string pouet = graph.origins(nextEdge.descriptor)[0];
@@ -606,6 +617,8 @@ namespace app
                         currentEdge = nextEdge;
                     }while( currentEdge != startEdge );
 
+                    _logger->log(epg::log::DEBUG, "cf5");
+
                     if (aborded) continue;
                     if (nbPassedEndPoints != 2) continue;
                     if (sHasConnection.size() > 1) continue;
@@ -625,22 +638,31 @@ namespace app
                         continue;
                     }
 
+                    _logger->log(epg::log::DEBUG, "cf6");
+
                     // quel chemin doit-on garder ?
                     double ratio1 = _getRatio(graph, mlEdges.begin()->first, mlEdges.begin()->second);
                     bool hasConnection1 = sHasConnection.find(mlEdges.begin()->first) != sHasConnection.end();
                     double ratio2 = _getRatio(graph, mlEdges.rbegin()->first, mlEdges.rbegin()->second);
                     bool hasConnection2 = sHasConnection.find(mlEdges.rbegin()->first) != sHasConnection.end();
 
+                    _logger->log(epg::log::DEBUG, "cf7");
+
                     if ( ratio1 > ratio2 ) {
-                        if (!hasConnection2 ) 
+                        if (!hasConnection2 ) {
+                            _logger->log(epg::log::DEBUG, "cf8");
                             _removeEdges(graph, mlEdges.rbegin()->second, lEdge2Remove);
+                        }
                     } else if ( !hasConnection1 ) {
+                        _logger->log(epg::log::DEBUG, "cf9");
                         _removeEdges(graph, mlEdges.begin()->second, lEdge2Remove);
                     }
                 }
 			}
+            _logger->log(epg::log::DEBUG, "cf10");
             for ( std::list<edge_descriptor>::const_iterator lit = lEdge2Remove.begin() ; lit != lEdge2Remove.end() ; ++lit )
                 graph.removeEdge(*lit);
+            _logger->log(epg::log::DEBUG, "cf11");
         }
 
         ///

@@ -108,7 +108,10 @@ int main(int argc, char *argv[])
 
         // // nettoyage
 		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCode, verbose);
-        edgeCleaningOp.cleanAll();
+        edgeCleaningOp.cleanFaces();
+        edgeCleaningOp.cleanPathsOutOfCountry();
+        edgeCleaningOp.cleanParalelleEdges();
+        edgeCleaningOp.cleanFacesAndAntennaByCountry();
 
         app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
 

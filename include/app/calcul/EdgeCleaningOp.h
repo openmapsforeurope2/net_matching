@@ -54,13 +54,19 @@ namespace calcul{
 		void cleanFaces() const;
 
 		/// \brief
-		void cleanFaces2() const;
+		void cleanFaces2ByCountry() const;
+
+		/// \brief
+		void cleanFacesAndAntennaByCountry() const;
+
+		/// \brief
+		bool cleanFaces2(ign::feature::FeatureFilter filter = ign::feature::FeatureFilter()) const;
 
 		/// \brief
 		void cleanPathsOutOfCountry() const;
 
         /// \brief
-		void cleanAntennas() const;
+		bool cleanAntennas() const;
 
 		/// \brief
 		void cleanParalelleEdges() const;
@@ -86,9 +92,7 @@ namespace calcul{
 	private:
 
 		//--
-		void _init( 
-			std::string borderCode
-        );
+		void _init();
 
 		//--
 		void _loadGraph(
@@ -123,39 +127,47 @@ namespace calcul{
 
 		//--
 		template < typename ContainerType >
-        void _removeEdges(GraphType & graph, ContainerType const& container, std::list<edge_descriptor>& lEdge2Remove) const
+        void _removeEdges(GraphType & graph, ContainerType const& container, std::list<edge_descriptor>& lEdge2Remove, bool isJustOnePlanarDangleInContainer = false) const
         {
             std::list<edge_descriptor>::const_iterator lit = container.begin();
             for ( ; lit != container.end() ; ++lit) {
                 if (graph.origins(*lit).size() > 1) {
                     _logger->log(epg::log::WARN, "Edge with multiple origins [edge id] "+tools::StringTools::toString(graph.origins(*lit)));
+					if (isJustOnePlanarDangleInContainer && lit == container.begin()) return;
                 }
-                for (size_t i = 0 ; i < graph.origins(*lit).size() ; ++i) {
-                    std::string edgeId = graph.origins(*lit)[i];
+				if (!isJustOnePlanarDangleInContainer || lit == container.begin() ) {
+					for (size_t i = 0 ; i < graph.origins(*lit).size() ; ++i) {
+						std::string edgeId = graph.origins(*lit)[i];
 
-                    if (ign::tools::StringManip::FindSubString(edgeId,"CONNECTINGLINE")) {
-                        _logger->log(epg::log::WARN, "Edge has a cl as origin [cl id] "+edgeId);
-                        continue;
-                    }
+						if (ign::tools::StringManip::FindSubString(edgeId,"CONNECTINGLINE")) {
+							_logger->log(epg::log::WARN, "Edge has a cl as origin [cl id] "+edgeId);
+							continue;
+						}
 
-                    ign::feature::Feature dFeat;
-                    _fsEdge->getFeatureById(edgeId, dFeat);
-                    _shapeLogger->writeFeature("ecl_deleted_edges", dFeat);
+						ign::feature::Feature dFeat;
+						_fsEdge->getFeatureById(edgeId, dFeat);
+						if (!dFeat.getId().empty())
+							_shapeLogger->writeFeature("ecl_deleted_edges", dFeat);
 
-                    _fsEdge->deleteFeature(edgeId);
-                }
+						_fsEdge->deleteFeature(edgeId);
+					}
+				}
+                
+				if (!isJustOnePlanarDangleInContainer || graph.origins(*lit).size() == 1 )
+					lEdge2Remove.push_back(*lit);
 
-				lEdge2Remove.push_back(*lit);
+				if (isJustOnePlanarDangleInContainer) return;
             }
         }
 
 		//--
 		template < typename ContainerType >
-        void _removeEdgesAndGraphEdges(GraphType & graph, ContainerType const& container) const
+        void _removeEdgesAndGraphEdges(GraphType & graph, ContainerType const& container, bool isJustOnePlanarDangleInContainer = false) const
         {
 			std::list<edge_descriptor> lEdge2Remove;
-			_removeEdges(graph, container, lEdge2Remove);
+			_removeEdges(graph, container, lEdge2Remove, isJustOnePlanarDangleInContainer);
 
+			
 			for ( std::list<edge_descriptor>::const_iterator lit = lEdge2Remove.begin() ; lit != lEdge2Remove.end() ; ++lit )
 				graph.removeEdge(*lit);
 		}
@@ -187,7 +199,8 @@ namespace calcul{
             GraphType & graph,
             std::string const& country,
             std::list<edge_descriptor> const& lAntennas,
-            bool bAntennaIsConnected2CF
+            bool bAntennaIsConnected2CF,
+            bool isPlanarGraph
         ) const;
 
 		//--
@@ -221,6 +234,21 @@ namespace calcul{
             GraphType const& graph, 
             std::list<oriented_edge_descriptor> const& path
         ) const;
+
+		//--
+		bool _cleanFaces2(detail::EdgeCleaningGraphManager & graphManager) const;
+
+		//--
+		bool _cleanAntennas(detail::EdgeCleaningGraphManager & graphManager, std::set<vertex_descriptor> & sTreatedDangles, bool isPlanarGraph = false) const;
+
+		//--
+		typename app::calcul::detail::EdgeCleaningGraphManager::GraphType::oriented_edge_descriptor _getNextEdge(GraphType const& graph, edge_descriptor e, vertex_descriptor vTarget, bool isPlanarGraph) const;
+
+        //--
+        void _addAntennaEdges(GraphType const& graph, edge_descriptor e, std::list<edge_descriptor> & lEdges, bool isPlanarGraph) const;
+
+        //--
+        typename app::calcul::detail::EdgeCleaningGraphManager::GraphType::vertex_descriptor _getTarget(GraphType const& graph, oriented_edge_descriptor oe, bool isPlanarGraph) const;
     };
 
 }

@@ -995,11 +995,13 @@ namespace app
 
                 sTreatedDangles.insert(*vit);
 
+                if( _vertexIsCp(graph, *vit) ) continue;
+
                 // seulement les vertex qui touchent une CL ?
 
                 // DEBUG
-                ign::geometry::Point p = graph.getGeometry(*vit);
-                _logger->log(epg::log::DEBUG, p.toString());
+                // ign::geometry::Point p = graph.getGeometry(*vit);
+                // _logger->log(epg::log::DEBUG, p.toString());
 
                 std::list<edge_descriptor> lAntennaEdges;
                 bool isConnected2CF = false;
@@ -1031,6 +1033,12 @@ namespace app
                         isConnected2CF = true;
                         break;
                     }
+
+                    //DEBUG
+                    // ign::geometry::LineString ls = graph.getGeometry(nextEdge.descriptor);
+                    // if (ls.distance(ign::geometry::Point(3823394.33,3093622.53))<4) {
+                    //     bool test = true;
+                    // }
 
                     _addAntennaEdges(graph, nextEdge.descriptor, lAntennaEdges, isPlanarGraph);
 

@@ -664,11 +664,11 @@ namespace app
 
                 std::set<vertex_descriptor> sTreatedDangles;
 
-                _cleanAntennas(graphManager, sTreatedDangles, isPlanar);
+                _cleanAntennas(graphManager, sTreatedDangles);
                 bool bChangeOccured = _cleanFaces2(graphManager);
 
                 while (bChangeOccured) {
-                    bChangeOccured = _cleanAntennas(graphManager, sTreatedDangles, isPlanar);
+                    bChangeOccured = _cleanAntennas(graphManager, sTreatedDangles);
                     if (bChangeOccured)
                         bChangeOccured = _cleanFaces2(graphManager);
                 } 
@@ -1035,10 +1035,10 @@ namespace app
                     }
 
                     //DEBUG
-                    // ign::geometry::LineString ls = graph.getGeometry(nextEdge.descriptor);
-                    // if (ls.distance(ign::geometry::Point(3823394.33,3093622.53))<4) {
-                    //     bool test = true;
-                    // }
+                    ign::geometry::LineString ls = graph.getGeometry(nextEdge.descriptor);
+                    if (ls.distance(ign::geometry::Point(3800598.3,3131456.8))<4) {
+                        bool test = true;
+                    }
 
                     _addAntennaEdges(graph, nextEdge.descriptor, lAntennaEdges, isPlanarGraph);
 
@@ -1069,7 +1069,7 @@ namespace app
                 _logger->log(epg::log::DEBUG, "ca1");
 
                 if (!lAntennaEdges.empty()) {
-                    _cleanAntenna(graph, country, lAntennaEdges, isConnected2CF, isPlanarGraph);
+                    _cleanAntenna(graph, country, lAntennaEdges, isConnected2CF);
                 }
 
                 // DEBUG
@@ -1146,8 +1146,7 @@ namespace app
             GraphType & graph,
             std::string const& country,
             std::list<edge_descriptor> const& lAntennaEdges,
-            bool bAntennaIsConnected2CF,
-            bool isPlanarGraph
+            bool bAntennaIsConnected2CF
         ) const {
             // app parameters
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
@@ -1157,7 +1156,7 @@ namespace app
             
             double antennaLength = _getAntennaLength(graph, lAntennaEdges);
             if (bAntennaIsConnected2CF && antennaLength < antennaMinLength) {
-                _removeEdgesAndGraphEdges(graph, lAntennaEdges, isPlanarGraph);
+                _removeEdgesAndGraphEdges(graph, lAntennaEdges);
                 return;
             }
             
@@ -1179,13 +1178,13 @@ namespace app
             _logger->log(epg::log::DEBUG, std::to_string(ratio));
 
             if (ratio < antennaRatioThreshold) {
-                _removeEdgesAndGraphEdges(graph, lAntennaEdges, isPlanarGraph);
+                _removeEdgesAndGraphEdges(graph, lAntennaEdges);
             } 
             else {
                 double ratioWithBuff = _getRatioWithBuff(graph, country, lAntennaEdges);
 
                 if (ratioWithBuff < antennaRatioThresholdWithBuff) {
-                    _removeEdgesAndGraphEdges(graph, lAntennaEdges, isPlanarGraph);
+                    _removeEdgesAndGraphEdges(graph, lAntennaEdges);
                 }
             }
         }

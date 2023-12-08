@@ -127,45 +127,54 @@ namespace calcul{
 
 		//--
 		template < typename ContainerType >
-        void _removeEdges(GraphType & graph, ContainerType const& container, std::list<edge_descriptor>& lEdge2Remove, bool isJustOnePlanarDangleInContainer = false) const
+        void _removeEdges(GraphType & graph, ContainerType const& container, std::list<edge_descriptor>& lEdge2Remove) const
         {
+			std::set<std::string> sFeature2Delete;
+
+			std::string currentOrigin = "";
+
             std::list<edge_descriptor>::const_iterator lit = container.begin();
             for ( ; lit != container.end() ; ++lit) {
                 if (graph.origins(*lit).size() > 1) {
                     _logger->log(epg::log::WARN, "Edge with multiple origins [edge id] "+tools::StringTools::toString(graph.origins(*lit)));
-					if (isJustOnePlanarDangleInContainer && lit == container.begin()) return;
                 }
-				if (!isJustOnePlanarDangleInContainer || lit == container.begin() ) {
-					for (size_t i = 0 ; i < graph.origins(*lit).size() ; ++i) {
-						std::string edgeId = graph.origins(*lit)[i];
 
-						if (ign::tools::StringManip::FindSubString(edgeId,"CONNECTINGLINE")) {
-							_logger->log(epg::log::WARN, "Edge has a cl as origin [cl id] "+edgeId);
-							continue;
-						}
+				std::set<std::string> sOrigins;
+				for (size_t i = 0 ; i < graph.origins(*lit).size() ; ++i)
+					sOrigins.insert(graph.origins(*lit)[i]);
 
-						ign::feature::Feature dFeat;
-						_fsEdge->getFeatureById(edgeId, dFeat);
-						if (!dFeat.getId().empty())
-							_shapeLogger->writeFeature("ecl_deleted_edges", dFeat);
+				if (sOrigins.find(currentOrigin) != sOrigins.end()) continue;
+				
+				currentOrigin = *sOrigins.begin();
 
-						_fsEdge->deleteFeature(edgeId);
-					}
+				if (ign::tools::StringManip::FindSubString(currentOrigin,"CONNECTINGLINE")) {
+					_logger->log(epg::log::WARN, "Edge has a cl as origin [cl id] "+currentOrigin);
+					continue;
 				}
+				
+				sFeature2Delete.insert(currentOrigin);
                 
-				if (!isJustOnePlanarDangleInContainer || graph.origins(*lit).size() == 1 )
+				if (graph.origins(*lit).size() == 1 )
 					lEdge2Remove.push_back(*lit);
-
-				if (isJustOnePlanarDangleInContainer) return;
             }
+
+			for( std::set<std::string>::const_iterator sit = sFeature2Delete.begin(); sit != sFeature2Delete.end() ; ++sit) {
+				ign::feature::Feature dFeat;
+				_fsEdge->getFeatureById(*sit, dFeat);
+				if (!dFeat.getId().empty())
+					_shapeLogger->writeFeature("ecl_deleted_edges", dFeat);
+
+				_fsEdge->deleteFeature(*sit);
+			}
+			
         }
 
 		//--
 		template < typename ContainerType >
-        void _removeEdgesAndGraphEdges(GraphType & graph, ContainerType const& container, bool isJustOnePlanarDangleInContainer = false) const
+        void _removeEdgesAndGraphEdges(GraphType & graph, ContainerType const& container) const
         {
 			std::list<edge_descriptor> lEdge2Remove;
-			_removeEdges(graph, container, lEdge2Remove, isJustOnePlanarDangleInContainer);
+			_removeEdges(graph, container, lEdge2Remove);
 
 			
 			for ( std::list<edge_descriptor>::const_iterator lit = lEdge2Remove.begin() ; lit != lEdge2Remove.end() ; ++lit )
@@ -199,8 +208,7 @@ namespace calcul{
             GraphType & graph,
             std::string const& country,
             std::list<edge_descriptor> const& lAntennas,
-            bool bAntennaIsConnected2CF,
-            bool isPlanarGraph
+            bool bAntennaIsConnected2CF
         ) const;
 
 		//--

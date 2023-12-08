@@ -1081,7 +1081,12 @@ namespace app
                 std::pair<bool, std::vector<oriented_edge_descriptor>> foundInducedEdges = graph.getInducedEdges(origin);
 
                 if (foundInducedEdges.first) {
-                    if ( foundInducedEdges.second.begin()->descriptor == e ) e = foundInducedEdges.second.rbegin()->descriptor;
+                    if (foundInducedEdges.second.size() > 1) {
+                        if ( foundInducedEdges.second.begin()->descriptor == e ) 
+                            e = foundInducedEdges.second.rbegin()->descriptor;
+                        else
+                            e = foundInducedEdges.second.begin()->descriptor;
+                    }  
                 }
             } 
 

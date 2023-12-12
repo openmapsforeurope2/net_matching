@@ -630,7 +630,13 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 		ign::geometry::LineString lsFToMatch = fToMatch.getGeometry().asLineString();
 		ign::geometry::GeometryPtr geomPtr(lsFToMatch.Intersection(lsBorder));
 
-		_logger->log(epg::log::DEBUG, fToMatch.getId());
+		// DEBUG
+		// if ( lsFToMatch.distance(ign::geometry::Point(3800564.17,3131588.11)) < 3) {
+		// 	bool testt = true;
+		// }
+		// std::string test = geomPtr->toString();
+
+		// _logger->log(epg::log::DEBUG, fToMatch.getId());
 
 		ign::feature::Feature fClArround;
 		bool hasClConnected = _isEdgeConnected2cl(lsFToMatch, lsFToMatch.getEnvelope().expandBy(distCLIntersected), fClArround, distCLIntersected);
@@ -639,15 +645,17 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 			ign::geometry::GeometryPtr geomIntersectCl(fClArround.getGeometry().Intersection(lsFToMatch));
 
 			//si il existe une intersection entre l'edge et une CL, et qu'elle est sous un seuil, on prend cette intersection à la place de celle avec la frontière
-			if (!geomIntersectCl->isNull() ) {
-				if(geomIntersectCl->distance(lsBorder) < distCLIntersected ) {
+			if (!geomIntersectCl->isNull() && !geomIntersectCl->isEmpty()) {
+				double distance = geomIntersectCl->distance(lsBorder);
+
+				if(distance >= 0 && distance < distCLIntersected ) {
 					if (geomPtr->isNull() || geomPtr->distance(*geomIntersectCl) < distCLIntersected) //utile ce test ou le precedent suffit?
 						geomPtr.reset(geomIntersectCl.release());
 					}
 			}
 		}
 
-		if (geomPtr->isNull() )
+		if (geomPtr->isNull() || geomPtr->isEmpty())
 			continue;
 
 		ign::feature::Feature fCF = _fsCP->newFeature();
@@ -1392,8 +1400,8 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 		}
 
 		//debug
-		if (vClOrigins[0] == "CONNECTINGLINE2" && vClOrigins[1] == "CONNECTINGLINE5")
-			bool bStop = true;
+		// if (vClOrigins[0] == "CONNECTINGLINE2" && vClOrigins[1] == "CONNECTINGLINE5")
+		// 	bool bStop = true;
 
 		std::map<std::string, ign::feature::Feature> mIdClOriginsCountry1, mIdClOriginsCountry2;
 
@@ -2171,13 +2179,13 @@ void app::calcul::CFeatGenerationOp::_loadGraphEdges(std::string countryCodeSimp
 
 bool app::calcul::CFeatGenerationOp::_isConnectedEdges(GraphType& graph, std::string idEdge1, std::string idEdge2)
 {
-	_logger->log(epg::log::DEBUG, "log100");
+	// _logger->log(epg::log::DEBUG, "log100");
 	_logger->log(epg::log::DEBUG, idEdge1);
 	edge_descriptor edCl1 = graph.getInducedEdges(idEdge1).second[0].descriptor;
-	_logger->log(epg::log::DEBUG, "log101");
+	// _logger->log(epg::log::DEBUG, "log101");
 	_logger->log(epg::log::DEBUG, idEdge2);
 	edge_descriptor edCl2 = graph.getInducedEdges(idEdge2).second[0].descriptor;
-	_logger->log(epg::log::DEBUG, "log102");
+	// _logger->log(epg::log::DEBUG, "log102");
 
 	if (graph.source(edCl1) == graph.source(edCl2) || graph.source(edCl1) == graph.target(edCl2) || graph.target(edCl1) == graph.source(edCl2) || graph.target(edCl1) == graph.target(edCl2))
 		return true;
@@ -2186,10 +2194,10 @@ bool app::calcul::CFeatGenerationOp::_isConnectedEdges(GraphType& graph, std::st
 }
 
 std::pair<bool,std::pair<std::string, std::string>> app::calcul::CFeatGenerationOp::_getClLinkedEdges( std::string const& linkedFeatIdName, GraphType& graphCL, GraphType::edge_descriptor eCl ) {
-	_logger->log(epg::log::DEBUG, "loga");
+	// _logger->log(epg::log::DEBUG, "loga");
 	std::string idCl = graphCL.origins(eCl)[0];
 	_logger->log(epg::log::DEBUG, idCl);
-	_logger->log(epg::log::DEBUG, "logb");
+	// _logger->log(epg::log::DEBUG, "logb");
 	ign::feature::Feature clFeat;
 	_fsCL->getFeatureById(idCl, clFeat);
 	if (clFeat.getId().empty())
@@ -2198,7 +2206,7 @@ std::pair<bool,std::pair<std::string, std::string>> app::calcul::CFeatGeneration
 	std::string linkedFeat = clFeat.getAttribute(linkedFeatIdName).toString();
 	_logger->log(epg::log::DEBUG, linkedFeat);
 	epg::tools::StringTools::Split(linkedFeat, "#", vEdgeslinkedJ);
-	_logger->log(epg::log::DEBUG, "logc");
+	// _logger->log(epg::log::DEBUG, "logc");
 
 	return std::make_pair(true,std::make_pair(vEdgeslinkedJ[0], vEdgeslinkedJ[1]));
 }
@@ -2242,26 +2250,26 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl( GraphType& graphCL)
 
 	while (vit != vitEnd) {
 		++display;
-		_logger->log(epg::log::DEBUG, "log1");
+		// _logger->log(epg::log::DEBUG, "log1");
 		if (graphCL.degree(*vit) < 2 ) {
 			++vit;
 			continue;
 		}
 		std::vector< GraphType::oriented_edge_descriptor > vClsIncidentTemp;
 		graphCL.incidentEdges(*vit, vClsIncidentTemp);
-		_logger->log(epg::log::DEBUG, "log2");
+		// _logger->log(epg::log::DEBUG, "log2");
 
 		//recal
 		std::vector<std::vector< GraphType::oriented_edge_descriptor >> vVClsTrueIncident;
 		std::set<size_t> sTreated;
 		for (size_t i = 0; i < vClsIncidentTemp.size()-1; ++i) {
 			if ( sTreated.find(i) != sTreated.end() ) continue;
-			_logger->log(epg::log::DEBUG, "log3");
+			// _logger->log(epg::log::DEBUG, "log3");
 
 			std::vector< GraphType::oriented_edge_descriptor > vClsIncidentTempConnectI;
 			vClsIncidentTempConnectI.push_back(vClsIncidentTemp[i]);
 
-			_logger->log(epg::log::DEBUG, "log3b");
+			// _logger->log(epg::log::DEBUG, "log3b");
 
 			std::pair<bool,std::pair<std::string, std::string>> pLinkedEdgesI = _getClLinkedEdges(linkedFeatIdName, graphCL, vClsIncidentTemp[i].descriptor);
 
@@ -2269,28 +2277,28 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl( GraphType& graphCL)
 			if (!pLinkedEdgesI.first)
 				continue;
 
-			_logger->log(epg::log::DEBUG, "log4");
+			// _logger->log(epg::log::DEBUG, "log4");
 
 			for (size_t j = i + 1; j < vClsIncidentTemp.size(); ++j) {
 				if ( sTreated.find(j) != sTreated.end() ) continue;
 
-				_logger->log(epg::log::DEBUG, "log5");
+				// _logger->log(epg::log::DEBUG, "log5");
 
 				std::pair<bool, std::pair<std::string, std::string>> pLinkedEdgesJ = _getClLinkedEdges(linkedFeatIdName, graphCL, vClsIncidentTemp[j].descriptor);
 
 				if (!pLinkedEdgesJ.first)
 					continue;
 
-				_logger->log(epg::log::DEBUG, "log5b");
+				// _logger->log(epg::log::DEBUG, "log5b");
 
 				bool isConnected1 = pLinkedEdgesI.first == pLinkedEdgesJ.first || _isConnectedEdges(graphEdges1, pLinkedEdgesI.second.first, pLinkedEdgesJ.second.first);
 				bool isConnected2 = pLinkedEdgesI.second == pLinkedEdgesJ.second || _isConnectedEdges(graphEdges2, pLinkedEdgesI.second.second, pLinkedEdgesJ.second.second);
 
-				_logger->log(epg::log::DEBUG, "log6");
+				// _logger->log(epg::log::DEBUG, "log6");
 
 				// tester si vClsIncidentTemp[i].descriptor et vClsIncidentTemp[j].descriptor sont paralleles
 				if (_areParallelEdges(graphCL, vClsIncidentTemp[i].descriptor, vClsIncidentTemp[j].descriptor)) {
-					_logger->log(epg::log::DEBUG, "log7");
+					// _logger->log(epg::log::DEBUG, "log7");
 					// si oui regarder si *vit est plus proche que l'autre sommet des points d'intersections des linkedEdges
 					std::string idClI = graphCL.origins(vClsIncidentTemp[i].descriptor)[0];
 					ign::feature::Feature fClI;
@@ -2309,37 +2317,37 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl( GraphType& graphCL)
 					// si il ne l'est pas (et que les linkeEdges ne sont pas egalement paralleles?) --> continue
 					if (linkedEdgesConnectingPoint.distance(vitGeom) > linkedEdgesConnectingPoint.distance(otherGeom)) continue;
 				}
-				_logger->log(epg::log::DEBUG, "log8");
+				// _logger->log(epg::log::DEBUG, "log8");
 
 				if (isConnected1 && isConnected2) {
 					vClsIncidentTempConnectI.push_back(vClsIncidentTemp[j]);
 					sTreated.insert(j);
 				}
-				_logger->log(epg::log::DEBUG, "log9");
+				// _logger->log(epg::log::DEBUG, "log9");
 			}
 			if (vClsIncidentTempConnectI.size() > 1)
 				vVClsTrueIncident.push_back(vClsIncidentTempConnectI);
 		}
 
-		_logger->log(epg::log::DEBUG, "log10");
+		// _logger->log(epg::log::DEBUG, "log10");
 
 
 		//on recalcule la nouvelle geometrie du point
 		for (size_t j = 0; j < vVClsTrueIncident.size(); ++j) {
-			_logger->log(epg::log::DEBUG, "log11");
+			// _logger->log(epg::log::DEBUG, "log11");
 			std::vector< GraphType::oriented_edge_descriptor > vClsTrueIncident = vVClsTrueIncident[j];
 			ign::geometry::MultiPoint multiPtToConnect;
 			for (size_t i = 0; i < vClsTrueIncident.size(); ++i) {
-				_logger->log(epg::log::DEBUG, "log12");
+				// _logger->log(epg::log::DEBUG, "log12");
 				GraphType::edge_descriptor edCl = vClsTrueIncident[i].descriptor;
 				std::string idClToModify = graphCL.origins(edCl)[0];
-				_logger->log(epg::log::DEBUG, "log13");
+				// _logger->log(epg::log::DEBUG, "log13");
 				ign::feature::Feature fClToModify;
 				if (mClModified.find(idClToModify) != mClModified.end()) {
-					_logger->log(epg::log::DEBUG, "log14");
+					// _logger->log(epg::log::DEBUG, "log14");
 					fClToModify = mClModified.find(idClToModify)->second;
 				} else {
-					_logger->log(epg::log::DEBUG, "log15");
+					// _logger->log(epg::log::DEBUG, "log15");
 					_fsCL->getFeatureById(idClToModify, fClToModify);
 					//patch tant que les doublons ne sont pas suppr
 					if (fClToModify.getId().empty())
@@ -2347,7 +2355,7 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl( GraphType& graphCL)
 					mClModified[idClToModify] = fClToModify;
 				}
 
-				_logger->log(epg::log::DEBUG, "log16");
+				// _logger->log(epg::log::DEBUG, "log16");
 
 				ign::geometry::LineString ls = fClToModify.getGeometry().asLineString();
 				if (graphCL.source(edCl) == *vit)
@@ -2355,34 +2363,34 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl( GraphType& graphCL)
 				else
 					multiPtToConnect.addGeometry(ls.endPoint());
 
-				_logger->log(epg::log::DEBUG, "log17");
+				// _logger->log(epg::log::DEBUG, "log17");
 			}
-			_logger->log(epg::log::DEBUG, "log18");
+			// _logger->log(epg::log::DEBUG, "log18");
 
 			ign::geometry::Point ptUpdated = multiPtToConnect.asMultiPoint().getCentroid();
 			//on modifie la geom des cl avec celle du nouveau point
 			for (size_t i = 0; i < vClsTrueIncident.size(); ++i) {
-				_logger->log(epg::log::DEBUG, "log19");
+				// _logger->log(epg::log::DEBUG, "log19");
 				GraphType::edge_descriptor edCl = vClsTrueIncident[i].descriptor;
 				std::string idClToModify = graphCL.origins(edCl)[0];
-				_logger->log(epg::log::DEBUG, "log20");
+				// _logger->log(epg::log::DEBUG, "log20");
 				// patch tant que les doublons ne sont pas suppr
 				if (mClModified.find(idClToModify) == mClModified.end())
 					continue;
-				_logger->log(epg::log::DEBUG, "log21");
+				// _logger->log(epg::log::DEBUG, "log21");
 				ign::feature::Feature fClToModify = mClModified.find(idClToModify)->second;
 				ign::geometry::LineString lsClToModify = fClToModify.getGeometry().asLineString();
-				_logger->log(epg::log::DEBUG, "log22");
+				// _logger->log(epg::log::DEBUG, "log22");
 				if (graphCL.source(edCl) == *vit)
 					lsClToModify.setPointN(ptUpdated, 0);
 				else
 					lsClToModify.setPointN(ptUpdated, lsClToModify.numPoints() - 1);
 
-				_logger->log(epg::log::DEBUG, "log23");
+				// _logger->log(epg::log::DEBUG, "log23");
 				lsClToModify.setFillZ(0);
 				fClToModify.setGeometry(lsClToModify);
 				mClModified[idClToModify] = fClToModify;
-				_logger->log(epg::log::DEBUG, "log24");
+				// _logger->log(epg::log::DEBUG, "log24");
 			}
 		}
 		++vit;

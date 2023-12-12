@@ -177,12 +177,12 @@ namespace app
                 std::string const linkedFeatureId = fCl.getAttribute(linkedFeatureIdName).toString();
                 std::string const countryCode = fCl.getAttribute(countryCodeName).toString();
 
-                if (_verbose) _logger->log(epg::log::DEBUG, fCl.getId());
+                // if (_verbose) _logger->log(epg::log::DEBUG, fCl.getId());
 
                 if ( sTreatedCl.find(fCl.getId()) != sTreatedCl.end() ) continue;
 
                 //DEBUG
-                std::string idDebug = fCl.getId();
+                // std::string idDebug = fCl.getId();
                 // if ( idDebug != "CONNECTINGLINE2096" && idDebug != "CONNECTINGLINE2093" && idDebug != "CONNECTINGLINE2095" && idDebug != "CONNECTINGLINE2094" && idDebug != "CONNECTINGLINE2086" ) continue;
                 // if ( idDebug == "CONNECTINGLINE1817" || idDebug == "CONNECTINGLINE1816") {
                 //     bool test = true;
@@ -219,7 +219,7 @@ namespace app
                     continue;
                 }
 
-                if (_verbose) _logger->log(epg::log::DEBUG, "  "+edgeId);
+                // if (_verbose) _logger->log(epg::log::DEBUG, "  "+edgeId);
 
                 ign::geometry::LineString const& edgeGeom = foundEdge.second.getGeometry().asLineString();
 
@@ -407,35 +407,35 @@ namespace app
 
 
             //DEBUG
-            std::set<edge_descriptor> sVisitedEdge;
-            edge_iterator eit, eend;
-            for (graph.edges(eit, eend); eit != eend; ++eit)
-            {
-                if ( sVisitedEdge.find(*eit) != sVisitedEdge.end() ) continue;
-                std::vector< oriented_edge_descriptor > vParallelEdges;
-                graph.edges( graph.source(*eit), graph.target(*eit), vParallelEdges );
-                if(vParallelEdges.size() < 2) continue;
+            // std::set<edge_descriptor> sVisitedEdge;
+            // edge_iterator eit, eend;
+            // for (graph.edges(eit, eend); eit != eend; ++eit)
+            // {
+            //     if ( sVisitedEdge.find(*eit) != sVisitedEdge.end() ) continue;
+            //     std::vector< oriented_edge_descriptor > vParallelEdges;
+            //     graph.edges( graph.source(*eit), graph.target(*eit), vParallelEdges );
+            //     if(vParallelEdges.size() < 2) continue;
 
-                std::vector< oriented_edge_descriptor >::const_iterator vit;
-                std::vector< oriented_edge_descriptor >::const_iterator vit_last = --vParallelEdges.end();
-                std::set<edge_descriptor> sVisited;
-                for (vit = vParallelEdges.begin() ; vit != vit_last ; ++vit ) {
-                    if ( sVisitedEdge.find(vit->descriptor) != sVisitedEdge.end() ) continue;
-                    sVisitedEdge.insert(vit->descriptor);
-                    ign::geometry::LineString lsRef = graph.getGeometry(*vit);
-                    std::vector< oriented_edge_descriptor >::const_iterator vit2 = vit;
-                    for ( ++vit2 ; vit2 != vParallelEdges.end() ; ++vit2 ) {
-                        if( vit2->descriptor == vit->descriptor ) continue; /*gestion des boucle*/
-                        ign::geometry::LineString ls = graph.getGeometry(vit2->descriptor);
-                        if ( ign::geometry::algorithm::HausdorffDistanceOp::distance(lsRef, ls) < 0.1 /*todo a ajuster*/ ) {
-                            sVisitedEdge.insert(vit2->descriptor);
-                            ign::feature::Feature eFeat;
-                            eFeat.setGeometry(ls);
-                            _shapeLogger->writeFeature("cl_superposed_edges_"+country, eFeat);
-                        }
-                    }
-                }
-            }
+            //     std::vector< oriented_edge_descriptor >::const_iterator vit;
+            //     std::vector< oriented_edge_descriptor >::const_iterator vit_last = --vParallelEdges.end();
+            //     std::set<edge_descriptor> sVisited;
+            //     for (vit = vParallelEdges.begin() ; vit != vit_last ; ++vit ) {
+            //         if ( sVisitedEdge.find(vit->descriptor) != sVisitedEdge.end() ) continue;
+            //         sVisitedEdge.insert(vit->descriptor);
+            //         ign::geometry::LineString lsRef = graph.getGeometry(*vit);
+            //         std::vector< oriented_edge_descriptor >::const_iterator vit2 = vit;
+            //         for ( ++vit2 ; vit2 != vParallelEdges.end() ; ++vit2 ) {
+            //             if( vit2->descriptor == vit->descriptor ) continue; /*gestion des boucle*/
+            //             ign::geometry::LineString ls = graph.getGeometry(vit2->descriptor);
+            //             if ( ign::geometry::algorithm::HausdorffDistanceOp::distance(lsRef, ls) < 0.1 /*todo a ajuster*/ ) {
+            //                 sVisitedEdge.insert(vit2->descriptor);
+            //                 ign::feature::Feature eFeat;
+            //                 eFeat.setGeometry(ls);
+            //                 _shapeLogger->writeFeature("cl_superposed_edges_"+country, eFeat);
+            //             }
+            //         }
+            //     }
+            // }
 
             // on enregistre les modifications
             _persistEdgeDisplacement(graph, vDeformedEdges);
@@ -540,7 +540,7 @@ namespace app
                     continue;
                 }
 
-                if (_verbose) _logger->log(epg::log::DEBUG, "  "+edgeId);
+                // if (_verbose) _logger->log(epg::log::DEBUG, "  "+edgeId);
 
                 ign::geometry::LineString const& edgeGeom = foundEdge.second.getGeometry().asLineString();
 
@@ -1035,7 +1035,7 @@ namespace app
 
                 std::string edgeId = graph.origins(*vit)[0];
 
-                _logger->log(epg::log::DEBUG, edgeId);
+                // _logger->log(epg::log::DEBUG, edgeId);
                 
                 ign::feature::Feature fEdge;
                 _fsEdge->getFeatureById(edgeId, fEdge);

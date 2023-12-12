@@ -108,16 +108,18 @@ int main(int argc, char *argv[])
 
         // // nettoyage
 		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCode, verbose);
+        std::set<std::string> sTreatedFeatures;
         edgeCleaningOp.cleanFaces();
         edgeCleaningOp.cleanPathsOutOfCountry();
         edgeCleaningOp.cleanParalelleEdges();
-        edgeCleaningOp.cleanFacesAndAntennaByCountry();
+        edgeCleaningOp.cleanFacesAndAntennaByCountry(sTreatedFeatures);
 
         app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
 
         // nettoyage
 		edgeCleaningOp.cleanParalelleEdges();
         edgeCleaningOp.cleanFaces2();
+        edgeCleaningOp.cleanFacesAndAntennaByCountry(sTreatedFeatures);
 
 		logger->log(epg::log::INFO, "[END EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 

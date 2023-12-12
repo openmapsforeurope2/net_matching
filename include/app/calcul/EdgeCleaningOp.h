@@ -33,12 +33,6 @@ namespace calcul{
 		typedef app::calcul::detail::OriginEdgeProperties                  OriginEdgeProperties;
 
 		/// \brief
-		static void clean(
-			std::string borderCode,
-			bool verbose
-		);
-
-		/// \brief
 		EdgeCleaningOp( 
 			std::string borderCode,
             bool verbose 
@@ -48,16 +42,13 @@ namespace calcul{
 		~EdgeCleaningOp();
 
 		/// \brief
-		void cleanAll() const;
-
-		/// \brief
 		void cleanFaces() const;
 
 		/// \brief
 		void cleanFaces2ByCountry() const;
 
 		/// \brief
-		void cleanFacesAndAntennaByCountry() const;
+		void cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures) const;
 
 		/// \brief
 		bool cleanFaces2(ign::feature::FeatureFilter filter = ign::feature::FeatureFilter()) const;
@@ -102,26 +93,44 @@ namespace calcul{
 		) const;
 
 		//--
-		double _getLength( ign::geometry::Geometry const& geom ) const;
+		std::pair<double, double> _getLengths( ign::geometry::Geometry const& geom, ign::geometry::Point const* startPoint = 0 ) const;
 
 		//--
-		double _getAntennaLength(GraphType const& graph, std::list<edge_descriptor> const& lEdges) const;
+		double _getAntennaLength(GraphType const& graph, std::list<oriented_edge_descriptor> const& lEdges) const;
 
 		//--
-		double _getRatio(GraphType const& graph, std::string country, std::list<oriented_edge_descriptor> const& path) const;
+		std::pair<double, double> _getRatioAndLengthFirstPart(GraphType const& graph, std::string country, std::list<oriented_edge_descriptor> const& path) const;
 
 		//--
-		double _getRatio(GraphType const& graph, std::string country, std::list<edge_descriptor> const& lEdges) const;
+		template < typename ContainerType >
+		double _getRatio(
+			GraphType const& graph, 
+			std::string country,
+			ContainerType const& container
+		) const {
+            double lengthInCountry = 0;
+            double length = 0;
+            typename ContainerType::const_iterator lit = container.begin();
+            for ( ; lit != container.end() ; ++lit) {
+                ign::geometry::LineString edgeGeom = graph.getGeometry(*lit);
+                _addLengths(country, edgeGeom, lengthInCountry, length);
+            }
+			if (length == 0)
+				return 0;
+
+            return lengthInCountry / length;
+        }
 
 		//--
 		double _getLengthWithBuff( ign::geometry::Geometry const& geom ) const;
 
 		//--
-		double _getRatioWithBuff(GraphType const& graph, std::string country, std::list<edge_descriptor> const& lEdges) const;
+		double _getRatioWithBuff(GraphType const& graph, std::string country, std::list<oriented_edge_descriptor> const& lEdges) const;
 
 		//--
         void _removePath(
-			GraphType & graph, std::list<oriented_edge_descriptor> const& path, 
+			GraphType & graph, 
+			std::list<oriented_edge_descriptor> const& path, 
 			std::list<edge_descriptor>& lEdge2Remove
 		) const;
 
@@ -170,6 +179,12 @@ namespace calcul{
         }
 
 		//--
+		void _removePathAndGraphEdges(
+            GraphType & graph,
+            std::list<oriented_edge_descriptor> const& path
+        ) const;
+
+		//--
 		template < typename ContainerType >
         void _removeEdgesAndGraphEdges(GraphType & graph, ContainerType const& container) const
         {
@@ -182,7 +197,7 @@ namespace calcul{
 		}
 
 		//--
-		void _addLengths(
+		std::pair<double, double> _addLengths(
 			std::string country,
 			ign::geometry::LineString const& ls,
 			double & lengthInCountry,
@@ -207,7 +222,7 @@ namespace calcul{
 		void _cleanAntenna(
             GraphType & graph,
             std::string const& country,
-            std::list<edge_descriptor> const& lAntennas,
+            std::list<oriented_edge_descriptor> const& lAntennas,
             bool bAntennaIsConnected2CF
         ) const;
 
@@ -247,13 +262,31 @@ namespace calcul{
 		bool _cleanFaces2(detail::EdgeCleaningGraphManager & graphManager) const;
 
 		//--
-		bool _cleanAntennas(detail::EdgeCleaningGraphManager & graphManager, std::set<vertex_descriptor> & sTreatedDangles, bool isPlanarGraph = false) const;
+		bool _cleanAntennas(
+			detail::EdgeCleaningGraphManager & graphManager,
+			// std::set<vertex_descriptor> & sTreatedDangles,
+			std::set<std::string> & sTreatedFeatures,
+			bool isPlanarGraph = false
+		) const;
 
 		//--
 		typename app::calcul::detail::EdgeCleaningGraphManager::GraphType::oriented_edge_descriptor _getNextEdge(GraphType const& graph, edge_descriptor e, vertex_descriptor vTarget, bool isPlanarGraph) const;
 
+		//--
+		template < typename ContainerType >
+        ContainerType _getReversePath(ContainerType const& path) const {
+            ContainerType reversedPath;
+
+            for (typename ContainerType::const_reverse_iterator vit = path.rbegin() ; vit != path.rend() ; ++vit ) {
+                ign::graph::OrientedEdge<edge_descriptor> newOe(vit->descriptor, vit->direction == ign::graph::DIRECT ? ign::graph::REVERSE : ign::graph::DIRECT);
+                reversedPath.push_back(newOe);
+            }
+
+            return reversedPath;
+        }
+
         //--
-        void _addAntennaEdges(GraphType const& graph, edge_descriptor e, std::list<edge_descriptor> & lEdges, bool isPlanarGraph) const;
+        void _addAntennaEdges(GraphType const& graph, oriented_edge_descriptor oe, std::list<oriented_edge_descriptor> & lEdges, bool isPlanarGraph) const;
 
         //--
         typename app::calcul::detail::EdgeCleaningGraphManager::GraphType::vertex_descriptor _getTarget(GraphType const& graph, oriented_edge_descriptor oe, bool isPlanarGraph) const;

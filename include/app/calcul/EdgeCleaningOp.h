@@ -57,7 +57,7 @@ namespace calcul{
 		void cleanPathsOutOfCountry() const;
 
         /// \brief
-		bool cleanAntennas() const;
+		bool cleanAntennas(std::set<std::string> & sTreatedFeatures) const;
 
 		/// \brief
 		void cleanParalelleEdges() const;
@@ -257,6 +257,9 @@ namespace calcul{
             GraphType const& graph, 
             std::list<oriented_edge_descriptor> const& path
         ) const;
+
+		//--
+		std::set<std::string> _mergeFacePaths(std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges) const;
 
 		//--
 		bool _cleanFaces2(detail::EdgeCleaningGraphManager & graphManager) const;

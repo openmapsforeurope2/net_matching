@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 		cFeatGenerationOp.computeCP();
         cFeatConnectionOp.computeCp();
 
-        // // nettoyage
+        // nettoyage
 		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCode, verbose);
         std::set<std::string> sTreatedFeatures;
         edgeCleaningOp.cleanFaces();
@@ -117,9 +117,9 @@ int main(int argc, char *argv[])
         app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
 
         // nettoyage
-		edgeCleaningOp.cleanParalelleEdges();
+        edgeCleaningOp.cleanParalelleEdges();
         edgeCleaningOp.cleanFaces2();
-        edgeCleaningOp.cleanFacesAndAntennaByCountry(sTreatedFeatures);
+        edgeCleaningOp.cleanAntennas(sTreatedFeatures);
 
 		logger->log(epg::log::INFO, "[END EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 

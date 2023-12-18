@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
         // nettoyage
         edgeCleaningOp.cleanParalelleEdges();
         edgeCleaningOp.cleanFaces2();
-        edgeCleaningOp.cleanAntennas(sTreatedFeatures);
+        // edgeCleaningOp.cleanAntennas(sTreatedFeatures);
 
 		logger->log(epg::log::INFO, "[END EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 

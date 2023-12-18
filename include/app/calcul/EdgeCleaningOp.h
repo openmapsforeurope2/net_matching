@@ -131,12 +131,12 @@ namespace calcul{
         void _removePath(
 			GraphType & graph, 
 			std::list<oriented_edge_descriptor> const& path, 
-			std::list<edge_descriptor>& lEdge2Remove
+			std::set<edge_descriptor>& sEdge2Remove
 		) const;
 
 		//--
 		template < typename ContainerType >
-        void _removeEdges(GraphType & graph, ContainerType const& container, std::list<edge_descriptor>& lEdge2Remove) const
+        void _removeEdges(GraphType & graph, ContainerType const& container, std::set<edge_descriptor>& sEdge2Remove) const
         {
 			std::set<std::string> sFeature2Delete;
 
@@ -164,7 +164,7 @@ namespace calcul{
 				sFeature2Delete.insert(currentOrigin);
                 
 				if (graph.origins(*lit).size() == 1 )
-					lEdge2Remove.push_back(*lit);
+					sEdge2Remove.insert(*lit);
             }
 
 			for( std::set<std::string>::const_iterator sit = sFeature2Delete.begin(); sit != sFeature2Delete.end() ; ++sit) {
@@ -188,12 +188,12 @@ namespace calcul{
 		template < typename ContainerType >
         void _removeEdgesAndGraphEdges(GraphType & graph, ContainerType const& container) const
         {
-			std::list<edge_descriptor> lEdge2Remove;
-			_removeEdges(graph, container, lEdge2Remove);
+			std::set<edge_descriptor> sEdge2Remove;
+			_removeEdges(graph, container, sEdge2Remove);
 
 			
-			for ( std::list<edge_descriptor>::const_iterator lit = lEdge2Remove.begin() ; lit != lEdge2Remove.end() ; ++lit )
-				graph.removeEdge(*lit);
+			for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
+				graph.removeEdge(*sit);
 		}
 
 		//--

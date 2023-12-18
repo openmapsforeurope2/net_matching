@@ -350,7 +350,7 @@ namespace app
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, true);
 
-            std::list<edge_descriptor> lEdge2Remove;
+            std::set<edge_descriptor> sEdge2Remove;
 
             GraphType & graph = graphManager.getGraph();
             boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning faces  % complete ]\n");
@@ -442,14 +442,14 @@ namespace app
                     bool hasConnection2 = sHasConnection.find(mlEdges.rbegin()->first) != sHasConnection.end();
 
                     if ( ratio1 > ratio2 && !hasConnection2 ) {
-                        _removeEdges(graph, mlEdges.rbegin()->second, lEdge2Remove);
+                        _removeEdges(graph, mlEdges.rbegin()->second, sEdge2Remove);
                     } else if ( !hasConnection1 ) {
-                        _removeEdges(graph, mlEdges.begin()->second, lEdge2Remove);
+                        _removeEdges(graph, mlEdges.begin()->second, sEdge2Remove);
                     }
                 }
 			}
-            for ( std::list<edge_descriptor>::const_iterator lit = lEdge2Remove.begin() ; lit != lEdge2Remove.end() ; ++lit )
-                graph.removeEdge(*lit);
+            for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
+                graph.removeEdge(*sit);
         }
 
         ///
@@ -554,7 +554,7 @@ namespace app
 
             do{
                 //DEBUG
-                ign::geometry::LineString ls = graph.getGeometry(currentEdge);
+                // ign::geometry::LineString ls = graph.getGeometry(currentEdge);
 
                 // on ne doit pas avoir de cl dans la boucle
                 if (graphManager.isCl(currentEdge.descriptor)) {
@@ -615,13 +615,13 @@ namespace app
         ///
         void EdgeCleaningOp::_removePath(
             GraphType & graph, std::list<oriented_edge_descriptor> const& path, 
-            std::list<edge_descriptor>& lEdge2Remove
+            std::set<edge_descriptor>& sEdge2Remove
         ) const {
             std::list<edge_descriptor> lEdges;
             for (std::list<oriented_edge_descriptor>::const_iterator lit = path.begin() ; lit != path.end() ; ++lit)
                 lEdges.push_back(lit->descriptor);
 
-            _removeEdges(graph, lEdges, lEdge2Remove);
+            _removeEdges(graph, lEdges, sEdge2Remove);
         }
 
         ///
@@ -739,7 +739,7 @@ namespace app
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
             double const slimSurfaceWidth = themeParameters->getValue( ECL_SLIM_SURFACE_WIDTH ).toDouble();
 
-            std::list<edge_descriptor> lEdge2Remove;
+            std::set<edge_descriptor> sEdge2Remove;
 
             GraphType & graph = graphManager.getGraph();
             boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning faces 2  % complete ]\n");
@@ -771,9 +771,9 @@ namespace app
                     // _logger->log(epg::log::DEBUG, "cf3");
 
                     //DEBUG
-                    if (faceGeom.distance(ign::geometry::Point(4008665.1,2946596.8))<1e-5){
-                        bool ts = true;
-                    }
+                    // if (faceGeom.distance(ign::geometry::Point(4008665.1,2946596.8))<1e-5){
+                    //     bool ts = true;
+                    // }
 
                     ign::feature::Feature feat;
                     feat.setGeometry(faceGeom);
@@ -790,7 +790,7 @@ namespace app
                         feat.setGeometry(faceGeom);
                         _shapeLogger->writeFeature("ecl_slim_face_1_path", feat);
 
-                        _removePath(graph, vpCountryEdges.front().second, lEdge2Remove);
+                        _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
                         bChangeOccured = true;
                         continue;
                     }
@@ -813,12 +813,12 @@ namespace app
                         if ( ratio1 > ratio2 ) {
                             if (!hasConnection2 ) {
                                 // _logger->log(epg::log::DEBUG, "cf8");
-                                _removePath(graph, vpCountryEdges.back().second, lEdge2Remove);
+                                _removePath(graph, vpCountryEdges.back().second, sEdge2Remove);
                                 bChangeOccured = true;
                             }
                         } else if ( !hasConnection1 ) {
                             // _logger->log(epg::log::DEBUG, "cf9");
-                            _removePath(graph, vpCountryEdges.front().second, lEdge2Remove);
+                            _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
                             bChangeOccured = true;
                         }
                     } else {
@@ -826,10 +826,10 @@ namespace app
                         double lengthFront = _getPathLength(graph, vpCountryEdges.front().second);
                         double lengthBack = _getPathLength(graph, vpCountryEdges.back().second);
                         if (lengthFront < lengthBack) {
-                            _removePath(graph, vpCountryEdges.back().second, lEdge2Remove);
+                            _removePath(graph, vpCountryEdges.back().second, sEdge2Remove);
                             bChangeOccured = true;
                         } else {
-                            _removePath(graph, vpCountryEdges.front().second, lEdge2Remove);
+                            _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
                             bChangeOccured = true;
                         }
                         ign::feature::Feature feat;
@@ -856,7 +856,7 @@ namespace app
                             _shapeLogger->writeFeature("ecl_big_face_removed", feat);
 
                             // _logger->log(epg::log::DEBUG, "gf3");
-                            _removePath(graph, vpCountryEdges.front().second, lEdge2Remove);
+                            _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
                             bChangeOccured = true;
                         }
                     }
@@ -864,8 +864,8 @@ namespace app
                 }
 			}
             // _logger->log(epg::log::DEBUG, "cf10");
-            for ( std::list<edge_descriptor>::const_iterator lit = lEdge2Remove.begin() ; lit != lEdge2Remove.end() ; ++lit )
-                graph.removeEdge(*lit);
+            for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
+                graph.removeEdge(*sit);
             // _logger->log(epg::log::DEBUG, "cf11");
 
             return bChangeOccured;
@@ -1050,7 +1050,7 @@ namespace app
                 // DEBUG
                 // ign::geometry::Point p = graph.getGeometry(*vit);
                 // _logger->log(epg::log::DEBUG, p.toString());
-                // if (p.distance(ign::geometry::Point(4008707.5, 2947025.0)) < 4) {
+                // if (p.distance(ign::geometry::Point(3972397.16241,2965317.32599)) < 2) {
                 //     bool test = true;
                 // }
 
@@ -1268,7 +1268,7 @@ namespace app
             _loadGraph(graphManager, false);
             GraphType & graph = graphManager.getGraph();
 
-            std::list<edge_descriptor> lEdge2Remove;
+            std::set<edge_descriptor> sEdge2Remove;
 
             std::set<edge_descriptor> sVisitedEdge;
 
@@ -1289,7 +1289,7 @@ namespace app
                     if ( sVisitedParallelEdge.find(vit->descriptor) != sVisitedParallelEdge.end() ) continue; /*gestion des boucles*/
                     sVisitedParallelEdge.insert(vit->descriptor);
                     std::string ownCountry = graphManager.getCountry(vit->descriptor);
-                    double ratio = _getRatio(graph, ownCountry, std::list<edge_descriptor>(1, vit->descriptor));
+                    double ratio = graphManager.isCl(vit->descriptor) ? 1.1 : _getRatio(graph, ownCountry, std::list<edge_descriptor>(1, vit->descriptor));
                     if (ratio > maxRatio) {
                         maxRatio = ratio;
                         maxEdge = vit->descriptor;
@@ -1306,14 +1306,14 @@ namespace app
                     ign::geometry::LineString ls = graph.getGeometry(vit->descriptor);
                     
                     if ( ign::geometry::algorithm::HausdorffDistanceOp::distance(lsRef, ls) < maxDist ) {
-                        _removeEdges(graph, std::list<edge_descriptor>(1,vit->descriptor), lEdge2Remove);
+                        _removeEdges(graph, std::list<edge_descriptor>(1,vit->descriptor), sEdge2Remove);
                     }
                 }
                 sVisitedEdge.insert(sVisitedTemp.begin(), sVisitedTemp.end());
             }
 
-            for ( std::list<edge_descriptor>::const_iterator lit = lEdge2Remove.begin() ; lit != lEdge2Remove.end() ; ++lit )
-                graph.removeEdge(*lit);
+            for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
+                graph.removeEdge(*sit);
         }
     }
 }

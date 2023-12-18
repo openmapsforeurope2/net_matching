@@ -25,8 +25,8 @@
 // SOCLE
 #include <ign/geometry/graph/builder/SimpleGraphBuilder.h>
 #include <ign/tools/stringtools.h>
-#include <ign/geometry/algorithm/LineMergerOpGeos.h>
 #include <ign/geometry/algorithm/HausdorffDistanceOp.h>
+#include <ign/math/Line2T.h>
 
 namespace app
 {
@@ -61,8 +61,9 @@ namespace app
         ///
         EdgeConnectorOp::~EdgeConnectorOp()
         {
-            _shapeLogger->closeShape("ec_displaced_antennas");
+            _shapeLogger->closeShape("ec_projected_antennas");
             _shapeLogger->closeShape("ec_split_edges");
+            _shapeLogger->closeShape("ec_trimed_edges_parts");
         }
 
         ///
@@ -138,8 +139,9 @@ namespace app
 
             //--
             _shapeLogger = epg::log::ShapeLoggerS::getInstance();
-            _shapeLogger->addShape("ec_displaced_antennas", epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("ec_projected_antennas", epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("ec_split_edges", epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("ec_trimed_edges_parts", epg::log::ShapeLogger::LINESTRING);
 
             //--
             _logger->log(epg::log::INFO, "[END] initialization: " + epg::tools::TimeTools::getTime());
@@ -242,20 +244,16 @@ namespace app
                 // }
 
                 std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomWithBuffPtr.find(vpit->first);
-                if (mit == _mCountryGeomPtr.end()) {
+                if (mit == _mCountryGeomWithBuffPtr.end()) {
                     _logger->log(epg::log::ERROR, "Unknown country [country code] " + vpit->first);
                     continue;
                 }
                 if( mit->second->intersects(dangleEndPoint)) continue;
 
+                ign::geometry::MultiLineString mlsEdgesAround;
                 std::string otherCountry = vCountry.front() == vpit->first ? vCountry.back() : vCountry.front();
                 ign::geometry::Polygon bbox = dangleEndPoint.getEnvelope().expandBy(2*snapDist).toPolygon();
 
-                double maxDist = snapDist;
-                double maxOrthoDist = snapDist/2;
-                ign::geometry::Point maxPt;
-                ign::geometry::Point maxOrthoPt;
-                
                 ign::feature::FeatureFilter filter(countryCodeName +" = '"+otherCountry+"'");
                 epg::tools::FilterTools::addAndConditions(filter, "ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + bbox.toString() + "'),3035))");
                 ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
@@ -263,6 +261,34 @@ namespace app
                 {
                     ign::feature::Feature const& fEdge = itEdge->next();
                     ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
+                    mlsEdgesAround.addGeometry(edgeGeom);
+                }
+
+                // regarder d'abord si un overshoot est possible
+                app::geometry::tools::LineStringSplitter splitter(antennaGeom);
+                splitter.addCuttingGeometry(mlsEdgesAround);
+                if (dangleEndPoint == antennaGeom.startPoint()) {
+                    std::vector<ign::geometry::LineString> vsubLs = splitter.trimStart();
+                    if (vsubLs.size() == 2 && vsubLs.front().length() < snapDist) {
+                        antennaGeom = vsubLs.back();
+                        continue;
+                    }
+                } else {
+                    std::vector<ign::geometry::LineString> vsubLs = splitter.trimEnd();
+                    if (vsubLs.size() == 2 && vsubLs.back().length() < snapDist) {
+                        antennaGeom = vsubLs.front();
+                        continue;
+                    }
+                }
+
+                // sinon calculer la projection
+                double maxDist = snapDist;
+                double maxOrthoDist = snapDist/2;
+                ign::geometry::Point maxPt;
+                ign::geometry::Point maxOrthoPt;
+                
+                for ( size_t i = 0 ; i < mlsEdgesAround.numGeometries() ; ++i ) {     
+                    ign::geometry::LineString const& edgeGeom = mlsEdgesAround.lineStringN(i);
 
                     // projection ortho
                     ign::geometry::Point projOrthoPt;
@@ -284,6 +310,9 @@ namespace app
                     bool foundNewPt = false;
                     std::vector< ign::geometry::Point > vPtIntersect = epg::tools::geometry::LineIntersector::compute(dangleEndPoint, dangleNextPoint, edgeGeom);
                     for (std::vector< ign::geometry::Point >::iterator vit2 = vPtIntersect.begin(); vit2 != vPtIntersect.end(); ++vit2) {
+                        ign::math::Line2d line(dangleNextPoint.toVec2d(), dangleEndPoint.toVec2d());
+                        double abs = line.project(vit2->toVec2d());
+                        if (abs < 0) continue;
                         double distance = dangleEndPoint.distance(*vit2);
                         if (distance < maxDist) {
                             maxDist = distance;
@@ -305,28 +334,44 @@ namespace app
 
                 if (maxPt.isEmpty()) continue;
 
-                // deformation
+                // remplacement du point extremité
+                if (dangleEndPoint == antennaGeom.startPoint()) {
+                    double z = antennaGeom.startPoint().z();
+                    antennaGeom.startPoint() = maxPt;
+                    antennaGeom.startPoint().setZ(z);
+                } else {
+                    double z = antennaGeom.endPoint().z();
+                    antennaGeom.endPoint() = maxPt;
+                    antennaGeom.endPoint().setZ(z);
+                }
+
+                // deformation  
+                // std::string edgeId = graph.origins(vpit->second.begin()->descriptor)[0];
+                // ign::feature::Feature fEdge;
+                // _fsEdge->getFeatureById(edgeId, fEdge);
+                // ign::geometry::LineString edgeGeom = fEdge.getGeometry().asLineString();
+
+                // ign::math::Vec2d vectDeform = maxPt.toVec2d() - dangleEndPoint.toVec2d();
+
+                // bool deformAtSource = edgeGeom.startPoint().distance(dangleEndPoint) < 1e-5;
+                
+                // ign::math::Vec2d vectSource = deformAtSource ? vectDeform : ign::math::Vec2d();
+                // ign::math::Vec2d vectTarget = !deformAtSource ? vectDeform : ign::math::Vec2d();
+                // lineStringDeformer.deform(vectSource, vectTarget, edgeGeom);
+
                 std::string edgeId = graph.origins(vpit->second.begin()->descriptor)[0];
                 ign::feature::Feature fEdge;
                 _fsEdge->getFeatureById(edgeId, fEdge);
-                ign::geometry::LineString edgeGeom = fEdge.getGeometry().asLineString();
 
-                ign::math::Vec2d vectDeform = maxPt.toVec2d() - dangleEndPoint.toVec2d();
-
-                bool deformAtSource = edgeGeom.startPoint().distance(dangleEndPoint) < 1e-5;
-                
-                ign::math::Vec2d vectSource = deformAtSource ? vectDeform : ign::math::Vec2d();
-                ign::math::Vec2d vectTarget = !deformAtSource ? vectDeform : ign::math::Vec2d();
-                lineStringDeformer.deform(vectSource, vectTarget, edgeGeom);
-
-                fEdge.setGeometry(edgeGeom);
+                fEdge.setGeometry(antennaGeom);
                 _fsEdge->modifyFeature(fEdge);
 
-                _shapeLogger->writeFeature("ec_displaced_antennas", fEdge);
+                _shapeLogger->writeFeature("ec_projected_antennas", fEdge);
             }
 
             for (size_t i = 0 ; i < vCountry.size() ; ++i) {
                 _loadGraphAndPlanarize(graphManager, vCountry[i]);
+                std::string otherCountry = vCountry.front() == vCountry[i] ? vCountry.back() : vCountry.front();
 
                 boost::progress_display display3(graph.numLinearOrigins(), std::cout, "[ split edges  % complete ]\n");
 
@@ -346,6 +391,7 @@ namespace app
 
                     ign::feature::Feature featOrigin;
                     _fsEdge->getFeatureById(*oit, featOrigin);
+                    std::string country = featOrigin.getAttribute(countryCodeName).toString();
 
                     ign::geometry::LineString originGeom = featOrigin.getGeometry().asLineString();
                     geometry::tools::LengthIndexedLineString originLengthIndexedGeom(originGeom);
@@ -355,6 +401,46 @@ namespace app
                     double previousZ = originGeom.startPoint().z();
                     for (size_t i = 0 ; i < foundInducedEdges.second.size() ; ++i) {
                         ign::geometry::LineString inducedEdgeGeom = graph.getGeometry(foundInducedEdges.second[i]);
+
+                        //on enleve tous les dangles aux extremités
+                        if ( 
+                            i == 0 && graph.degree(graph.source(foundInducedEdges.second[i])) == 1 ||
+                            i == foundInducedEdges.second.size()-1 && graph.degree(graph.target(foundInducedEdges.second[i])) == 1
+                        ) {
+                            ign::geometry::Point dangleEndPoint = i == 0 ? 
+                                graph.getGeometry(graph.source(foundInducedEdges.second[i])):
+                                graph.getGeometry(graph.target(foundInducedEdges.second[i]));
+
+                            std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomPtr.find(country);
+                            if (mit == _mCountryGeomPtr.end()) {
+                                _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
+                            } else {
+                                if( !mit->second->intersects(dangleEndPoint) || inducedEdgeGeom.length() < 5 /*todo : a parametrer*/) {
+                                    ign::feature::Feature feat;
+                                    feat.setGeometry(inducedEdgeGeom);
+                                    _shapeLogger->writeFeature("ec_trimed_edges_parts", feat);
+
+                                    continue;
+                                }
+                            }
+                            // ou si hausdorff avec edges alentours < 5 ?
+                            double threshold = 5; /* a parametrer*/
+
+                            // on recupere les edges voisins appartenant à l'autre pays
+                            ign::geometry::MultiLineString mlsOtherCountryEdgesAround;
+                            ign::feature::FeatureFilter filter(countryCodeName +" = '"+otherCountry+"'");
+                            ign::geometry::Polygon bbox = inducedEdgeGeom.getEnvelope().expandBy(2*threshold).toPolygon();
+                            epg::tools::FilterTools::addAndConditions(filter, "ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + bbox.toString() + "'),3035))");
+                            ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
+                            while (itEdge->hasNext())
+                            {
+                                ign::feature::Feature const& fEdge = itEdge->next();
+                                ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
+                                mlsOtherCountryEdgesAround.addGeometry(edgeGeom);
+                            }
+                            if (ign::geometry::algorithm::HausdorffDistanceOp::distance(inducedEdgeGeom, mlsOtherCountryEdgesAround) < threshold)
+                                continue;
+                        }
 
                         inducedEdgeGeom.startPoint().z() = previousZ;
                         double nextZ = i != foundInducedEdges.second.size()-1 ? _getZ(originLengthIndexedGeom, inducedEdgeGeom.endPoint()) : originGeom.endPoint().z();;

@@ -474,7 +474,7 @@ namespace app
                     }
 
                     vLs[i].startPoint().z() = previousZ;
-                    double nextZ = i != vLs[i].size()-1 ? _getZ(originLengthIndexedGeom, vLs[i].endPoint()) : originGeom.endPoint().z();;
+                    double nextZ = i != vLs.size()-1 ? _getZ(originLengthIndexedGeom, vLs[i].endPoint()) : originGeom.endPoint().z();;
                     vLs[i].endPoint().z() = nextZ;
                     previousZ = nextZ;
 

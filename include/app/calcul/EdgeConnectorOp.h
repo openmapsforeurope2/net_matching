@@ -82,6 +82,12 @@ namespace calcul{
 		void _compute();
 
 		//--
+		bool _isCuttingPoint(
+            app::calcul::detail::EdgeCleaningGraphManager & graphManager,
+            vertex_descriptor v
+        ) const;
+
+		//--
 		void _loadGraph(
 			app::calcul::detail::EdgeCleaningGraphManager & graphManager,
 			bool planarize,
@@ -90,8 +96,8 @@ namespace calcul{
 
 		//--
 		void _loadGraphAndPlanarize(
-            app::calcul::detail::EdgeCleaningGraphManager & graphManager,
-            std::string const& countryCode
+            app::calcul::detail::EdgeCleaningGraphManager & graphManager/*,
+            std::string const& countryCode*/
         ) const;
 
 		//--

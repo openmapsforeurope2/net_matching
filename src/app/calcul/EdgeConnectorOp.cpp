@@ -160,6 +160,8 @@ namespace app
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
             double const snapDist = themeParameters->getValue(EC_SNAP_DIST).toDouble();
             double const snap2EdgeEndingsDist = themeParameters->getValue(EC_SNAP_2_EDGE_END_DIST).toDouble();
+            double const antennaMinLength = themeParameters->getValue( ECL_ANTENNA_MIN_LENGTH ).toDouble();
+            double const antennaMinDist2Neighbor = themeParameters->getValue( ECL_ANTENNA_MIN_DIST_2_NEIGHBOR ).toDouble();
 
             std::vector<std::string> vCountry;
 		    epg::tools::StringTools::Split(_borderCode, "#", vCountry);
@@ -369,91 +371,136 @@ namespace app
                 _shapeLogger->writeFeature("ec_projected_antennas", fEdge);
             }
 
-            for (size_t i = 0 ; i < vCountry.size() ; ++i) {
-                _loadGraphAndPlanarize(graphManager, vCountry[i]);
-                std::string otherCountry = vCountry.front() == vCountry[i] ? vCountry.back() : vCountry.front();
+            _loadGraphAndPlanarize(graphManager/*, vCountry[i]*/);
+            // std::string otherCountry = vCountry.front() == vCountry[i] ? vCountry.back() : vCountry.front();
 
-                boost::progress_display display3(graph.numLinearOrigins(), std::cout, "[ split edges  % complete ]\n");
+            boost::progress_display display3(graph.numLinearOrigins(), std::cout, "[ split edges  % complete ]\n");
 
-                linear_origin_iterator oit, oend; 
-                graph.origins( oit, oend );
-                for( graph.origins( oit, oend ) ; oit != oend ; ++oit )
-                {
-                    ++display3;
+            linear_origin_iterator oit, oend; 
+            graph.origins( oit, oend );
+            for( graph.origins( oit, oend ) ; oit != oend ; ++oit )
+            {
+                ++display3;
 
-                    std::pair< bool, std::vector< oriented_edge_descriptor >> foundInducedEdges = graph.getInducedEdges( *oit );
-                    if (!foundInducedEdges.first) {
-                        _logger->log(epg::log::ERROR, "No induced edges for edge [id] " + *oit);
-                        continue;
-                    }
+                std::pair< bool, std::vector< oriented_edge_descriptor >> foundInducedEdges = graph.getInducedEdges( *oit );
+                if (!foundInducedEdges.first) {
+                    _logger->log(epg::log::ERROR, "No induced edges for edge [id] " + *oit);
+                    continue;
+                }
 
-                    if( foundInducedEdges.second.size() < 2 ) continue;
+                if( foundInducedEdges.second.size() < 2 ) continue;
 
-                    ign::feature::Feature featOrigin;
-                    _fsEdge->getFeatureById(*oit, featOrigin);
-                    std::string country = featOrigin.getAttribute(countryCodeName).toString();
+                ign::feature::Feature featOrigin;
+                _fsEdge->getFeatureById(*oit, featOrigin);
+                std::string country = featOrigin.getAttribute(countryCodeName).toString();
+                std::string otherCountry = vCountry.front() == country ? vCountry.back() : vCountry.front();
 
-                    ign::geometry::LineString originGeom = featOrigin.getGeometry().asLineString();
-                    geometry::tools::LengthIndexedLineString originLengthIndexedGeom(originGeom);
+                ign::geometry::LineString originGeom = featOrigin.getGeometry().asLineString();
+                geometry::tools::LengthIndexedLineString originLengthIndexedGeom(originGeom);
 
-                    _fsEdge->deleteFeature(*oit);
+                // on fusionne les subEdges si les coupures sont causées par des edges du meme pays
+                std::vector< ign::geometry::LineString > vLs;
+                std::vector< std::pair<vertex_descriptor, vertex_descriptor >> vpSourceTarget;
+                vLs.push_back(graph.getGeometry(foundInducedEdges.second.front()));
+                vertex_descriptor currentSource = graph.source(foundInducedEdges.second.front());
+                for (size_t i = 1 ; i < foundInducedEdges.second.size() ; ++i) {
+                    if( _isCuttingPoint(graphManager, graph.source(foundInducedEdges.second[i]) ) ) {
+                        vLs.push_back(graph.getGeometry(foundInducedEdges.second[i]));
+                        vertex_descriptor source = graph.source(foundInducedEdges.second[i]);
+                        vpSourceTarget.push_back(std::make_pair(currentSource, source));
+                        currentSource = source;
 
-                    double previousZ = originGeom.startPoint().z();
-                    for (size_t i = 0 ; i < foundInducedEdges.second.size() ; ++i) {
-                        ign::geometry::LineString inducedEdgeGeom = graph.getGeometry(foundInducedEdges.second[i]);
-
-                        //on enleve tous les dangles aux extremités
-                        if ( 
-                            i == 0 && graph.degree(graph.source(foundInducedEdges.second[i])) == 1 ||
-                            i == foundInducedEdges.second.size()-1 && graph.degree(graph.target(foundInducedEdges.second[i])) == 1
-                        ) {
-                            ign::geometry::Point dangleEndPoint = i == 0 ? 
-                                graph.getGeometry(graph.source(foundInducedEdges.second[i])):
-                                graph.getGeometry(graph.target(foundInducedEdges.second[i]));
-
-                            std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomPtr.find(country);
-                            if (mit == _mCountryGeomPtr.end()) {
-                                _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
-                            } else {
-                                if( !mit->second->intersects(dangleEndPoint) || inducedEdgeGeom.length() < 5 /*todo : a parametrer*/) {
-                                    ign::feature::Feature feat;
-                                    feat.setGeometry(inducedEdgeGeom);
-                                    _shapeLogger->writeFeature("ec_trimed_edges_parts", feat);
-
-                                    continue;
-                                }
-                            }
-                            // ou si hausdorff avec edges alentours < 5 ?
-                            double threshold = 5; /* a parametrer*/
-
-                            // on recupere les edges voisins appartenant à l'autre pays
-                            ign::geometry::MultiLineString mlsOtherCountryEdgesAround;
-                            ign::feature::FeatureFilter filter(countryCodeName +" = '"+otherCountry+"'");
-                            ign::geometry::Polygon bbox = inducedEdgeGeom.getEnvelope().expandBy(2*threshold).toPolygon();
-                            epg::tools::FilterTools::addAndConditions(filter, "ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + bbox.toString() + "'),3035))");
-                            ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
-                            while (itEdge->hasNext())
-                            {
-                                ign::feature::Feature const& fEdge = itEdge->next();
-                                ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
-                                mlsOtherCountryEdgesAround.addGeometry(edgeGeom);
-                            }
-                            if (ign::geometry::algorithm::HausdorffDistanceOp::distance(inducedEdgeGeom, mlsOtherCountryEdgesAround) < threshold)
-                                continue;
+                    } else {
+                        ign::geometry::LineString eGeom = graph.getGeometry(foundInducedEdges.second[i]);
+                        for ( size_t j = 1 ; j < eGeom.numPoints() ; ++j ) {
+                            vLs.back().addPoint(eGeom.pointN(j));
                         }
-
-                        inducedEdgeGeom.startPoint().z() = previousZ;
-                        double nextZ = i != foundInducedEdges.second.size()-1 ? _getZ(originLengthIndexedGeom, inducedEdgeGeom.endPoint()) : originGeom.endPoint().z();;
-                        inducedEdgeGeom.endPoint().z() = nextZ;
-                        previousZ = nextZ;
-
-                        featOrigin.setGeometry(inducedEdgeGeom);
-                        _fsEdge->createFeature(featOrigin);
-
-                        _shapeLogger->writeFeature("ec_split_edges", featOrigin);
                     }
                 }
-            }  
+                vpSourceTarget.push_back(std::make_pair(currentSource, graph.target(foundInducedEdges.second.back())));
+
+                if (vLs.size() == 1) continue;
+
+                _fsEdge->deleteFeature(*oit);
+
+                double previousZ = originGeom.startPoint().z();
+                for (size_t i = 0 ; i < vLs.size() ; ++i) {
+                    //on enleve tous les dangles aux extremités
+                    if ( 
+                        i == 0 && graph.degree(vpSourceTarget[i].first) == 1 ||
+                        i == vLs.size()-1 && graph.degree(vpSourceTarget[i].second) == 1
+                    ) {
+                        ign::geometry::Point dangleEndPoint = i == 0 ? 
+                            graph.getGeometry(vpSourceTarget[i].first):
+                            graph.getGeometry(vpSourceTarget[i].second);
+
+                        std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomPtr.find(country);
+                        if (mit == _mCountryGeomPtr.end()) {
+                            _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
+                        } else {
+                            if( !mit->second->intersects(dangleEndPoint) || vLs[i].length() < antennaMinLength) {
+                                ign::feature::Feature feat;
+                                feat.setGeometry(vLs[i]);
+                                _shapeLogger->writeFeature("ec_trimed_edges_parts", feat);
+
+                                continue;
+                            }
+                        }
+                        // ou si hausdorff avec edges alentours < 5 ?
+
+                        // on recupere les edges voisins appartenant à l'autre pays
+                        ign::geometry::MultiLineString mlsOtherCountryEdgesAround;
+                        // ign::feature::FeatureFilter filter(countryCodeName +" = '"+otherCountry+"'");
+                        // ign::geometry::Polygon bbox = inducedEdgeGeom.getEnvelope().expandBy(2*threshold).toPolygon();
+                        // epg::tools::FilterTools::addAndConditions(filter, "ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + bbox.toString() + "'),3035))");
+                        // ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
+                        // while (itEdge->hasNext())
+                        // {
+                        //     ign::feature::Feature const& fEdge = itEdge->next();
+                        //     ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
+                        //     mlsOtherCountryEdgesAround.addGeometry(edgeGeom);
+                        // }
+                        ign::geometry::Envelope bbox = vLs[i].getEnvelope().expandBy(2*antennaMinDist2Neighbor);
+                        std::set< edge_descriptor > sEdgesAround;
+                        graph.getEdges(bbox, sEdgesAround);
+                        for ( std::set< edge_descriptor >::const_iterator sit = sEdgesAround.begin() ; sit != sEdgesAround.end() ; ++sit) {
+                            if (graphManager.getCountry(*sit) == otherCountry) {
+                                mlsOtherCountryEdgesAround.addGeometry(graph.getGeometry(*sit));
+                            }
+                        }
+
+                        if (ign::geometry::algorithm::HausdorffDistanceOp::distance(vLs[i], mlsOtherCountryEdgesAround) < antennaMinDist2Neighbor)
+                            continue;
+                    }
+
+                    vLs[i].startPoint().z() = previousZ;
+                    double nextZ = i != foundInducedEdges.second.size()-1 ? _getZ(originLengthIndexedGeom, vLs[i].endPoint()) : originGeom.endPoint().z();;
+                    vLs[i].endPoint().z() = nextZ;
+                    previousZ = nextZ;
+
+                    featOrigin.setGeometry(vLs[i]);
+                    _fsEdge->createFeature(featOrigin);
+
+                    _shapeLogger->writeFeature("ec_split_edges", featOrigin);
+                }
+            }
+        }
+
+        ///
+        ///
+        ///
+        bool EdgeConnectorOp::_isCuttingPoint(
+            app::calcul::detail::EdgeCleaningGraphManager & graphManager,
+            vertex_descriptor v
+        ) const {
+            std::vector< oriented_edge_descriptor > vEdges;
+            graphManager.getGraph().incidentEdges( v, vEdges );
+            std::string country = graphManager.getCountry(vEdges.front().descriptor);
+            for (size_t i = 1 ; i < vEdges.size() ; ++i) {
+                if (graphManager.getCountry(vEdges[i].descriptor) != country)
+                    return true;
+            }
+            return false;
         }
 
         ///
@@ -469,29 +516,30 @@ namespace app
         ///
         ///
         void EdgeConnectorOp::_loadGraphAndPlanarize(
-            app::calcul::detail::EdgeCleaningGraphManager & graphManager,
-            std::string const& countryCode
+            app::calcul::detail::EdgeCleaningGraphManager & graphManager/*,
+            std::string const& countryCode*/
             ) const 
         {
             epg::Context *context = epg::ContextS::getInstance();
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
-            std::string const geomName = epgParams.getValue(GEOM).toString();
+            // std::string const geomName = epgParams.getValue(GEOM).toString();
             std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
 
             graphManager.clear();
 
-            std::vector<std::string> vCountry;
-		    epg::tools::StringTools::Split(_borderCode, "#", vCountry);
-            std::string otherCountry = vCountry.front() == countryCode ? vCountry.back() : vCountry.front();
+            // std::vector<std::string> vCountry;
+		    // epg::tools::StringTools::Split(_borderCode, "#", vCountry);
+            // std::string otherCountry = vCountry.front() == countryCode ? vCountry.back() : vCountry.front();
 
-            std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomPtr.find(countryCode);
-            if (mit == _mCountryGeomPtr.end()) {
-                _logger->log(epg::log::ERROR, "Unknown country [country code] " + countryCode);
-                return;
-            }
+            // std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomPtr.find(countryCode);
+            // if (mit == _mCountryGeomPtr.end()) {
+            //     _logger->log(epg::log::ERROR, "Unknown country [country code] " + countryCode);
+            //     return;
+            // }
 
-            ign::feature::FeatureFilter filter(countryCodeName +" = '"+otherCountry+"'");
-            epg::tools::FilterTools::addAndConditions(filter, "ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + mit->second->toString() + "'),3035))");
+            // ign::feature::FeatureFilter filter(countryCodeName +" = '"+otherCountry+"'");
+            ign::feature::FeatureFilter filter;
+            // epg::tools::FilterTools::addAndConditions(filter, "ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + mit->second->toString() + "'),3035))");
 
             int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, filter);
             boost::progress_display display(numFeatures, std::cout, "[ edge_loading  % complete ]\n");
@@ -508,20 +556,20 @@ namespace app
 
                 graphManager.addEdge(edgeGeom, edgeId, OriginEdgeProperties(country, isCl));
 
-                ign::feature::FeatureFilter filter2(countryCodeName +" = '"+countryCode+"'");
-                epg::tools::FilterTools::addAndConditions(filter2, "ST_DISTANCE(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + edgeGeom.toString() + "'),3035)) < 0.001");
+                // ign::feature::FeatureFilter filter2(countryCodeName +" = '"+countryCode+"'");
+                // epg::tools::FilterTools::addAndConditions(filter2, "ST_DISTANCE(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + edgeGeom.toString() + "'),3035)) < 0.001");
 
-                ign::feature::FeatureIteratorPtr itEdge2 = _fsEdge->getFeatures(filter2);
-                while (itEdge2->hasNext())
-                {
-                    ign::feature::Feature const& fEdge2 = itEdge2->next();
-                    ign::geometry::LineString const& edgeGeom2 = fEdge2.getGeometry().asLineString();
-                    std::string edgeId2 = fEdge2.getId();
-                    std::string country2 = fEdge2.getAttribute(countryCodeName).toString();
-                    bool isCl2 = country2.find("#") != std::string::npos;
+                // ign::feature::FeatureIteratorPtr itEdge2 = _fsEdge->getFeatures(filter2);
+                // while (itEdge2->hasNext())
+                // {
+                //     ign::feature::Feature const& fEdge2 = itEdge2->next();
+                //     ign::geometry::LineString const& edgeGeom2 = fEdge2.getGeometry().asLineString();
+                //     std::string edgeId2 = fEdge2.getId();
+                //     std::string country2 = fEdge2.getAttribute(countryCodeName).toString();
+                //     bool isCl2 = country2.find("#") != std::string::npos;
 
-                    graphManager.addEdge(edgeGeom2, edgeId2, OriginEdgeProperties(country2, isCl2));
-                }
+                //     graphManager.addEdge(edgeGeom2, edgeId2, OriginEdgeProperties(country2, isCl2));
+                // }
             }
 
             graphManager.planarize();

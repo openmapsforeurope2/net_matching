@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCode, verbose);
         std::set<std::string> sTreatedFeatures;
         edgeCleaningOp.cleanFaces();
-        edgeCleaningOp.cleanPathsOutOfCountry();
+        // edgeCleaningOp.cleanPathsOutOfCountry();
         edgeCleaningOp.cleanParalelleEdges();
         edgeCleaningOp.cleanFacesAndAntennaByCountry(sTreatedFeatures);
 

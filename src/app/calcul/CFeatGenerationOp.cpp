@@ -111,7 +111,8 @@ void app::calcul::CFeatGenerationOp::computeCL()
 	_mergeIntersectingClWithGraph(distMaxEdges, snapProjCl2edge);
 //	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresmerge", "", false, true);
 
-//	_snapCl2Cl( distMaxClClosest);
+	//_snapClClNearByOnBorder();
+	_snapCl2Cl( distMaxClClosest);
 
 	//_getClDoublonGeom();
 	_deleteClByAngleAndDistEdges(angleMaxEdges, distMaxEdges, snapProjCl2edge);
@@ -1245,63 +1246,78 @@ void  app::calcul::CFeatGenerationOp::_snapCl2Cl(
 	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCL);
 	boost::progress_display displayLoad(numFeatures, std::cout, "[ SNAP CL 2 CL]\n");
 
+	GraphType graphCl;
+	_loadGraphCL(graphCl);
+
 	std::map<std::string,ign::feature::Feature> mFClModified;
 	while (itCL->hasNext()) {
 		++displayLoad;
 		ign::feature::Feature fCL = itCL->next();
 		ign::geometry::LineString lsCl = fCL.getGeometry().asLineString();
-		
-		ign::feature::Feature fCl2snapStart;
-		bool isClosestStartCl2snapStart;
-		bool hasClCandidate2snapStart = _hasClExtremityClose( distMaxClClosest, fCL, lsCl.startPoint(), fCl2snapStart, isClosestStartCl2snapStart);
 
-		if (hasClCandidate2snapStart) {
-			ign::geometry::LineString lsCl2snapStart = fCl2snapStart.getGeometry().asLineString();
-			ign::geometry::MultiPoint mp;
-			mp.addGeometry(lsCl.startPoint());
-			if(isClosestStartCl2snapStart)
-				mp.addGeometry(lsCl2snapStart.startPoint());
-			else 
-				mp.addGeometry(lsCl2snapStart.endPoint());
+		edge_descriptor edCl = graphCl.getInducedEdges(fCL.getId()).second[0].descriptor;
 
-			ign::geometry::Point pt2Modif = mp.asMultiPoint().getCentroid();
+		if(graphCl.degree(graphCl.source(edCl)) == 1) {
+			ign::feature::Feature fCl2snapStart;
+			bool isClosestStartCl2snapStart;
+			bool hasClCandidate2snapStart = _hasClExtremityClose( distMaxClClosest, fCL, lsCl.startPoint(), fCl2snapStart, isClosestStartCl2snapStart);
 
-			lsCl.setPointN(pt2Modif, 0);
-			if (isClosestStartCl2snapStart)
-				lsCl2snapStart.setPointN(pt2Modif, 0);
-			else
-				lsCl2snapStart.setPointN(pt2Modif, lsCl2snapStart.numPoints() - 1);
+			if (hasClCandidate2snapStart) {
+				if (mFClModified.find(fCl2snapStart.getId()) != mFClModified.end()) //modif deja faite
+					continue;
+				ign::geometry::LineString lsCl2snapStart = fCl2snapStart.getGeometry().asLineString();
+				ign::geometry::MultiPoint mp;
+				mp.addGeometry(lsCl.startPoint());
+				if(isClosestStartCl2snapStart)
+					mp.addGeometry(lsCl2snapStart.startPoint());
+				else 
+					mp.addGeometry(lsCl2snapStart.endPoint());
 
-			fCL.setGeometry(lsCl);
-			fCl2snapStart.setGeometry(lsCl2snapStart);
-			mFClModified[fCL.getId()] = fCL;
-			mFClModified[fCl2snapStart.getId()]= fCl2snapStart;
+				ign::geometry::Point pt2Modif = mp.asMultiPoint().getCentroid();
+				pt2Modif.setZ(0);
+
+				lsCl.setPointN(pt2Modif, 0);
+				if (isClosestStartCl2snapStart)
+					lsCl2snapStart.setPointN(pt2Modif, 0);
+				else
+					lsCl2snapStart.setPointN(pt2Modif, lsCl2snapStart.numPoints() - 1);
+
+				fCL.setGeometry(lsCl);
+				fCl2snapStart.setGeometry(lsCl2snapStart);
+				mFClModified[fCL.getId()] = fCL;
+				mFClModified[fCl2snapStart.getId()]= fCl2snapStart;
+			}
+
 		}
-			
-		ign::feature::Feature fCl2snapEnd;
-		bool isClosestStartCl2snapEnd;
-		bool hasClCandidate2snapEnd= _hasClExtremityClose( distMaxClClosest, fCL, lsCl.endPoint(), fCl2snapEnd, isClosestStartCl2snapEnd);
-		if (hasClCandidate2snapEnd) {
-			ign::geometry::LineString lsCl2snapEnd = fCl2snapEnd.getGeometry().asLineString();
-			ign::geometry::MultiPoint mp;
-			mp.addGeometry(lsCl.endPoint());
-			if (isClosestStartCl2snapEnd)
-				mp.addGeometry(lsCl2snapEnd.startPoint());
-			else
-				mp.addGeometry(lsCl2snapEnd.endPoint());
+		if (graphCl.degree(graphCl.target(edCl)) == 1) {
+			ign::feature::Feature fCl2snapEnd;
+			bool isClosestStartCl2snapEnd;
+			bool hasClCandidate2snapEnd = _hasClExtremityClose(distMaxClClosest, fCL, lsCl.endPoint(), fCl2snapEnd, isClosestStartCl2snapEnd);
+			if (hasClCandidate2snapEnd) {
+				if (mFClModified.find(fCl2snapEnd.getId()) != mFClModified.end()) //modif deja faite
+					continue;
+				ign::geometry::LineString lsCl2snapEnd = fCl2snapEnd.getGeometry().asLineString();
+				ign::geometry::MultiPoint mp;
+				mp.addGeometry(lsCl.endPoint());
+				if (isClosestStartCl2snapEnd)
+					mp.addGeometry(lsCl2snapEnd.startPoint());
+				else
+					mp.addGeometry(lsCl2snapEnd.endPoint());
 
-			ign::geometry::Point pt2Modif = mp.asMultiPoint().getCentroid();
+				ign::geometry::Point pt2Modif = mp.asMultiPoint().getCentroid();
+				pt2Modif.setZ(0);
 
-			lsCl.setPointN(pt2Modif, lsCl.numPoints() - 1);
-			if (isClosestStartCl2snapEnd)
-				lsCl2snapEnd.setPointN(pt2Modif, 0);
-			else
-				lsCl2snapEnd.setPointN(pt2Modif, lsCl2snapEnd.numPoints() - 1);
+				lsCl.setPointN(pt2Modif, lsCl.numPoints() - 1);
+				if (isClosestStartCl2snapEnd)
+					lsCl2snapEnd.setPointN(pt2Modif, 0);
+				else
+					lsCl2snapEnd.setPointN(pt2Modif, lsCl2snapEnd.numPoints() - 1);
 
-			fCL.setGeometry(lsCl);
-			fCl2snapEnd.setGeometry(lsCl2snapEnd);
-			mFClModified[fCL.getId()] = fCL;
-			mFClModified[fCl2snapEnd.getId()] = fCl2snapEnd;
+				fCL.setGeometry(lsCl);
+				fCl2snapEnd.setGeometry(lsCl2snapEnd);
+				mFClModified[fCL.getId()] = fCL;
+				mFClModified[fCl2snapEnd.getId()] = fCl2snapEnd;
+			}
 		}
 	}
 
@@ -1404,8 +1420,8 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 		}
 
 		//debug
-		// if (vClOrigins[0] == "CONNECTINGLINE2" && vClOrigins[1] == "CONNECTINGLINE5")
-		// 	bool bStop = true;
+		//if (vClOrigins[0] == "CONNECTINGLINE15" || vClOrigins[1] == "CONNECTINGLINE15")
+		//	bool bStop = true;
 
 		std::map<std::string, ign::feature::Feature> mIdClOriginsCountry1, mIdClOriginsCountry2;
 

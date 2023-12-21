@@ -399,31 +399,39 @@ namespace app
                 geometry::tools::LengthIndexedLineString originLengthIndexedGeom(originGeom);
 
                 // on fusionne les subEdges si les coupures sont causées par des edges du meme pays
-                std::vector< ign::geometry::LineString > vLs;
                 std::vector< std::pair<vertex_descriptor, vertex_descriptor >> vpSourceTarget;
-                vLs.push_back(graph.getGeometry(foundInducedEdges.second.front()));
+                // vLs.push_back(graph.getGeometry(foundInducedEdges.second.front()));
                 vertex_descriptor currentSource = graph.source(foundInducedEdges.second.front());
                 for (size_t i = 1 ; i < foundInducedEdges.second.size() ; ++i) {
-                    if( _isCuttingPoint(graphManager, graph.source(foundInducedEdges.second[i]) ) ) {
-                        vLs.push_back(graph.getGeometry(foundInducedEdges.second[i]));
-                        vertex_descriptor source = graph.source(foundInducedEdges.second[i]);
-                        vpSourceTarget.push_back(std::make_pair(currentSource, source));
-                        currentSource = source;
+                    if( !_isCuttingPoint(graphManager, graph.source(foundInducedEdges.second[i]) ) ) continue;
 
-                    } else {
-                        ign::geometry::LineString eGeom = graph.getGeometry(foundInducedEdges.second[i]);
-                        for ( size_t j = 1 ; j < eGeom.numPoints() ; ++j ) {
-                            vLs.back().addPoint(eGeom.pointN(j));
-                        }
-                    }
+                    vertex_descriptor source = graph.source(foundInducedEdges.second[i]);
+                    vpSourceTarget.push_back(std::make_pair(currentSource, source));
+                    currentSource = source;
                 }
                 vpSourceTarget.push_back(std::make_pair(currentSource, graph.target(foundInducedEdges.second.back())));
 
-                if (vLs.size() == 1) continue;
+                if (vpSourceTarget.size() == 1) continue;
+
+                std::vector< ign::geometry::LineString > vLs;
+                double startAbs = originLengthIndexedGeom.project(graph.getGeometry(vpSourceTarget.front().first));
+                for ( std::vector< std::pair<vertex_descriptor, vertex_descriptor >>::const_iterator vpit = vpSourceTarget.begin() ; vpit != vpSourceTarget.end() ; ++vpit ) {
+                    double endAbs = originLengthIndexedGeom.project(graph.getGeometry(vpit->second));
+                    vLs.push_back(originLengthIndexedGeom.getSubLineString(startAbs, endAbs));
+                    startAbs = endAbs;
+
+                    // pour la robustesse
+                    if (vpit != vpSourceTarget.begin() ) {
+                        vLs.back().startPoint() = vLs[vLs.size()-2].endPoint();
+                    }
+                }
+                // pour le robustesse
+                vLs.front().startPoint() = originGeom.startPoint();
+                vLs.back().endPoint() = originGeom.endPoint();
 
                 _fsEdge->deleteFeature(*oit);
 
-                double previousZ = originGeom.startPoint().z();
+                // double previousZ = originGeom.startPoint().z();
                 for (size_t i = 0 ; i < vLs.size() ; ++i) {
                     //on enleve tous les dangles aux extremités
                     if ( 
@@ -473,10 +481,10 @@ namespace app
                             continue;
                     }
 
-                    vLs[i].startPoint().z() = previousZ;
-                    double nextZ = i != vLs.size()-1 ? _getZ(originLengthIndexedGeom, vLs[i].endPoint()) : originGeom.endPoint().z();;
-                    vLs[i].endPoint().z() = nextZ;
-                    previousZ = nextZ;
+                    // vLs[i].startPoint().z() = previousZ;
+                    // double nextZ = i != vLs.size()-1 ? _getZ(originLengthIndexedGeom, vLs[i].endPoint()) : originGeom.endPoint().z();;
+                    // vLs[i].endPoint().z() = nextZ;
+                    // previousZ = nextZ;
 
                     featOrigin.setGeometry(vLs[i]);
                     _fsEdge->createFeature(featOrigin);

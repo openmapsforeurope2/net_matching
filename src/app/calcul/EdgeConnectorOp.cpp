@@ -417,9 +417,27 @@ namespace app
                 std::vector< ign::geometry::LineString > vLs;
                 double startAbs = originLengthIndexedGeom.project(graph.getGeometry(vpSourceTarget.front().first));
                 for ( std::vector< std::pair<vertex_descriptor, vertex_descriptor >>::const_iterator vpit = vpSourceTarget.begin() ; vpit != vpSourceTarget.end() ; ++vpit ) {
-                    double endAbs = originLengthIndexedGeom.project(graph.getGeometry(vpit->second));
+                    ign::geometry::Point endPoint = graph.getGeometry(vpit->second);
+                    double endAbs = originLengthIndexedGeom.project(endPoint);
                     vLs.push_back(originLengthIndexedGeom.getSubLineString(startAbs, endAbs));
+
+                    double z = vLs.back().endPoint().z();
+                    vLs.back().endPoint() = endPoint;
+                    vLs.back().endPoint().z() = z;
+                    
+                    //nettoyage
                     _removeMcoordinate(vLs.back());
+                    if (vLs.back().numPoints() > 2) {
+                        if ( vLs.back().startPoint().distance(vLs.back().pointN(1)) < 0.1 /*TODO: a confirmer*/) {
+                            vLs.back().removePointN(1);
+                        }
+                    }
+                    if (vLs.back().numPoints() > 2) {
+                        if ( vLs.back().endPoint().distance(vLs.back().pointN(vLs.back().numPoints()-2)) < 0.1 /*TODO: a confirmer*/) {
+                            vLs.back().removePointN(vLs.back().numPoints()-2);
+                        }
+                    }
+
                     startAbs = endAbs;
 
                     // pour la robustesse

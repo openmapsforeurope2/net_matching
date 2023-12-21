@@ -82,6 +82,9 @@ namespace calcul{
 		void _compute();
 
 		//--
+		void _removeMcoordinate(ign::geometry::LineString & ls) const;
+
+		//--
 		bool _isCuttingPoint(
             app::calcul::detail::EdgeCleaningGraphManager & graphManager,
             vertex_descriptor v

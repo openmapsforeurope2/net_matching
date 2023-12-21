@@ -27,6 +27,7 @@
 #include <ign/tools/stringtools.h>
 #include <ign/geometry/algorithm/HausdorffDistanceOp.h>
 #include <ign/math/Line2T.h>
+#include <ign/numeric/Numeric.h>
 
 namespace app
 {
@@ -418,6 +419,7 @@ namespace app
                 for ( std::vector< std::pair<vertex_descriptor, vertex_descriptor >>::const_iterator vpit = vpSourceTarget.begin() ; vpit != vpSourceTarget.end() ; ++vpit ) {
                     double endAbs = originLengthIndexedGeom.project(graph.getGeometry(vpit->second));
                     vLs.push_back(originLengthIndexedGeom.getSubLineString(startAbs, endAbs));
+                    _removeMcoordinate(vLs.back());
                     startAbs = endAbs;
 
                     // pour la robustesse
@@ -491,6 +493,16 @@ namespace app
 
                     _shapeLogger->writeFeature("ec_split_edges", featOrigin);
                 }
+            }
+        }
+
+        ///
+        ///
+        ///
+        void EdgeConnectorOp::_removeMcoordinate(ign::geometry::LineString & ls) const {
+            ign::geometry::LineString::iterator lsit;
+            for ( lsit = ls.begin() ; lsit != ls.end() ; ++lsit ) {
+                lsit->m() = ign::numeric::Numeric< double >::NaN();
             }
         }
 

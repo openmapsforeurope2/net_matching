@@ -550,12 +550,7 @@ namespace app
             std::string currentCountry = graphManager.getCountry(currentEdge.descriptor);
             vpCountryEdges.push_back(std::make_pair(currentCountry, std::list<oriented_edge_descriptor>()));
 
-            // _logger->log(epg::log::DEBUG, "cf4");
-
             do{
-                //DEBUG
-                // ign::geometry::LineString ls = graph.getGeometry(currentEdge);
-
                 // on ne doit pas avoir de cl dans la boucle
                 if (graphManager.isCl(currentEdge.descriptor)) {
                     _logger->log(epg::log::WARN, "Loop contains a CL [cl id] "+graph.origins(currentEdge.descriptor)[0]);
@@ -720,7 +715,7 @@ namespace app
                 }
             }
 
-            if (vpCountryEdges.front().first == vpCountryEdges.back().first) {
+            if (vpCountryEdges.size() > 1 && vpCountryEdges.front().first == vpCountryEdges.back().first) {
                 sHasConnection.insert(vpCountryEdges.front().first);
                 std::copy( vpCountryEdges.back().second.rbegin(), vpCountryEdges.back().second.rend(), std::front_inserter( vpCountryEdges.front().second ) );
                 vpCountryEdges.pop_back();
@@ -748,12 +743,7 @@ namespace app
 			{
                 ++display;
 
-                // _logger->log(epg::log::DEBUG, "cf1");
-
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
-
-                // _logger->log(epg::log::DEBUG, faceGeom.toString());
-                // _logger->log(epg::log::DEBUG, "cf2");
 
                 //DEBUG
                 // bool test = false;
@@ -764,17 +754,10 @@ namespace app
                 // _logger->log(epg::log::DEBUG, faceGeom.toString());
                 // if (faceGeom.intersects(ign::geometry::Point(3823392.232,3093616.929))) {
                 //     bool test = true;
-                // }
+                // 
 
 				if (_isSlimSurface(faceGeom, slimSurfaceWidth)) {
-
-                    // _logger->log(epg::log::DEBUG, "cf3");
-
-                    //DEBUG
-                    // if (faceGeom.distance(ign::geometry::Point(4008665.1,2946596.8))<1e-5){
-                    //     bool ts = true;
-                    // }
-
+                    
                     ign::feature::Feature feat;
                     feat.setGeometry(faceGeom);
                     _shapeLogger->writeFeature("ecl_slim_surface", feat);
@@ -782,8 +765,6 @@ namespace app
                     std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
                     if (!_getFacePaths(graphManager, *fit, vpCountryEdges))
                         continue;
-
-                    // _logger->log(epg::log::DEBUG, "cf5");
                     
                     if (vpCountryEdges.size() == 1) {
                         ign::feature::Feature feat;
@@ -795,11 +776,16 @@ namespace app
                         continue;
                     }
 
-                    std::set<std::string> hasConnection = _mergeFacePaths(vpCountryEdges);
+                    std::set<std::string> sFaceCountries;
+                    for (std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>::const_iterator vpit = vpCountryEdges.begin() ; vpit != vpCountryEdges.end() ; ++vpit)
+                        sFaceCountries.insert(vpit->first);
+
+                    std::set<std::string> hasConnection;
+                    if ( sFaceCountries.size() != 1 ) {
+                        hasConnection = _mergeFacePaths(vpCountryEdges);
+                    }
 
                     if (vpCountryEdges.size() != 2) continue;
-
-                    // _logger->log(epg::log::DEBUG, "cf6");
 
                     if (vpCountryEdges.front().first != vpCountryEdges.back().first) {
                         // quel chemin doit-on garder ?
@@ -808,16 +794,12 @@ namespace app
                         double ratio2 = _getRatio(graph, vpCountryEdges.back().first, vpCountryEdges.back().second);
                         bool hasConnection2 = hasConnection.find(vpCountryEdges.back().first) != hasConnection.end();
 
-                        // _logger->log(epg::log::DEBUG, "cf7");
-
                         if ( ratio1 > ratio2 ) {
                             if (!hasConnection2 ) {
-                                // _logger->log(epg::log::DEBUG, "cf8");
                                 _removePath(graph, vpCountryEdges.back().second, sEdge2Remove);
                                 bChangeOccured = true;
                             }
                         } else if ( !hasConnection1 ) {
-                            // _logger->log(epg::log::DEBUG, "cf9");
                             _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
                             bChangeOccured = true;
                         }
@@ -839,14 +821,11 @@ namespace app
                 } else {
                     // grande face
                     // si dans mauvais pays on supprime
-                    // _logger->log(epg::log::DEBUG, "gf1");
 
                     std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
                     if (!_getFacePaths(graphManager, *fit, vpCountryEdges))
                         continue;
 
-                    // _logger->log(epg::log::DEBUG, "gf2");
-                    
                     if (vpCountryEdges.size() == 1) {
                         double ratio = _getRatio(graph, vpCountryEdges.front().first, vpCountryEdges.front().second);
 
@@ -855,18 +834,14 @@ namespace app
                             feat.setGeometry(faceGeom);
                             _shapeLogger->writeFeature("ecl_big_face_removed", feat);
 
-                            // _logger->log(epg::log::DEBUG, "gf3");
                             _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
                             bChangeOccured = true;
                         }
                     }
-                    // _logger->log(epg::log::DEBUG, "gf4");
                 }
 			}
-            // _logger->log(epg::log::DEBUG, "cf10");
             for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
                 graph.removeEdge(*sit);
-            // _logger->log(epg::log::DEBUG, "cf11");
 
             return bChangeOccured;
         }

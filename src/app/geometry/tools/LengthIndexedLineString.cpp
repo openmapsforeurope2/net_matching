@@ -1,5 +1,5 @@
 #include <app/geometry/tools/LengthIndexedLineString.h>
-#include <ign/math/Line3T.h>
+#include <ign/math/Line2T.h>
 
 using namespace app;
 using namespace app::geometry;
@@ -190,7 +190,6 @@ ign::geometry::Point	LengthIndexedLineString::locateAlong( double const& s ) con
 ///
 double  LengthIndexedLineString::project( ign::geometry::Point const& p )const
 {
-	bool pIs3D = p.is3D();
 	double minDistance = std::numeric_limits<double>::max();
 
 	ign::geometry::LineString::const_iterator it1 = _lineString.begin();
@@ -200,16 +199,14 @@ double  LengthIndexedLineString::project( ign::geometry::Point const& p )const
 	double AbsoluteAbs(0.);
 	for( ++it2 ; it2 != _lineString.end() ; ++it1, ++it2 )
 	{
-        ign::math::Vec3d pt1 = it1->toVec3d();
-        ign::math::Vec3d pt2 = it2->toVec3d();
-        if (!_is3d || !pIs3D) {pt1[2]=0; pt2[2]=0;} // on ajoute le z a zero
+        ign::math::Vec2d pt1 = it1->toVec2d();
+        ign::math::Vec2d pt2 = it2->toVec2d();
         
-        ign::math::Line3d line( pt1, pt2);
-        ign::math::Vec3d v = p.toVec3d();
-        if (!_is3d || !pIs3D) {v[2]=0;} // on ajoute le z a zero
+        ign::math::Line2d line( pt1, pt2);
+        ign::math::Vec2d v = p.toVec2d();
             
         double RelativeAbs = line.project( v, true );
-        ign::math::Vec3d vProj = line.interpolate( RelativeAbs ) ;
+        ign::math::Vec2d vProj = line.interpolate( RelativeAbs ) ;
         distance = v.distance2( vProj );
         
         if( distance < minDistance )

@@ -18,7 +18,7 @@
 #include <epg/tools/StringTools.h>
 #include <epg/tools/TimeTools.h>
 #include <epg/tools/geometry/project.h>
-#include <epg/calcul/matching/detail/LineStringSimpleDampedDeformer.h>
+// #include <epg/calcul/matching/detail/LineStringSimpleDampedDeformer.h>
 #include <epg/tools/FilterTools.h>
 #include <epg/tools/geometry/LineIntersector.h>
 
@@ -229,7 +229,7 @@ namespace app
                 if (!lAntennaEdges.empty()) vpAntennas.push_back(std::make_pair(country, lAntennaEdges));
             }
 
-            epg::calcul::matching::detail::LineStringSimpleDampedDeformer lineStringDeformer;
+            // epg::calcul::matching::detail::LineStringSimpleDampedDeformer lineStringDeformer;
 
             boost::progress_display display2(vpAntennas.size(), std::cout, "[ displace antennas  % complete ]\n");
 
@@ -415,7 +415,8 @@ namespace app
                 if (vpSourceTarget.size() == 1) continue;
 
                 std::vector< ign::geometry::LineString > vLs;
-                double startAbs = originLengthIndexedGeom.project(graph.getGeometry(vpSourceTarget.front().first));
+                ign::geometry::Point startPoint = graph.getGeometry(vpSourceTarget.front().first);
+                double startAbs = originLengthIndexedGeom.project(startPoint);
                 for ( std::vector< std::pair<vertex_descriptor, vertex_descriptor >>::const_iterator vpit = vpSourceTarget.begin() ; vpit != vpSourceTarget.end() ; ++vpit ) {
                     ign::geometry::Point endPoint = graph.getGeometry(vpit->second);
                     double endAbs = originLengthIndexedGeom.project(endPoint);

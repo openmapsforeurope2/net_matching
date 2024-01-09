@@ -111,7 +111,6 @@ void app::calcul::CFeatGenerationOp::computeCL()
 	_mergeIntersectingClWithGraph(distMaxEdges, snapProjCl2edge);
 //	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresmerge", "", false, true);
 
-	//_snapClClNearByOnBorder();
 	_snapCl2Cl( distMaxClClosest);
 
 	//_getClDoublonGeom();

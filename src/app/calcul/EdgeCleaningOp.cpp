@@ -1208,7 +1208,7 @@ namespace app
                          mit->second.erase(minVit);
                     }
                     _logger->log(epg::log::DEBUG, "pouet11");
-                } while (isRemoved && graph.degree(mit->first) > 2);
+                } while (isRemoved && graph.degree(mit->first) > 2 && mit->second.size() > 0);
                 _logger->log(epg::log::DEBUG, "pouet12");
             }
             _logger->log(epg::log::DEBUG, "pouet13");

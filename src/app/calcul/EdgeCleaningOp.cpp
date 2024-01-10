@@ -1163,35 +1163,55 @@ namespace app
             std::map<vertex_descriptor, std::vector<std::list<oriented_edge_descriptor>>>::iterator mit;
             for (mit = mVertexAntennas.begin() ; mit != mVertexAntennas.end() ; mit++) {
                 ++display2;
+                _logger->log(epg::log::DEBUG, "pouet1");
+                _logger->log(epg::log::DEBUG, graph.getGeometry(mit->first).toString());
                 bool bConnected2CF = sVerticesConnected2CF.find(mit->first) != sVerticesConnected2CF.end() || _vertexIsConnected2Cl(graphManager, mit->first);
+                _logger->log(epg::log::DEBUG, "pouet2");
 
                 std::vector<std::list<oriented_edge_descriptor>>::const_iterator minVit;
                 bool isRemoved = false;
                 do {
+                    _logger->log(epg::log::DEBUG, "pouet3");
                     std::vector<std::list<oriented_edge_descriptor>>::const_iterator vit;
                     if ( mit->second.size() > 1) {
+                        _logger->log(epg::log::DEBUG, "pouet4");
                         double minLength = std::numeric_limits<double>::max();
                         for (vit = mit->second.begin() ; vit != mit->second.end() ; ++vit) {
-
+                            _logger->log(epg::log::DEBUG, "pouet5");
+                            _logger->log(epg::log::DEBUG, graph.getGeometry(graph.target(vit->back())).toString());
+                            _logger->log(epg::log::DEBUG, graph.getGeometry(vit->front()).toString());
                             double length = _getAntennaLength(graph, *vit);
+                            _logger->log(epg::log::DEBUG, "pouet6");
                             if (length < minLength) {
                                 minLength = length;
                                 minVit = vit;
                             }
                         }
                     } else {
+                        _logger->log(epg::log::DEBUG, "pouet7");
                         minVit = mit->second.begin();
                     }
+                    _logger->log(epg::log::DEBUG, "pouet8");
+                    _logger->log(epg::log::DEBUG, graph.getGeometry(minVit->begin()->descriptor).toString());
+                    _logger->log(epg::log::DEBUG, "pouet81");
 
                     std::string country = graphManager.getCountry(minVit->begin()->descriptor);
                     
+
+                    _logger->log(epg::log::DEBUG, "pouet9");
+                    
                     isRemoved = _cleanAntenna(graph, country, *minVit, bConnected2CF);
+
+                    _logger->log(epg::log::DEBUG, "pouet10");
                     if (isRemoved) {
                          bHasRemovedAntenna = true;
                          mit->second.erase(minVit);
                     }
+                    _logger->log(epg::log::DEBUG, "pouet11");
                 } while (isRemoved && graph.degree(mit->first) > 2);
+                _logger->log(epg::log::DEBUG, "pouet12");
             }
+            _logger->log(epg::log::DEBUG, "pouet13");
 
             return bHasRemovedAntenna;
         }

@@ -219,7 +219,7 @@ namespace calcul{
 		bool _vertexIsCp(GraphType const& graph, vertex_descriptor v) const;
 
 		//--
-		void _cleanAntenna(
+		bool _cleanAntenna(
             GraphType & graph,
             std::string const& country,
             std::list<oriented_edge_descriptor> const& lAntennas,
@@ -265,12 +265,23 @@ namespace calcul{
 		bool _cleanFaces2(detail::EdgeCleaningGraphManager & graphManager) const;
 
 		//--
+		bool _cleanGraphFaces(detail::EdgeCleaningGraphManager & graphManager) const;
+
+		//--
 		bool _cleanAntennas(
 			detail::EdgeCleaningGraphManager & graphManager,
 			// std::set<vertex_descriptor> & sTreatedDangles,
 			std::set<std::string> & sTreatedFeatures,
 			bool isPlanarGraph = false
 		) const;
+
+		//--
+		bool _cleanGraphAntennas(
+            detail::EdgeCleaningGraphManager & graphManager,
+			// std::set<vertex_descriptor> & sTreatedDangles,
+			std::set<std::string> & sTreatedFeatures,
+			bool isPlanarGraph = false
+        ) const;
 
 		//--
 		typename app::calcul::detail::EdgeCleaningGraphManager::GraphType::oriented_edge_descriptor _getNextEdge(GraphType const& graph, edge_descriptor e, vertex_descriptor vTarget, bool isPlanarGraph) const;

@@ -163,6 +163,7 @@ namespace app
             double const snap2EdgeEndingsDist = themeParameters->getValue(EC_SNAP_2_EDGE_END_DIST).toDouble();
             double const antennaMinLength = themeParameters->getValue( ECL_ANTENNA_MIN_LENGTH ).toDouble();
             double const antennaMinDist2Neighbor = themeParameters->getValue( ECL_ANTENNA_MIN_DIST_2_NEIGHBOR ).toDouble();
+            double const landmaskBuffer = themeParameters->getValue(EC_LANDMASK_BUFFER).toDouble();
 
             std::vector<std::string> vCountry;
 		    epg::tools::StringTools::Split(_borderCode, "#", vCountry);
@@ -467,7 +468,7 @@ namespace app
                         if (mit == _mCountryGeomPtr.end()) {
                             _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
                         } else {
-                            if( (!mit->second->intersects(dangleEndPoint) && mit->second->intersects(dangleEndPoint) > landmaskBuffer) || vLs[i].length() < antennaMinLength) {
+                            if( (mit->second->distance(dangleEndPoint) > landmaskBuffer) || vLs[i].length() < antennaMinLength) {
 							//if (!mit->second->intersects(dangleEndPoint) || vLs[i].length() < antennaMinLength) {
                                 ign::feature::Feature feat;
                                 feat.setGeometry(vLs[i]);

@@ -86,7 +86,11 @@ namespace app
             
             // app parameters
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
-            std::string const cpTableName = themeParameters->getValue(CP_TABLE).toString();
+            std::string cpTableName = themeParameters->getValue(CP_TABLE).toString();
+            if ( cpTableName == "" ) {
+                std::string const cpTableSuffix = themeParameters->getValue(CP_TABLE_SUFFIX).toString();
+                cpTableName = edgeTableName + cpTableSuffix;
+            }
             std::string const landmaskTableName = themeParameters->getValue(LANDMASK_TABLE).toString();
             std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE).toString();
             std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();

@@ -259,8 +259,11 @@ void LineStringSplitter::_addCuttingGeometry( ign::geometry::LineString const& l
 {
 	for( size_t i = 0 ; i < ls.numSegments() ; ++i )
 	{
-		if( ls.pointN(i).equals( ls.pointN(i+1) ) )
-			IGN_THROW_EXCEPTION( "[epg::tools::geometry::LineStringSplitter::_addCuttingGeometry] null segment in Linestring '"+ls.toString()+"' between points [index] "+ign::data::Integer(i).toString()+" and "+ign::data::Integer(i+1).toString()+"." );
+		if( ls.pointN(i).equals( ls.pointN(i+1) ) ) {
+			std::string mess = "[epg::tools::geometry::LineStringSplitter::_addCuttingGeometry] null segment in Linestring '"+ls.toString()+"' between points [index] "+ign::data::Integer(i).toString()+" and "+ign::data::Integer(i+1).toString()+".";
+			_logger->log(epg::log::ERROR, mess);
+			continue;
+		}
 		
 		std::set< int > sSegments;
 		_qTreeSegment.query( ign::geometry::Envelope( ls.pointN(i), ls.pointN(i+1) ), sSegments );

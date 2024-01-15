@@ -818,11 +818,11 @@ namespace app
                         bool hasConnection2 = hasConnection.find(vpCountryEdges.back().first) != hasConnection.end();
 
                         if ( ratio1 > ratio2 ) {
-                            if (!hasConnection2 ) {
+                            // if (!hasConnection2 ) {
                                 _removePath(graph, vpCountryEdges.back().second, sEdge2Remove);
                                 bChangeOccured = true;
-                            }
-                        } else if ( !hasConnection1 ) {
+                            // }
+                        } else /*if ( !hasConnection1 )*/ {
                             _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
                             bChangeOccured = true;
                         }

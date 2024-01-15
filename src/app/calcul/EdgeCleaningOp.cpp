@@ -94,7 +94,11 @@ namespace app
             std::string const landmaskTableName = themeParameters->getValue(LANDMASK_TABLE).toString();
             std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE).toString();
             std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
-            std::string const clTableName = themeParameters->getValue(CL_TABLE).toString();
+            std::string clTableName = themeParameters->getValue(CL_TABLE).toString();
+            if ( clTableName == "" ) {
+                std::string const clTableSuffix = themeParameters->getValue(CL_TABLE_SUFFIX).toString();
+                clTableName = edgeTableName + clTableSuffix;
+            }
             double const landmaskBuffer = themeParameters->getValue(ECL_LANDMASK_BUFFER).toDouble();
 
             // on recupere un buffer autour de la frontiere

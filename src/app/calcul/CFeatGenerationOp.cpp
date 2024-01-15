@@ -299,7 +299,12 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 		context->getDataBaseManager().getConnection()->update(ss.str());
 	}
 	// Create tmp_cl table
-	std::string clTableName = epg::utils::replaceTableName(themeParameters->getValue(CL_TABLE).toString());
+	std::string clTableName = themeParameters->getValue(CL_TABLE).toString();
+	if ( cpTableName == "" ) {
+		std::string const clTableSuffix = themeParameters->getValue(CL_TABLE_SUFFIX).toString();
+		clTableName = edgeTableName + clTableSuffix;
+	}
+	clTableName = epg::utils::replaceTableName(themeParameters->getValue(CL_TABLE).toString());
 	// if (!context->getDataBaseManager().tableExists(clTableName)) {
 	{
 		std::ostringstream ss;

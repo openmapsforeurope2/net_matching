@@ -304,7 +304,7 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 		std::string const clTableSuffix = themeParameters->getValue(CL_TABLE_SUFFIX).toString();
 		clTableName = edgeTableName + clTableSuffix;
 	}
-	clTableName = epg::utils::replaceTableName(themeParameters->getValue(CL_TABLE).toString());
+	clTableName = epg::utils::replaceTableName(clTableName);
 	// if (!context->getDataBaseManager().tableExists(clTableName)) {
 	{
 		std::ostringstream ss;

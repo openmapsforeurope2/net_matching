@@ -112,8 +112,16 @@ namespace app
             // app parameters
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
             std::string const landmaskTableName = themeParameters->getValue(LANDMASK_TABLE).toString();
-            std::string const clTableName = themeParameters->getValue(CL_TABLE).toString();
-		    std::string const cpTableName = themeParameters->getValue(CP_TABLE).toString();
+            std::string clTableName = themeParameters->getValue(CL_TABLE).toString();
+            if ( clTableName == "" ) {
+                std::string const clTableSuffix = themeParameters->getValue(CL_TABLE_SUFFIX).toString();
+                clTableName = edgeTableName + clTableSuffix;
+            }
+		    std::string cpTableName = themeParameters->getValue(CP_TABLE).toString();
+            if ( cpTableName == "" ) {
+                std::string const cpTableSuffix = themeParameters->getValue(CP_TABLE_SUFFIX).toString();
+                cpTableName = edgeTableName + cpTableSuffix;
+            }
 
             //--
             _fsLandmask = context->getDataBaseManager().getFeatureStore(landmaskTableName, idName, geomName);

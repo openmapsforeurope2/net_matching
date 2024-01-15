@@ -23,6 +23,8 @@ namespace params{
 		_initParameter( SNAP_DIST, "SNAP_DIST" );
 		_initParameter( CP_TABLE, "CP_TABLE");
 		_initParameter( CL_TABLE, "CL_TABLE");
+		_initParameter( CP_TABLE_SUFFIX, "CP_TABLE_SUFFIX");
+		_initParameter( CL_TABLE_SUFFIX, "CL_TABLE_SUFFIX");
 		_initParameter( CF_STATUS, "CF_STATUS");
 
 		_initParameter( CP_MERGE_DIST_CP, "CP_MERGE_DIST_CP");

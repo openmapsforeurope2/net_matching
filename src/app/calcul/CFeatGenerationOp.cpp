@@ -268,7 +268,13 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	std::string edgeTableName = context->getEpgParameters().getValue(EDGE_TABLE).toString();
 
 	///Create tmp_cp table
-	std::string cpTableName = epg::utils::replaceTableName(themeParameters->getValue(CP_TABLE).toString());
+	std::string cpTableName = themeParameters->getValue(CP_TABLE).toString();
+	if ( cpTableName == "" ) {
+		std::string const cpTableSuffix = themeParameters->getValue(CP_TABLE_SUFFIX).toString();
+		cpTableName = edgeTableName + cpTableSuffix;
+	}
+	cpTableName = epg::utils::replaceTableName(cpTableName);
+	
 	// if (!context->getDataBaseManager().tableExists(cpTableName)) {
 	{
 		std::ostringstream ss;

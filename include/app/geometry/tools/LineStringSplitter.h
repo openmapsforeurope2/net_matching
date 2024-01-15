@@ -6,6 +6,7 @@
 #include <ign/geometry/LineString.h>
 #include <ign/geometry/algorithm/LineIntersectorOpGeos.h>
 #include <ign/geometry/index/QuadTree.h>
+#include <epg/log/EpgLogger.h>
 
 namespace app{
 namespace geometry{
@@ -77,6 +78,9 @@ namespace tools{
 
 		//--
 		ign::geometry::index::QuadTree< int >              _qTreeSegment;
+		
+		//--
+		epg::log::EpgLogger*                               _logger;
 
 	
 	};

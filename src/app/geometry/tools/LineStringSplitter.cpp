@@ -18,6 +18,8 @@ using namespace app::geometry::tools ;
 
 LineStringSplitter::LineStringSplitter( ign::geometry::LineString const& ls, double precision ):_lsRef( ls ),_precision(precision)
 {
+	_logger = epg::log::EpgLoggerS::getInstance();
+	
 	_vCuttings.resize( _lsRef.numSegments() );
 
 	_qTreeSegment.ensureExtent( _lsRef.getEnvelope() );

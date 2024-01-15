@@ -300,7 +300,7 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	}
 	// Create tmp_cl table
 	std::string clTableName = themeParameters->getValue(CL_TABLE).toString();
-	if ( cpTableName == "" ) {
+	if ( clTableName == "" ) {
 		std::string const clTableSuffix = themeParameters->getValue(CL_TABLE_SUFFIX).toString();
 		clTableName = edgeTableName + clTableSuffix;
 	}

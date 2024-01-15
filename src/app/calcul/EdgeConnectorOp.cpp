@@ -467,7 +467,8 @@ namespace app
                         if (mit == _mCountryGeomPtr.end()) {
                             _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
                         } else {
-                            if( !mit->second->intersects(dangleEndPoint) || vLs[i].length() < antennaMinLength) {
+                            if( (!mit->second->intersects(dangleEndPoint) && mit->second->intersects(dangleEndPoint) > landmaskBuffer) || vLs[i].length() < antennaMinLength) {
+							//if (!mit->second->intersects(dangleEndPoint) || vLs[i].length() < antennaMinLength) {
                                 ign::feature::Feature feat;
                                 feat.setGeometry(vLs[i]);
                                 _shapeLogger->writeFeature("ec_trimed_edges_parts", feat);

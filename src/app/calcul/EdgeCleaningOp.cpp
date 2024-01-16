@@ -825,13 +825,25 @@ namespace app
                         double ratio2 = _getRatio(graph, vpCountryEdges.back().first, vpCountryEdges.back().second);
                         bool hasConnection2 = hasConnection.find(vpCountryEdges.back().first) != hasConnection.end();
 
-                        if ( ratio1 > ratio2 ) {
-                            // if (!hasConnection2 ) {
-                                _removePath(graph, vpCountryEdges.back().second, sEdge2Remove);
-                                bChangeOccured = true;
-                            // }
-                        } else /*if ( !hasConnection1 )*/ {
+                        // if ( ratio1 > ratio2 ) {
+                        //     if (!hasConnection2 ) {
+                        //         _removePath(graph, vpCountryEdges.back().second, sEdge2Remove);
+                        //         bChangeOccured = true;
+                        //     }
+                        // } else if ( !hasConnection1 ) {
+                        //     _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
+                        //     bChangeOccured = true;
+                        // }
+
+                        if (hasConnection1 && !hasConnection2) {
+                            _removePath(graph, vpCountryEdges.back().second, sEdge2Remove);
+                            bChangeOccured = true;
+                        } else if (!hasConnection1 && hasConnection2) {
                             _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
+                            bChangeOccured = true;
+                        } else if (!hasConnection1 && !hasConnection2) {
+                            if ( ratio1 > ratio2 ) _removePath(graph, vpCountryEdges.back().second, sEdge2Remove);
+                            else _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
                             bChangeOccured = true;
                         }
                     } else {

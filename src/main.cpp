@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
         edgeCleaningOp.cleanFaces();
         // edgeCleaningOp.cleanPathsOutOfCountry();
         edgeCleaningOp.cleanParalelleEdges();
-        // edgeCleaningOp.cleanFacesAndAntennaByCountry(sTreatedFeatures);
+        edgeCleaningOp.cleanFacesAndAntennaByCountry(sTreatedFeatures);
 
         app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
 
@@ -120,11 +120,11 @@ int main(int argc, char *argv[])
         edgeCleaningOp.cleanParalelleEdges();
         edgeCleaningOp.cleanFaces2(ign::feature::FeatureFilter("form_of_way <> 'bicycle_road'"));
 
-        app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
+        // app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
 
-        edgeCleaningOp.cleanFaces2(ign::feature::FeatureFilter("form_of_way <> 'bicycle_road'"));
+        // edgeCleaningOp.cleanFaces2(ign::feature::FeatureFilter("form_of_way <> 'bicycle_road'"));
 
-        edgeCleaningOp.cleanAntennas(sTreatedFeatures);
+        // edgeCleaningOp.cleanAntennas(sTreatedFeatures);
 
 		logger->log(epg::log::INFO, "[END EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 

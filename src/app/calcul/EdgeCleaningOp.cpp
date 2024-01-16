@@ -666,7 +666,7 @@ namespace app
         ///
         ///
         ///
-        void EdgeCleaningOp::cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures) const
+        void EdgeCleaningOp::cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures, ign::feature::FeatureFilter filter) const
         {
             epg::Context* context = epg::ContextS::getInstance();
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
@@ -678,7 +678,7 @@ namespace app
 		    epg::tools::StringTools::Split(_countryCode, "#", vCountry);
             for (size_t i = 0 ; i < vCountry.size() ; ++i) {
                 detail::EdgeCleaningGraphManager graphManager;
-                ign::feature::FeatureFilter filter(countryCodeName +" LIKE '%"+vCountry[i]+"%'");
+                epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" LIKE '%"+vCountry[i]+"%'");
                 _loadGraph(graphManager, isPlanar, filter);
 
                 // std::set<vertex_descriptor> sTreatedDangles;
@@ -778,13 +778,13 @@ namespace app
                 //     test = true;
                 // }
                 // DEBUG
-                // _logger->log(epg::log::DEBUG, faceGeom.toString());
+                _logger->log(epg::log::DEBUG, faceGeom.toString());
                 // if (faceGeom.intersects(ign::geometry::Point(4017129.38,3093853.68))) {
                 //     bool test = true;
                 // }
-                // if (faceGeom.intersects(ign::geometry::Point(4017105.575,3093944.954))) {
-                //     bool test = true;
-                // }
+                if (faceGeom.intersects(ign::geometry::Point(3869489.41,3149036.72))) {
+                    bool test = true;
+                }
                 
 
 				if (_isSlimSurface(faceGeom, slimSurfaceWidth)) {

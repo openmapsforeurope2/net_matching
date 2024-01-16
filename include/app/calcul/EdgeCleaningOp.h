@@ -48,7 +48,7 @@ namespace calcul{
 		void cleanFaces2ByCountry() const;
 
 		/// \brief
-		void cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures) const;
+		void cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures, ign::feature::FeatureFilter filter = ign::feature::FeatureFilter()) const;
 
 		/// \brief
 		bool cleanFaces2(ign::feature::FeatureFilter filter = ign::feature::FeatureFilter()) const;

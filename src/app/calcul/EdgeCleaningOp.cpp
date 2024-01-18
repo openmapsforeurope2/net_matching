@@ -574,12 +574,11 @@ namespace app
                 oriented_edge_descriptor nextEdge = ign::geometry::graph::detail::nextEdge( currentEdge, graph );
                 std::string nextCountry = graphManager.getCountry(nextEdge.descriptor);
 
-                if (graph.degree(graph.target(currentEdge)) > 2 || _vertexIsCp(graph, graph.target(currentEdge)) ) {
+                if (graph.degree(graph.target(currentEdge)) > 2 || _vertexIsCp(graph, graph.target(currentEdge)) || currentCountry != nextCountry ) {
                     if (nextEdge != startEdge)
                         vpCountryEdges.push_back(std::make_pair(nextCountry, std::list<oriented_edge_descriptor>()));
-                } else if ( currentCountry != nextCountry ) {
-                    _logger->log(epg::log::WARN, "Mixed country on path [edge id] "+graph.origins( currentEdge.descriptor)[0]);
-                    return false;
+                    if ( currentCountry != nextCountry ) //log a garder ?
+                        _logger->log(epg::log::WARN, "Mixed country on path [edge id] "+graph.origins( currentEdge.descriptor)[0]);
                 }
                 currentCountry = nextCountry;
                 currentEdge = nextEdge;
@@ -666,7 +665,7 @@ namespace app
         ///
         ///
         ///
-        void EdgeCleaningOp::cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures, ign::feature::FeatureFilter filter) const
+        void EdgeCleaningOp::cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures, ign::feature::FeatureFilter filter_) const
         {
             epg::Context* context = epg::ContextS::getInstance();
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
@@ -678,6 +677,7 @@ namespace app
 		    epg::tools::StringTools::Split(_countryCode, "#", vCountry);
             for (size_t i = 0 ; i < vCountry.size() ; ++i) {
                 detail::EdgeCleaningGraphManager graphManager;
+                ign::feature::FeatureFilter filter = filter_;
                 epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" LIKE '%"+vCountry[i]+"%'");
                 _loadGraph(graphManager, isPlanar, filter);
 

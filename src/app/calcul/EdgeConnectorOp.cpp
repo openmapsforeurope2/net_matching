@@ -252,7 +252,9 @@ namespace app
                     _logger->log(epg::log::ERROR, "Unknown country [country code] " + vpit->first);
                     continue;
                 }
-                if( mit->second->intersects(dangleEndPoint)) continue;
+
+                // On ne snap que les edges "étrangers" vers les edges "locaux"
+                // if( mit->second->intersects(dangleEndPoint)) continue;
 
                 ign::geometry::MultiLineString mlsEdgesAround;
                 std::string otherCountry = vCountry.front() == vpit->first ? vCountry.back() : vCountry.front();

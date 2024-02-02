@@ -32,6 +32,8 @@ namespace calcul{
 
 		void _init(std::string countryCodeDouble, bool verbose);
 
+		void _getBorderCutByAngle(ign::geometry::LineString & lsBorder, std::vector<ign::geometry::LineString> & vLsBorderCutByAngle, double angleMaxToCutBorder);
+
 		void _getCLfromBorder(ign::geometry::LineString & lsBorder, ign::geometry::GeometryPtr& buffBorder,  double distBuffer, double thresholdNoCL, double angleMax, double ratioInBuff, double snapOnVertexBorder);
 
 		double _getAngleEdgeWithBorder(ign::geometry::LineString& lsEdge, ign::geometry::LineString& lsBorder);

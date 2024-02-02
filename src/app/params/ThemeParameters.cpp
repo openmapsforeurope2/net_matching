@@ -20,7 +20,8 @@ namespace params{
 		_initParameter( TYPE_LAND_AREA, "TYPE_LAND_AREA" );
 		_initParameter( EDGE_LINK, "EDGE_LINK" );
 		_initParameter( FORM_OF_WAY, "FORM_OF_WAY" );
-		_initParameter( SNAP_DIST, "SNAP_DIST" );
+		_initParameter(SNAP_DIST, "SNAP_DIST");
+		_initParameter(ANGLE_MAX_2_CUT_BORDER, "ANGLE_MAX_2_CUT_BORDER" );
 		_initParameter( CP_TABLE, "CP_TABLE");
 		_initParameter( CL_TABLE, "CL_TABLE");
 		_initParameter( CP_TABLE_SUFFIX, "CP_TABLE_SUFFIX");

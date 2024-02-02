@@ -75,38 +75,40 @@ void app::calcul::CFeatGenerationOp::computeCL()
 	double const distMaxEdges = themeParameters->getValue(CL_EDGE_MAX_DIST).toDouble();
 	double const snapProjCl2edge = themeParameters->getValue(CL_SNAP_PROJ_CL_2_EDGE_DIST).toDouble();
 	double const minLengthCl2merge = themeParameters->getValue(CL_CL_2_MERGE_MIN_LENGTH).toDouble();
+	double angleMaxToCutBorder = themeParameters->getValue(ANGLE_MAX_2_CUT_BORDER).toDouble();
+	
 
 	angleMaxBorder = angleMaxBorder * M_PI / 180;
 	angleMaxEdges = angleMaxEdges * M_PI / 180;
+	angleMaxToCutBorder = angleMaxToCutBorder * M_PI / 180;
 
 	ign::feature::FeatureIteratorPtr itBoundary = _fsBoundary->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCodeDouble + "'"));
 	while (itBoundary->hasNext())
 	{
 		ign::feature::Feature fBoundary = itBoundary->next();
 		_logger->log(epg::log::INFO, "id boundary :"+ fBoundary.getId());
-
 		std::string boundaryType = fBoundary.getAttribute("boundary_type").toString();
-
 		// On ne traite que les frontières de type international_boundary ou coastline_sea_limit
 		// On aurait pu filtrer en entrée mais le filtre semble très long, peut-être à cause de l'enum qui oblige à utiliser boundary_type::text like '%coastline_sea_limit%'
 		if (boundaryType != "international_boundary" && boundaryType.find("coastline_sea_limit") == -1)
 			continue;
 
 		ign::geometry::LineString lsBoundary = fBoundary.getGeometry().asLineString();
+		std::vector<ign::geometry::LineString> vLsBorderCutByAngle;
+		_getBorderCutByAngle(lsBoundary, vLsBorderCutByAngle, angleMaxToCutBorder);
+		for (size_t i = 0; i < vLsBorderCutByAngle.size(); ++i) {
+			ign::geometry::LineString lsBoundaryCutByAngle = vLsBorderCutByAngle[i];
 
-		ign::geometry::algorithm::BufferOpGeos buffOp;
-		ign::geometry::GeometryPtr buffBorder(buffOp.buffer(lsBoundary, distBuffer, 0, ign::geometry::algorithm::BufferOpGeos::CAP_FLAT));
+			ign::geometry::algorithm::BufferOpGeos buffOp;
+			ign::geometry::GeometryPtr buffBorder(buffOp.buffer(lsBoundaryCutByAngle, distBuffer, 0, ign::geometry::algorithm::BufferOpGeos::CAP_FLAT));
 
-		ign::feature::Feature fBuff;
-		fBuff.setGeometry(buffBorder->clone());
-		//_shapeLogger->writeFeature("getCLfromBorder_buffers", fBuff);
+			ign::feature::Feature fBuff;
+			fBuff.setGeometry(buffBorder->clone());
 
-		_getCLfromBorder(lsBoundary, buffBorder, distBuffer, thresholdNoCL, angleMaxBorder, ratioInBuff, snapOnVertexBorder);
-
-
+			_getCLfromBorder(lsBoundaryCutByAngle, buffBorder, distBuffer, thresholdNoCL, angleMaxBorder, ratioInBuff, snapOnVertexBorder);
+		}
 	}
 //	epg::utils::CopyTableUtils::copyTable(clTableName,idName,geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName+"_avtmerge", "", false,true);
-
 
 	_mergeIntersectingClWithGraph(distMaxEdges, snapProjCl2edge);
 //	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresmerge", "", false, true);
@@ -199,6 +201,7 @@ app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 	_shapeLogger->closeShape("ClDeleteByAngleDistEdges");
 	_shapeLogger->closeShape("ClDebug");
 	_shapeLogger->closeShape("edgeClCutByCp");
+	_shapeLogger->closeShape("lsBorderCutByAngle");
 	
 }
 	
@@ -222,7 +225,8 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	_shapeLogger->addShape("ClDoublon", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDeleteByAngleDistEdges", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDebug", epg::log::ShapeLogger::LINESTRING);
-	_shapeLogger->addShape("edgeClCutByCp", epg::log::ShapeLogger::LINESTRING);
+	_shapeLogger->addShape("edgeClCutByCp", epg::log::ShapeLogger::LINESTRING); 
+	_shapeLogger->addShape("lsBorderCutByAngle", epg::log::ShapeLogger::LINESTRING); 
 
 	_countryCodeDouble = countryCodeDouble;
 	epg::tools::StringTools::Split(_countryCodeDouble, "#", _vCountriesCodeName);
@@ -344,6 +348,42 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 }
 
 
+void app::calcul::CFeatGenerationOp::_getBorderCutByAngle(
+	ign::geometry::LineString & lsBorder,
+	std::vector<ign::geometry::LineString> & vLsBorderCutByAngle,
+	double angleMaxToCutBorder
+)
+{
+	ign::geometry::LineString lsCurr(lsBorder.pointN(0), lsBorder.pointN(1));
+
+	for (size_t i = 1; i < lsBorder.numPoints(); ++i) {
+
+		if (i == lsBorder.numPoints() - 1) {
+			vLsBorderCutByAngle.push_back(lsCurr);
+			break;
+		}
+		ign::math::Vec2d vecLsCurr(lsCurr.endPoint().x() - lsCurr.startPoint().x(), lsCurr.endPoint().y() - lsCurr.startPoint().y());
+		
+		ign::geometry::LineString lsNext(lsBorder.pointN(i), lsBorder.pointN(i + 1));
+		ign::math::Vec2d vecLsNext(lsNext.endPoint().x() - lsNext.startPoint().x(), lsNext.endPoint().y() - lsNext.startPoint().y());
+
+		double angleBorderWithNextPortion = epg::tools::geometry::angle(vecLsCurr, vecLsNext);
+
+		if (angleBorderWithNextPortion > angleMaxToCutBorder) {
+			vLsBorderCutByAngle.push_back(lsCurr);
+			lsCurr = lsNext;
+		}
+		else
+			lsCurr.addPoint(lsBorder.pointN(i + 1));
+	}
+
+	for (size_t i = 0; i < vLsBorderCutByAngle.size(); ++i) {
+		ign::feature::Feature fShaplog;
+		fShaplog.setGeometry(vLsBorderCutByAngle[i]);
+		_shapeLogger->writeFeature("lsBorderCutByAngle", fShaplog);
+	}
+}
+
 
 void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 	ign::geometry::LineString & lsBorder,
@@ -371,6 +411,8 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 
 	ign::feature::FeatureIteratorPtr eit = _fsEdge->getFeatures(filter);
 	int numFeatures = context->getDataBaseManager().numFeatures(*_fsEdge, filter);
+	if (numFeatures == 0)
+		return;
 	boost::progress_display display(numFeatures, std::cout, "[ CREATE CONNECTING LINES ]\n");
 
 	while (eit->hasNext())
@@ -1455,10 +1497,6 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 			++eit;
 			continue;
 		}
-
-		//debug
-		//if (vClOrigins[0] == "CONNECTINGLINE15" || vClOrigins[1] == "CONNECTINGLINE15")
-		//	bool bStop = true;
 
 		std::map<std::string, ign::feature::Feature> mIdClOriginsCountry1, mIdClOriginsCountry2;
 

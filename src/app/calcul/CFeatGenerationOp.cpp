@@ -75,38 +75,40 @@ void app::calcul::CFeatGenerationOp::computeCL()
 	double const distMaxEdges = themeParameters->getValue(CL_EDGE_MAX_DIST).toDouble();
 	double const snapProjCl2edge = themeParameters->getValue(CL_SNAP_PROJ_CL_2_EDGE_DIST).toDouble();
 	double const minLengthCl2merge = themeParameters->getValue(CL_CL_2_MERGE_MIN_LENGTH).toDouble();
+	double angleMaxToCutBorder = themeParameters->getValue(ANGLE_MAX_2_CUT_BORDER).toDouble();
+	
 
 	angleMaxBorder = angleMaxBorder * M_PI / 180;
 	angleMaxEdges = angleMaxEdges * M_PI / 180;
+	angleMaxToCutBorder = angleMaxToCutBorder * M_PI / 180;
 
 	ign::feature::FeatureIteratorPtr itBoundary = _fsBoundary->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCodeDouble + "'"));
 	while (itBoundary->hasNext())
 	{
 		ign::feature::Feature fBoundary = itBoundary->next();
 		_logger->log(epg::log::INFO, "id boundary :"+ fBoundary.getId());
-
 		std::string boundaryType = fBoundary.getAttribute("boundary_type").toString();
-
 		// On ne traite que les frontières de type international_boundary ou coastline_sea_limit
 		// On aurait pu filtrer en entrée mais le filtre semble très long, peut-être à cause de l'enum qui oblige à utiliser boundary_type::text like '%coastline_sea_limit%'
 		if (boundaryType != "international_boundary" && boundaryType.find("coastline_sea_limit") == -1)
 			continue;
 
 		ign::geometry::LineString lsBoundary = fBoundary.getGeometry().asLineString();
+		std::vector<ign::geometry::LineString> vLsBorderCutByAngle;
+		_getBorderCutByAngle(lsBoundary, vLsBorderCutByAngle, angleMaxToCutBorder);
+		for (size_t i = 0; i < vLsBorderCutByAngle.size(); ++i) {
+			ign::geometry::LineString lsBoundaryCutByAngle = vLsBorderCutByAngle[i];
 
-		ign::geometry::algorithm::BufferOpGeos buffOp;
-		ign::geometry::GeometryPtr buffBorder(buffOp.buffer(lsBoundary, distBuffer, 0, ign::geometry::algorithm::BufferOpGeos::CAP_FLAT));
+			ign::geometry::algorithm::BufferOpGeos buffOp;
+			ign::geometry::GeometryPtr buffBorder(buffOp.buffer(lsBoundaryCutByAngle, distBuffer, 0, ign::geometry::algorithm::BufferOpGeos::CAP_FLAT));
 
-		ign::feature::Feature fBuff;
-		fBuff.setGeometry(buffBorder->clone());
-		//_shapeLogger->writeFeature("getCLfromBorder_buffers", fBuff);
+			ign::feature::Feature fBuff;
+			fBuff.setGeometry(buffBorder->clone());
 
-		_getCLfromBorder(lsBoundary, buffBorder, distBuffer, thresholdNoCL, angleMaxBorder, ratioInBuff, snapOnVertexBorder);
-
-
+			_getCLfromBorder(lsBoundaryCutByAngle, buffBorder, distBuffer, thresholdNoCL, angleMaxBorder, ratioInBuff, snapOnVertexBorder);
+		}
 	}
 //	epg::utils::CopyTableUtils::copyTable(clTableName,idName,geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName+"_avtmerge", "", false,true);
-
 
 	_mergeIntersectingClWithGraph(distMaxEdges, snapProjCl2edge);
 //	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresmerge", "", false, true);
@@ -199,6 +201,7 @@ app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 	_shapeLogger->closeShape("ClDeleteByAngleDistEdges");
 	_shapeLogger->closeShape("ClDebug");
 	_shapeLogger->closeShape("edgeClCutByCp");
+	_shapeLogger->closeShape("lsBorderCutByAngle");
 	
 }
 	
@@ -222,7 +225,8 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	_shapeLogger->addShape("ClDoublon", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDeleteByAngleDistEdges", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("ClDebug", epg::log::ShapeLogger::LINESTRING);
-	_shapeLogger->addShape("edgeClCutByCp", epg::log::ShapeLogger::LINESTRING);
+	_shapeLogger->addShape("edgeClCutByCp", epg::log::ShapeLogger::LINESTRING); 
+	_shapeLogger->addShape("lsBorderCutByAngle", epg::log::ShapeLogger::LINESTRING); 
 
 	_countryCodeDouble = countryCodeDouble;
 	epg::tools::StringTools::Split(_countryCodeDouble, "#", _vCountriesCodeName);
@@ -344,6 +348,42 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 }
 
 
+void app::calcul::CFeatGenerationOp::_getBorderCutByAngle(
+	ign::geometry::LineString & lsBorder,
+	std::vector<ign::geometry::LineString> & vLsBorderCutByAngle,
+	double angleMaxToCutBorder
+)
+{
+	ign::geometry::LineString lsCurr(lsBorder.pointN(0), lsBorder.pointN(1));
+
+	for (size_t i = 1; i < lsBorder.numPoints(); ++i) {
+
+		if (i == lsBorder.numPoints() - 1) {
+			vLsBorderCutByAngle.push_back(lsCurr);
+			break;
+		}
+		ign::math::Vec2d vecLsCurr(lsCurr.endPoint().x() - lsCurr.startPoint().x(), lsCurr.endPoint().y() - lsCurr.startPoint().y());
+		
+		ign::geometry::LineString lsNext(lsBorder.pointN(i), lsBorder.pointN(i + 1));
+		ign::math::Vec2d vecLsNext(lsNext.endPoint().x() - lsNext.startPoint().x(), lsNext.endPoint().y() - lsNext.startPoint().y());
+
+		double angleBorderWithNextPortion = epg::tools::geometry::angle(vecLsCurr, vecLsNext);
+
+		if (angleBorderWithNextPortion > angleMaxToCutBorder) {
+			vLsBorderCutByAngle.push_back(lsCurr);
+			lsCurr = lsNext;
+		}
+		else
+			lsCurr.addPoint(lsBorder.pointN(i + 1));
+	}
+
+	for (size_t i = 0; i < vLsBorderCutByAngle.size(); ++i) {
+		ign::feature::Feature fShaplog;
+		fShaplog.setGeometry(vLsBorderCutByAngle[i]);
+		_shapeLogger->writeFeature("lsBorderCutByAngle", fShaplog);
+	}
+}
+
 
 void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 	ign::geometry::LineString & lsBorder,
@@ -360,6 +400,8 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
 	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
 
+	epg::tools::MultiLineStringTool mslBorder(lsBorder);
+
 	std::vector<ign::feature::FeatureAttributeType> listAttrEdge = _fsEdge->getFeatureType().attributes();
 
 	ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + buffBorder->toString() + "'),3035))");
@@ -369,9 +411,9 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 
 	ign::feature::FeatureIteratorPtr eit = _fsEdge->getFeatures(filter);
 	int numFeatures = context->getDataBaseManager().numFeatures(*_fsEdge, filter);
+	if (numFeatures == 0)
+		return;
 	boost::progress_display display(numFeatures, std::cout, "[ CREATE CONNECTING LINES ]\n");
-
-	ign::math::Vec2d vecBorder(lsBorder.endPoint().x() - lsBorder.startPoint().x(), lsBorder.endPoint().y() - lsBorder.startPoint().y());
 
 	while (eit->hasNext())
 	{
@@ -379,7 +421,6 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 		//
 		ign::feature::Feature fEdge = eit->next();
 		ign::geometry::LineString lsEdge = fEdge.getGeometry().asLineString();
-
 	
 		//ign::geometry::Geometry* geomIntersect = lsEdge.Intersection(*buff);
 		std::vector<ign::geometry::LineString> vLsProjectedOnBorder;
@@ -393,7 +434,7 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 			//si l'edge est "proche" on considere qu'il est entierement dans le buffer et longe la frontiere
 			if (lsEdge.distance(lsBorder) < distBuffer && (angleEdgBorder < angleMax || angleEdgBorder > (M_PI - angleMax) ) ) {
 				ign::geometry::LineString lsCL;
-				_getGeomCL(lsCL, lsBorder, lsEdge.startPoint(), lsEdge.endPoint(), snapOnVertexBorder);
+				_getGeomCL(lsCL, mslBorder, lsEdge, distBuffer,snapOnVertexBorder);
 				if (lsCL.numPoints() >= 2) {
 					vLsProjectedOnBorder.push_back(lsCL);
 				}
@@ -432,7 +473,7 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 						//recup ptStart, ptFin et proj des pt sur la border
 						//recup de la border entre ces points pour recup de la geom CL
 						ign::geometry::LineString lsCL;
-						_getGeomCL(lsCL, lsBorder, subEdgesBorder[numfirstSubInBuff].startPoint(), subEdgesBorder[numlastSubInBuff].endPoint(), snapOnVertexBorder);
+						_getGeomCL(lsCL, mslBorder, subEdgesBorder[numfirstSubInBuff], distBuffer, snapOnVertexBorder);
 						if (lsCL.numPoints() >= 2 ) {
 							vLsProjectedOnBorder.push_back(lsCL);
 						}
@@ -725,17 +766,45 @@ double app::calcul::CFeatGenerationOp::_getAngleEdgeWithBorder(
 
 void app::calcul::CFeatGenerationOp::_getGeomCL(
 	ign::geometry::LineString& lsCL,
-	ign::geometry::LineString& lsBorder,
-	ign::geometry::Point ptStartToProject,
-	ign::geometry::Point ptEndToProject,
+	epg::tools::MultiLineStringTool & mslBorder,
+	ign::geometry::LineString& lsStart2EndToPrject,
+	//ign::geometry::Point ptStartToProject,
+	//ign::geometry::Point ptEndToProject,
+	double distMaxBorder,
 	double snapOnVertexBorder
 )
 {
-	std::pair< int, double > pairPtCurvStartCL = epg::tools::geometry::projectAlong(lsBorder, ptStartToProject, snapOnVertexBorder);
-	std::pair< int, double > pairPtCurvEndCL = epg::tools::geometry::projectAlong(lsBorder, ptEndToProject, snapOnVertexBorder);
-	//recup de la border entre ces points pour recup de la geom CL
-	lsCL = epg::tools::geometry::getSubLineString(pairPtCurvStartCL, pairPtCurvEndCL, lsBorder, snapOnVertexBorder);
+
+	ign::geometry::Point ptStartToProject = lsStart2EndToPrject.startPoint();
+	ign::geometry::Point ptEndToProject = lsStart2EndToPrject.endPoint();
+	std::pair< bool, ign::geometry::LineString > pathFound = mslBorder.getPathAlong(ptStartToProject, ptEndToProject, lsStart2EndToPrject, 2* distMaxBorder, distMaxBorder+1);
+
+	if (pathFound.first)
+		lsCL = pathFound.second;
+
+	/*
+
+	if (lsBorder.startPoint().egal2d(lsBorder.endPoint())) // situation des fronitères avec Ls fermée, type enclave
+	{
+		ign::geometry::Polygon polyEnclave(lsBorder);
+		ign::geometry::LineString lsProjected, lsComplement;
+
+		epg::tools::geometry::getProjectAndComplement(polyEnclave, lsStart2EndToPrject, lsProjected, lsComplement, snapOnVertexBorder);
+		lsCL = lsProjected;
+
+	}
+	else {
+		ign::geometry::Point ptStartToProject = lsStart2EndToPrject.startPoint();
+		ign::geometry::Point ptEndToProject = lsStart2EndToPrject.endPoint();
+		std::pair< int, double > pairPtCurvStartCL = epg::tools::geometry::projectAlong(lsBorder, ptStartToProject, snapOnVertexBorder);
+		std::pair< int, double > pairPtCurvEndCL = epg::tools::geometry::projectAlong(lsBorder, ptEndToProject, snapOnVertexBorder);
+		//recup de la border entre ces points pour recup de la geom CL
+		lsCL = epg::tools::geometry::getSubLineString(pairPtCurvStartCL, pairPtCurvEndCL, lsBorder, snapOnVertexBorder);
+	}
+	*/
 }
+
+
 
 
 
@@ -1429,10 +1498,6 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 			continue;
 		}
 
-		//debug
-		//if (vClOrigins[0] == "CONNECTINGLINE15" || vClOrigins[1] == "CONNECTINGLINE15")
-		//	bool bStop = true;
-
 		std::map<std::string, ign::feature::Feature> mIdClOriginsCountry1, mIdClOriginsCountry2;
 
 		//recuperation des edges liés aux CLs
@@ -1558,6 +1623,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
+	double const distMaxFromBorder = themeParameters->getValue(CL_BUFFER_DIST).toDouble();
 
 	ign::feature::FeatureFilter filterCL;
 	for (size_t i = 0; i < _vCountriesCodeName.size(); ++i) {
@@ -1591,6 +1657,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 
 		ign::geometry::LineString lsBorder;
 		_getBorderFromEdge(lsCurr, lsBorder);
+		epg::tools::MultiLineStringTool mslBorder(lsBorder);
 
 		ign::feature::FeatureFilter filterArroundCL;
 		filterArroundCL.setPropertyConditions(countryCodeName + " != '" + countryCodeCLCurr + "'");
@@ -1642,12 +1709,12 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 				}	
 			}
 
-			ign::geometry::LineString lsIntersectedCL, lsSE, lsSS, lsES, lsEE;;
+			ign::geometry::LineString lsIntersectedCL, lsSE, lsSS, lsES, lsEE;
 
-			_getGeomCL(lsSE, lsBorder, lsCurr.startPoint(), lsClArround.endPoint(), snapOnVertexBorder);
-			_getGeomCL(lsSS, lsBorder, lsCurr.startPoint(), lsClArround.startPoint(), snapOnVertexBorder);
-			_getGeomCL(lsES, lsBorder, lsCurr.endPoint(), lsClArround.startPoint(), snapOnVertexBorder);
-			_getGeomCL(lsEE, lsBorder, lsCurr.endPoint(), lsClArround.endPoint(), snapOnVertexBorder);
+			_getGeomCL(lsSE, mslBorder, ign::geometry::LineString(lsCurr.startPoint(), lsClArround.endPoint()), distMaxFromBorder, snapOnVertexBorder);
+			_getGeomCL(lsSS, mslBorder, ign::geometry::LineString(lsCurr.startPoint(), lsClArround.startPoint()), distMaxFromBorder, snapOnVertexBorder);
+			_getGeomCL(lsES, mslBorder, ign::geometry::LineString(lsCurr.endPoint(), lsClArround.startPoint()), distMaxFromBorder, snapOnVertexBorder);
+			_getGeomCL(lsEE, mslBorder, ign::geometry::LineString(lsCurr.endPoint(), lsClArround.endPoint()), distMaxFromBorder, snapOnVertexBorder);
 			
 			//lsIntersectedCL = lsCurr;
 			double lengthMin = 100000;

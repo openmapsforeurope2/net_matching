@@ -6,6 +6,7 @@
 #include <epg/log/EpgLogger.h>
 #include <epg/log/ShapeLogger.h>
 #include <epg/sql/tools/IdGeneratorFactory.h>
+#include <epg/tools/MultiLineStringTool.h>
 
 namespace app{
 namespace calcul{
@@ -31,12 +32,15 @@ namespace calcul{
 
 		void _init(std::string countryCodeDouble, bool verbose);
 
+		void _getBorderCutByAngle(ign::geometry::LineString & lsBorder, std::vector<ign::geometry::LineString> & vLsBorderCutByAngle, double angleMaxToCutBorder);
+
 		void _getCLfromBorder(ign::geometry::LineString & lsBorder, ign::geometry::GeometryPtr& buffBorder,  double distBuffer, double thresholdNoCL, double angleMax, double ratioInBuff, double snapOnVertexBorder);
 
 		double _getAngleEdgeWithBorder(ign::geometry::LineString& lsEdge, ign::geometry::LineString& lsBorder);
 
-		void _getGeomCL(ign::geometry::LineString& lsCL, ign::geometry::LineString& lsBorder, ign::geometry::Point ptStartToProject, ign::geometry::Point ptEndToProject, double snapOnVertexBorder);
-	
+		void _getGeomCL(ign::geometry::LineString& lsCL, epg::tools::MultiLineStringTool & mslBorder, ign::geometry::LineString& lsStart2EndToPrject, double distMaxBorder, double snapOnVertexBorder);
+		//void _getGeomCL(ign::geometry::LineString& lsCL, ign::geometry::LineString& lsBorder, ign::geometry::Point ptStartToProject, ign::geometry::Point ptEndToProject, double snapOnVertexBorder);
+		
 
 		void _addToUndershootNearBorder(ign::geometry::LineString & lsBorder, ign::geometry::GeometryPtr& buffBorder, double distUnderShoot);
 

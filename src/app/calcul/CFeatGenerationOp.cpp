@@ -1711,10 +1711,17 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 
 			ign::geometry::LineString lsIntersectedCL, lsSE, lsSS, lsES, lsEE;
 
-			_getGeomCL(lsSE, mslBorder, ign::geometry::LineString(lsCurr.startPoint(), lsClArround.endPoint()), distMaxFromBorder, snapOnVertexBorder);
-			_getGeomCL(lsSS, mslBorder, ign::geometry::LineString(lsCurr.startPoint(), lsClArround.startPoint()), distMaxFromBorder, snapOnVertexBorder);
-			_getGeomCL(lsES, mslBorder, ign::geometry::LineString(lsCurr.endPoint(), lsClArround.startPoint()), distMaxFromBorder, snapOnVertexBorder);
-			_getGeomCL(lsEE, mslBorder, ign::geometry::LineString(lsCurr.endPoint(), lsClArround.endPoint()), distMaxFromBorder, snapOnVertexBorder);
+			ign::geometry::LineString segmentSE(lsCurr.startPoint(), lsClArround.endPoint());
+			_getGeomCL(lsSE, mslBorder, segmentSE, distMaxFromBorder, snapOnVertexBorder);
+
+			ign::geometry::LineString segmentSS(lsCurr.startPoint(), lsClArround.startPoint());
+			_getGeomCL(lsSS, mslBorder, segmentSS, distMaxFromBorder, snapOnVertexBorder);
+
+			ign::geometry::LineString segmentES(lsCurr.endPoint(), lsClArround.startPoint());
+			_getGeomCL(lsES, mslBorder, segmentES, distMaxFromBorder, snapOnVertexBorder);
+
+			ign::geometry::LineString segmentEE(lsCurr.endPoint(), lsClArround.endPoint());
+			_getGeomCL(lsEE, mslBorder, segmentEE, distMaxFromBorder, snapOnVertexBorder);
 			
 			//lsIntersectedCL = lsCurr;
 			double lengthMin = 100000;

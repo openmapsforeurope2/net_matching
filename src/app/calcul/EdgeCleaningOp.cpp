@@ -866,10 +866,10 @@ namespace app
                 // if (faceGeom.intersects(ign::geometry::Point(3989455.72,3143506.25))) {
                 //     bool test = true;
                 // }
-                double testArea = faceGeom.area();
-                size_t testNbPts = faceGeom.exteriorRing().numPoints();
-                _logger->log(epg::log::DEBUG, ign::data::Double(testArea).toString());
-                _logger->log(epg::log::DEBUG, ign::data::Integer(testNbPts).toString());
+                // double testArea = faceGeom.area();
+                // size_t testNbPts = faceGeom.exteriorRing().numPoints();
+                // _logger->log(epg::log::DEBUG, ign::data::Double(testArea).toString());
+                // _logger->log(epg::log::DEBUG, ign::data::Integer(testNbPts).toString());
 
 
                 //TODO
@@ -882,13 +882,12 @@ namespace app
                     _isSlimSurface(faceGeom, slimSurfaceWidth, &p1, &p2) // TODO recuperee v1 et v2
                 ) {
                    //DEBUG
-                    _logger->log(epg::log::DEBUG, "IS SLIM!");
+                    // _logger->log(epg::log::DEBUG, "IS SLIM!");
 
                     ign::feature::Feature feat;
                     feat.setGeometry(faceGeom);
                     _shapeLogger->writeFeature("ecl_slim_surface", feat);
 
-                    // TODO modifier _getFacePaths pour recupere les cl
                     std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
                     if (!_getFacePaths(graphManager, *fit, vpCountryEdges))
                         continue;
@@ -903,10 +902,8 @@ namespace app
                         continue;
                     }
 
-                    //TODO
-                    // traiter le cas suivant l'ancienne méthode en ne raisonnant que sur les paths
-                    // voir si on peut traiter les cas avec un mix 2 pays + #
-                    // OU 1 pays + #
+                    // traiter dans un premier temps en ne raisonnant que sur les paths
+                    // TODO voir si on peut traiter les cas avec un mix 2 pays + #
 
                     std::set<std::string> sFaceCountries;
                     for (std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>::const_iterator vpit = vpCountryEdges.begin() ; vpit != vpCountryEdges.end() ; ++vpit)
@@ -939,7 +936,6 @@ namespace app
                         hasConnection1 = hasConnection.find(vpCountryEdges.front().first) != hasConnection.end();
                         hasConnection2 = hasConnection.find(vpCountryEdges.back().first) != hasConnection.end();
                     }  else {
-                        // TODO 
                         // on recupere pour chacune des 2 branches entre p1 et p2 les paths qui les constituent
                         // si p1 ou p2 ne correspond pas à une extremité de chemin on ne traite pas la face
                         // si p1 et p2 correspondent aux extremites topos

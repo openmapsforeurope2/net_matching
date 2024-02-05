@@ -2,6 +2,7 @@
 #include <app/calcul/EdgeCleaningOp.h>
 #include <app/params/ThemeParameters.h>
 #include <app/calcul/detail/graph/concept/EdgeCleaningGraphSpecializations.h>
+#include <app/geometry/tools/getEndingPoints.h>
 
 // BOOST
 #include <boost/progress.hpp>
@@ -69,6 +70,7 @@ namespace app
             _shapeLogger->addShape("ecl_country", epg::log::ShapeLogger::POLYGON);
             _shapeLogger->addShape("ecl_paths_out_of_country", epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("ecl_slim_surface", epg::log::ShapeLogger::POLYGON);
+            _shapeLogger->addShape("ecl_slim_surface_medial_axis", epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("ecl_big_face_removed", epg::log::ShapeLogger::POLYGON);
             _shapeLogger->addShape("ecl_slim_face_1_path", epg::log::ShapeLogger::POLYGON);
             _shapeLogger->addShape("ecl_slim_face_2_path_same_country", epg::log::ShapeLogger::POLYGON);
@@ -158,10 +160,12 @@ namespace app
         void EdgeCleaningOp::_loadGraph(
             app::calcul::detail::EdgeCleaningGraphManager & graphManager, 
             bool planarize,
-            ign::feature::FeatureFilter filter
+            bool simplifiedPlanarization,
+            ign::feature::FeatureFilter filter        
             ) const 
         {
             graphManager.clear();
+            graphManager.setSimplifiedPlanarization(simplifiedPlanarization);
 
             epg::Context *context = epg::ContextS::getInstance();
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
@@ -193,6 +197,7 @@ namespace app
                 graphManager.planarize();
                 graphManager.createFaces();
             }
+            graphManager.setSimplifiedPlanarization(false);
         }
 
         ///
@@ -260,7 +265,7 @@ namespace app
             std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomPtr.find(country);
             if (mit == _mCountryGeomPtr.end()) {
                 _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
-                std::make_pair(0, 0);
+                return std::make_pair(0, 0);
             }
 
             ign::geometry::GeometryPtr resultPtr(mit->second->Intersection(ls));
@@ -368,6 +373,10 @@ namespace app
 			{
                 ++display;
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
+
+                // DEBUG
+                // _logger->log(epg::log::DEBUG, "coucou");
+                _logger->log(epg::log::DEBUG, faceGeom.toString());
 
 				if (_isSlimSurface(faceGeom, slimSurfaceWidth)) {
 
@@ -500,38 +509,62 @@ namespace app
         ///
         ///
         ///
-        bool EdgeCleaningOp::_isSlimSurface( 
-            ign::geometry::LineString const& closedLs, 
-            double maxWidth
-		) const {
-            // trouver les 2 points les plus distants du contour
-            // separer le contour en 2 polylignes
-            // calculer hausdorff entre ces 2 polylignes
-            int indexI = -1;
-            int indexJ = -1;
+        // bool EdgeCleaningOp::_isSlimSurface( 
+        //     ign::geometry::LineString const& closedLs, 
+        //     double maxWidth
+		// ) const {
+        //     // trouver les 2 points les plus distants du contour
+        //     // separer le contour en 2 polylignes
+        //     // calculer hausdorff entre ces 2 polylignes
+        //     int indexI = -1;
+        //     int indexJ = -1;
 
-            double maxDist = 0;
-            for( size_t i = 0 ; i < closedLs.numPoints()-1 ; ++i )
+        //     double maxDist = 0;
+        //     for( size_t i = 0 ; i < closedLs.numPoints()-1 ; ++i )
+        //     {
+        //         for( size_t j = i+1 ; j < closedLs.numPoints() ; ++j )
+        //         {
+        //             double dist = closedLs.pointN(i).distance(closedLs.pointN(j));
+        //             if ( dist > maxDist ) {
+        //                 maxDist = dist;
+        //                 indexI = i;
+        //                 indexJ = j;
+        //             }
+        //         }
+        //     }
+
+        //     std::pair<ign::geometry::LineString,ign::geometry::LineString> pLs = _getSubLineStrings(indexI, indexJ, closedLs);
+
+        //     double hausdorffDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(pLs.first, pLs.second);
+
+        //     if (hausdorffDist < 0)
+        //         _logger->log(epg::log::ERROR, "Error in slim surface calculation : hausdorff distance < 0");
+
+        //     return hausdorffDist >= 0 && hausdorffDist < maxWidth;
+        // }
+
+        ///
+        ///
+        ///
+        ign::geometry::LineString EdgeCleaningOp::_refineGeom(ign::geometry::LineString const& ls) const {
+            ign::geometry::LineString refinedLs;
+
+            const ign::geometry::Point * startPoint = &ls.startPoint();
+            refinedLs.addPoint(*startPoint);
+            for( size_t i = 0 ; i < ls.numSegments() ; ++i )
             {
-                for( size_t j = i+1 ; j < closedLs.numPoints() ; ++j )
-                {
-                    double dist = closedLs.pointN(i).distance(closedLs.pointN(j));
-                    if ( dist > maxDist ) {
-                        maxDist = dist;
-                        indexI = i;
-                        indexJ = j;
-                    }
-                }
+                const ign::geometry::Point * endPoint = &ls.pointN(i+1);
+
+                double deltaX = (endPoint->x() - startPoint->x())/3;
+                double deltaY = (endPoint->y() - startPoint->y())/3;
+
+                refinedLs.addPoint(ign::geometry::Point(startPoint->x() + deltaX, startPoint->y() + deltaY));
+                refinedLs.addPoint(ign::geometry::Point(startPoint->x() + 2*deltaX, startPoint->y() + 2*deltaY));
+                refinedLs.addPoint(*endPoint);
+
+                startPoint = endPoint;
             }
-
-            std::pair<ign::geometry::LineString,ign::geometry::LineString> pLs = _getSubLineStrings(indexI, indexJ, closedLs);
-
-            double hausdorffDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(pLs.first, pLs.second);
-
-            if (hausdorffDist < 0)
-                _logger->log(epg::log::ERROR, "Error in slim surface calculation : hausdorff distance < 0");
-
-            return hausdorffDist >= 0 && hausdorffDist < maxWidth;
+            return refinedLs;
         }
 
         ///
@@ -539,9 +572,57 @@ namespace app
         ///
         bool EdgeCleaningOp::_isSlimSurface( 
             ign::geometry::Polygon const& poly, 
-            double maxWidth
+            double maxWidth,
+            ign::geometry::Point const ** p1,
+            ign::geometry::Point const ** p2
 		) const {
-            return _isSlimSurface( poly.exteriorRing(), maxWidth );
+            ign::geometry::LineString const& extRing = poly.exteriorRing();
+            ign::geometry::LineString refinedExtRing = _refineGeom(extRing);
+            std::pair<ign::geometry::Point, ign::geometry::Point> pEndingPoints = app::geometry::tools::getEndingPoints(refinedExtRing);
+            if ( pEndingPoints.first.isEmpty() ) {
+                _logger->log(epg::log::WARN, "Not found ending points");
+                return true;
+            }
+
+            int indexStart = -1;
+            int indexEnd = -1;
+
+            double minDistStart = std::numeric_limits<double>::max();;
+            double minDistEnd = std::numeric_limits<double>::max();;
+            for( size_t i = 0 ; i < extRing.numPoints()-1 ; ++i )
+            {
+                double distStart = pEndingPoints.first.distance(extRing.pointN(i));
+                if ( distStart < minDistStart ) {
+                    minDistStart = distStart;
+                    indexStart = i;
+                }
+                
+                double distEnd = pEndingPoints.second.distance(extRing.pointN(i));
+                if ( distEnd < minDistEnd ) {
+                    minDistEnd = distEnd;
+                    indexEnd = i;
+                }
+            }
+
+            if (indexStart < 0 || indexEnd<0 || indexStart == indexEnd) {
+                _logger->log(epg::log::ERROR, "Error in slim surface calculation : error in ending points calculation");
+                _logger->log(epg::log::ERROR, poly.toString());
+                return false;
+            }
+
+            std::pair<ign::geometry::LineString,ign::geometry::LineString> pLs = _getSubLineStrings(std::min(indexStart, indexEnd), std::max(indexStart, indexEnd), extRing);
+
+            if (p1) *p1 = &extRing.pointN(std::min(indexStart, indexEnd));
+            if (p2) *p2 = &extRing.pointN(std::max(indexStart, indexEnd));
+
+            double hausdorffDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(pLs.first, pLs.second);
+
+            if (hausdorffDist < 0) {
+                _logger->log(epg::log::ERROR, "Error in slim surface calculation : hausdorff distance < 0");
+                _logger->log(epg::log::ERROR, poly.toString());
+            }
+
+            return hausdorffDist >= 0 && hausdorffDist < maxWidth;
         }
 
         ///
@@ -561,10 +642,10 @@ namespace app
 
             do{
                 // on ne doit pas avoir de cl dans la boucle
-                if (graphManager.isCl(currentEdge.descriptor)) {
-                    _logger->log(epg::log::WARN, "Loop contains a CL [cl id] "+graph.origins(currentEdge.descriptor)[0]);
-                    return false;
-                }
+                // if (graphManager.isCl(currentEdge.descriptor)) {
+                //     _logger->log(epg::log::WARN, "Loop contains a CL [cl id] "+graph.origins(currentEdge.descriptor)[0]);
+                //     return false;
+                // }
 
                 //DEBUG
                 // ign::geometry::LineString lsTemp = graph.getGeometry(currentEdge);
@@ -672,6 +753,7 @@ namespace app
             std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
 
             bool isPlanar = true;
+            bool isSimplified = false;
 
             std::vector<std::string> vCountry;
 		    epg::tools::StringTools::Split(_countryCode, "#", vCountry);
@@ -679,7 +761,7 @@ namespace app
                 detail::EdgeCleaningGraphManager graphManager;
                 ign::feature::FeatureFilter filter = filter_;
                 epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" LIKE '%"+vCountry[i]+"%'");
-                _loadGraph(graphManager, isPlanar, filter);
+                _loadGraph(graphManager, isPlanar, isSimplified, filter);
 
                 // std::set<vertex_descriptor> sTreatedDangles;
 
@@ -700,7 +782,7 @@ namespace app
         bool EdgeCleaningOp::cleanFaces2(ign::feature::FeatureFilter filter) const
         {
             detail::EdgeCleaningGraphManager graphManager;
-            _loadGraph(graphManager, true, filter);
+            _loadGraph(graphManager, true/*planarize*/, false/*simplified*/, filter);
 
             return _cleanFaces2(graphManager);
         }
@@ -743,6 +825,8 @@ namespace app
         {
             bool bChangeOccured = false;
 
+            // TODO nettoyer les artefacts du a la planarization (antennes liees à des faces ?)
+
             while ( _cleanGraphFaces(graphManager) ) {
                 bChangeOccured = true;
             }
@@ -759,6 +843,8 @@ namespace app
             // app parameters
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
             double const slimSurfaceWidth = themeParameters->getValue( ECL_SLIM_SURFACE_WIDTH ).toDouble();
+            double const slimSurfaceMaxArea = themeParameters->getValue( ECL_SLIM_SURFACE_MAX_AREA ).toDouble();
+            double const slimSurfaceMaxNbPoints = themeParameters->getValue( ECL_SLIM_SURFACE_MAX_NB_POINTS ).toDouble();
 
             std::set<edge_descriptor> sEdge2Remove;
 
@@ -772,27 +858,37 @@ namespace app
 
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
-                //DEBUG
-                // bool test = false;
-                // if (faceGeom.distance(ign::geometry::Point(4017080.52,3094248.81)) < 1) {
-                //     test = true;
-                // }
                 // DEBUG
                 _logger->log(epg::log::DEBUG, faceGeom.toString());
                 // if (faceGeom.intersects(ign::geometry::Point(4017129.38,3093853.68))) {
                 //     bool test = true;
                 // }
-                if (faceGeom.intersects(ign::geometry::Point(3869489.41,3149036.72))) {
-                    bool test = true;
-                }
-                
+                // if (faceGeom.intersects(ign::geometry::Point(3989455.72,3143506.25))) {
+                //     bool test = true;
+                // }
+                double testArea = faceGeom.area();
+                size_t testNbPts = faceGeom.exteriorRing().numPoints();
+                _logger->log(epg::log::DEBUG, ign::data::Double(testArea).toString());
+                _logger->log(epg::log::DEBUG, ign::data::Integer(testNbPts).toString());
 
-				if (_isSlimSurface(faceGeom, slimSurfaceWidth)) {
+
+                //TODO
+                ign::geometry::Point const * p1 = 0;
+                ign::geometry::Point const * p2 = 0;
+
+				if (
+                    faceGeom.exteriorRing().numPoints() < slimSurfaceMaxNbPoints && //optimisation
+                    faceGeom.area() < slimSurfaceMaxArea && //optimisation
+                    _isSlimSurface(faceGeom, slimSurfaceWidth, &p1, &p2) // TODO recuperee v1 et v2
+                ) {
+                   //DEBUG
+                    _logger->log(epg::log::DEBUG, "IS SLIM!");
 
                     ign::feature::Feature feat;
                     feat.setGeometry(faceGeom);
                     _shapeLogger->writeFeature("ecl_slim_surface", feat);
 
+                    // TODO modifier _getFacePaths pour recupere les cl
                     std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
                     if (!_getFacePaths(graphManager, *fit, vpCountryEdges))
                         continue;
@@ -807,6 +903,11 @@ namespace app
                         continue;
                     }
 
+                    //TODO
+                    // traiter le cas suivant l'ancienne méthode en ne raisonnant que sur les paths
+                    // voir si on peut traiter les cas avec un mix 2 pays + #
+                    // OU 1 pays + #
+
                     std::set<std::string> sFaceCountries;
                     for (std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>::const_iterator vpit = vpCountryEdges.begin() ; vpit != vpCountryEdges.end() ; ++vpit)
                         sFaceCountries.insert(vpit->first);
@@ -816,56 +917,130 @@ namespace app
                         hasConnection = _mergeFacePaths(vpCountryEdges);
                     }
 
-                    if (vpCountryEdges.size() != 2) continue;
+                    bool bUse1stMethode = vpCountryEdges.size() == 2;
 
-                    if (vpCountryEdges.front().first != vpCountryEdges.back().first) {
-                        // quel chemin doit-on garder ?
-                        double ratio1 = _getRatio(graph, vpCountryEdges.front().first, vpCountryEdges.front().second);
-                        bool hasConnection1 = hasConnection.find(vpCountryEdges.front().first) != hasConnection.end();
-                        double ratio2 = _getRatio(graph, vpCountryEdges.back().first, vpCountryEdges.back().second);
-                        bool hasConnection2 = hasConnection.find(vpCountryEdges.back().first) != hasConnection.end();
-
-                        // if ( ratio1 > ratio2 ) {
-                        //     if (!hasConnection2 ) {
-                        //         _removePath(graph, vpCountryEdges.back().second, sEdge2Remove);
-                        //         bChangeOccured = true;
-                        //     }
-                        // } else if ( !hasConnection1 ) {
-                        //     _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
-                        //     bChangeOccured = true;
-                        // }
-
-                        if (hasConnection1 && !hasConnection2) {
-                            _removePath(graph, vpCountryEdges.back().second, sEdge2Remove);
-                            bChangeOccured = true;
-                        } else if (!hasConnection1 && hasConnection2) {
-                            _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
-                            bChangeOccured = true;
-                        } else if (!hasConnection1 && !hasConnection2) {
-                            if ( ratio1 > ratio2 ) _removePath(graph, vpCountryEdges.back().second, sEdge2Remove);
-                            else _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
-                            bChangeOccured = true;
-                        }
-                    } else {
-                        // 2 chemins dans le même pays, on garde le plus court
+                    if (bUse1stMethode) {
                         ign::geometry::LineString lsFront = epg::graph::tools::convertPathToLineString(graph, vpCountryEdges.front().second);
                         ign::geometry::LineString lsBack = epg::graph::tools::convertPathToLineString(graph, vpCountryEdges.back().second);
 
-                        if ( ign::geometry::algorithm::HausdorffDistanceOp::distance(lsFront, lsBack) > slimSurfaceWidth )
-                            continue;
-                        
-                        double lengthFront = _getPathLength(graph, vpCountryEdges.front().second);
-                        double lengthBack = _getPathLength(graph, vpCountryEdges.back().second);
-                        if (lengthFront < lengthBack) {
-                            _removePath(graph, vpCountryEdges.back().second, sEdge2Remove);
-                            bChangeOccured = true;
-                        } else {
-                            _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
-                            bChangeOccured = true;
+                        bUse1stMethode =  ign::geometry::algorithm::HausdorffDistanceOp::distance(lsFront, lsBack) <= slimSurfaceWidth;
+                    }
+
+                    // contitution des branches
+                    std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>  branch1;
+                    std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>  branch2;
+                    bool hasConnection1 = false;
+                    bool hasConnection2 = false;
+
+                    if (bUse1stMethode) {
+                        branch1.push_back(vpCountryEdges.front());
+                        branch2.push_back(vpCountryEdges.back());
+
+                        hasConnection1 = hasConnection.find(vpCountryEdges.front().first) != hasConnection.end();
+                        hasConnection2 = hasConnection.find(vpCountryEdges.back().first) != hasConnection.end();
+                    }  else {
+                        // TODO 
+                        // on recupere pour chacune des 2 branches entre p1 et p2 les paths qui les constituent
+                        // si p1 ou p2 ne correspond pas à une extremité de chemin on ne traite pas la face
+                        // si p1 et p2 correspondent aux extremites topos
+                        // boucler sur les chemins, pour chaque extremité de chemin on calcul la distance à p1 et p2
+                        // on selectionne les 2 extremités qui sont les plus proche de p1 et p2 (et dont la distance à ces points est < seuil)
+                        double dMin1 = 1e-5;
+                        double dMin2 = 1e-5;
+                        int startPath1 = -1;
+                        int startPath2 = -1;
+                        for ( size_t i = 0; i < vpCountryEdges.size() ; ++i) {
+                            double d1 = graph.getGeometry(graph.source(*vpCountryEdges[i].second.begin())).distance(*p1);
+                            if ( d1 < dMin1) {
+                                dMin1 = d1;
+                                startPath1 = i;
+                            }
+                            double d2 = graph.getGeometry(graph.source(*vpCountryEdges[i].second.begin())).distance(*p2);
+                            if ( d2 < dMin2) {
+                                dMin2 = d2;
+                                startPath2 = i;
+                            }
                         }
-                        ign::feature::Feature feat;
-                        feat.setGeometry(faceGeom);
-                        _shapeLogger->writeFeature("ecl_slim_face_2_path_same_country", feat);
+
+                        if (startPath1 < 0 || startPath2 < 0) continue;
+
+                        size_t pathMin = std::min(startPath1, startPath2);
+                        size_t pathMax = std::max(startPath1, startPath2);
+
+                        for ( size_t i = pathMin; i < vpCountryEdges.size() ; ++i) {
+                            if ( i < pathMax ) 
+                                branch1.push_back(vpCountryEdges[i]);
+                            else
+                                branch2.push_back(vpCountryEdges[i]);
+                        }
+                        for ( size_t i = 0; i < pathMin ; ++i) 
+                            branch2.push_back(vpCountryEdges[i]);
+
+
+                        for ( size_t i = 0; i < branch1.size() ; ++i)
+                            if ( i != branch1.size()-1 && 
+                                ( graph.degree(graph.target(*branch1[i].second.rbegin())) > 2 || _vertexIsCp(graph, graph.target(*branch1[i].second.rbegin())) ) 
+                            ) hasConnection1 = true;
+
+                        for ( size_t i = 0; i < branch2.size() ; ++i)
+                            if ( i != branch2.size()-1 && 
+                                ( graph.degree(graph.target(*branch2[i].second.rbegin())) > 2 || _vertexIsCp(graph, graph.target(*branch2[i].second.rbegin())) ) 
+                            ) hasConnection2 = true;
+                    }
+
+                    // pour chaque branche on calcule le ratio et on regarde si il y a des connections
+                    double length1 = 0;
+                    double ratio1 = 0;
+                    for ( size_t i = 0; i < branch1.size() ; ++i) {
+                        double ratio = _getRatio(graph, branch1[i].first, branch1[i].second);
+                        double length = _getPathLength(graph, branch1[i].second);
+                        ratio1 += length*ratio;
+                        length1 += length;
+                    }
+                    ratio1 /= length1;
+
+                    double length2 = 0;
+                    double ratio2 = 0;
+                    for ( size_t i = 0; i < branch2.size() ; ++i) {
+                        double ratio = _getRatio(graph, branch2[i].first, branch2[i].second);
+                        double length = _getPathLength(graph, branch2[i].second);
+                        ratio2 += length*ratio;
+                        length2 += length;
+                    }
+                    ratio2 /= length2;
+
+                    // on supprime tous les chemins d'une branche si:
+                    // - c'est la seule des 2 à n'avoir pas de connnexion
+                    // - elle à le moins bon ration et les 2 branches n'ont pas de connexion
+                    bChangeOccured = true;
+                    if (hasConnection1 && !hasConnection2) {
+                        for (size_t i = 0 ; i < branch2.size() ; ++i)
+                            _removePath(graph, branch2[i].second, sEdge2Remove);
+                    } else if (!hasConnection1 && hasConnection2) {
+                        for (size_t i = 0 ; i < branch1.size() ; ++i)
+                            _removePath(graph, branch1[i].second, sEdge2Remove);
+                    } else if (!hasConnection1 && !hasConnection2) {
+                        if ( ratio1 > ratio2 ) 
+                            for (size_t i = 0 ; i < branch2.size() ; ++i)
+                                _removePath(graph, branch2[i].second, sEdge2Remove);
+                        else if ( ratio1 < ratio2 )
+                            for (size_t i = 0 ; i < branch1.size() ; ++i)
+                                _removePath(graph, branch1[i].second, sEdge2Remove);
+                        else {
+                            // 2 chemins avec le même ratio, on garde le plus court
+                            if (length1 < length2) {
+                                for (size_t i = 0 ; i < branch2.size() ; ++i)
+                                    _removePath(graph, branch2[i].second, sEdge2Remove);
+                            } else {
+                                for (size_t i = 0 ; i < branch1.size() ; ++i)
+                                    _removePath(graph, branch1[i].second, sEdge2Remove);
+                            }
+                            ign::feature::Feature feat;
+                            feat.setGeometry(faceGeom);
+                            _shapeLogger->writeFeature("ecl_slim_face_2_path_same_country", feat);
+                        }
+                    } else {
+                        bChangeOccured = false;
                     }
                 } else {
                     // grande face
@@ -889,10 +1064,114 @@ namespace app
                     }
                 }
 			}
-            for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
+
+            std::set<vertex_descriptor> sVertices;
+            for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit ) {
+                if (graph.degree(graph.source(*sit)) > 2)
+                    sVertices.insert(graph.source(*sit));
+                if (graph.degree(graph.target(*sit)) > 2)
+                    sVertices.insert(graph.target(*sit));
                 graph.removeEdge(*sit);
+            }
+
+            _cleanFacesAntennas(graphManager, sVertices);
 
             return bChangeOccured;
+        }
+
+        ///
+        ///
+        ///
+        void EdgeCleaningOp::_cleanFacesAntennas(
+            detail::EdgeCleaningGraphManager & graphManager, 
+            std::set<vertex_descriptor> const& sVertices
+        ) const {
+            GraphType & graph = graphManager.getGraph();
+            boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning faces antennas % complete ]\n");
+
+            std::set<std::string> sTreatedFeatures;
+
+            std::set<vertex_descriptor>::const_iterator sit;
+            for (sit = sVertices.begin() ; sit != sVertices.end() ; ++sit) {
+                if( graph.degree( *sit ) != 1 ) continue;
+                if( _vertexIsCp(graph, *sit) ) continue;
+
+                std::pair<bool, std::list<oriented_edge_descriptor>> pAntenna = _getAntenna(graphManager, *sit, sTreatedFeatures, true/*is planar*/);
+
+                _removePathAndGraphEdges(graph, pAntenna.second);
+            }
+        }
+
+        ///
+        ///
+        ///
+        std::pair<bool, std::list<app::calcul::detail::EdgeCleaningGraphManager::oriented_edge_descriptor>> EdgeCleaningOp::_getAntenna(
+            detail::EdgeCleaningGraphManager const& graphManager,
+            vertex_descriptor v,
+            std::set<std::string> & sTreatedFeatures,
+            bool isPlanarGraph
+        ) const {
+            GraphType const& graph = graphManager.getGraph();
+
+            std::list<oriented_edge_descriptor> lAntennaEdges;
+            bool isConnected2CF = false;
+
+            std::vector< oriented_edge_descriptor > vEdges;
+            graph.incidentEdges( v, vEdges );
+
+            oriented_edge_descriptor nextEdge = vEdges.front(); // si nextEdge n'est pas une CL ?
+            if (graphManager.isCl(nextEdge.descriptor)) {
+                _logger->log(epg::log::WARN, "Antenna is connecting line [cl id] "+graph.origins(nextEdge.descriptor)[0]);
+                return std::make_pair(isConnected2CF, lAntennaEdges);
+            }
+
+            std::string edgeFeatId = graph.origins(nextEdge.descriptor)[0];
+            if (sTreatedFeatures.find(edgeFeatId) != sTreatedFeatures.end())
+                return std::make_pair(isConnected2CF, lAntennaEdges);
+            sTreatedFeatures.insert(edgeFeatId);
+
+            std::string country = graphManager.getCountry(nextEdge.descriptor);
+
+            vertex_descriptor vTarget = GraphType::nullVertex();
+            
+            while( true )
+            {
+                if (graphManager.getCountry(nextEdge.descriptor) != country) {
+                    isConnected2CF = true;
+                    break;
+                }
+
+                //DEBUG
+                // ign::geometry::LineString ls = graph.getGeometry(nextEdge.descriptor);
+                // if (ls.distance(ign::geometry::Point(3800840.443,3131644.081)) < 4) {
+                //     bool test = true;
+                // }
+
+                _addAntennaEdges(graph, nextEdge, lAntennaEdges, isPlanarGraph);
+
+                vTarget = _getTarget(graph, nextEdge, isPlanarGraph);
+
+                if (graphManager.isCl(nextEdge.descriptor) && graph.degree(graph.source( nextEdge )) == 2 ) {
+                    _logger->log(epg::log::WARN, "Antenna connected to connecting line [cl id] "+graph.origins(nextEdge.descriptor)[0]);
+                    isConnected2CF = true;
+                    break;
+                }
+
+                bool targetIsCp = _vertexIsCp(graph, vTarget);
+                if( targetIsCp )
+                    isConnected2CF = true;
+
+                if( graph.degree( vTarget ) != 2 || targetIsCp) { // ou si nextEdge est une CL ?
+                    if( graph.degree( vTarget ) == 1 /*antenne isolee*/)
+                    {
+                        sTreatedFeatures.insert(graph.origins(nextEdge.descriptor)[0]);
+                    }
+                    break;
+                }
+
+                nextEdge = _getNextEdge(graph, nextEdge.descriptor, vTarget, isPlanarGraph);
+            }
+            return std::make_pair(isConnected2CF, lAntennaEdges);
         }
 
         ///
@@ -983,7 +1262,7 @@ namespace app
 
                 detail::EdgeCleaningGraphManager graphManager;
 
-                _loadGraph(graphManager, false, filter);
+                _loadGraph(graphManager, false, false, filter);
                 graphManager.initWeight();
 
                 GraphType & graph = graphManager.getGraph();
@@ -1062,11 +1341,13 @@ namespace app
         ///
         ///
         ///
-        bool EdgeCleaningOp::_cleanGraphAntennas(detail::EdgeCleaningGraphManager & graphManager, /*std::set<vertex_descriptor> & sTreatedDangles,*/ std::set<std::string> & sTreatedFeatures, bool isPlanarGraph) const
-        {
+        bool EdgeCleaningOp::_cleanGraphAntennas(
+            detail::EdgeCleaningGraphManager & graphManager, 
+            /*std::set<vertex_descriptor> & sTreatedDangles,*/ 
+            std::set<std::string> & sTreatedFeatures,
+            bool isPlanarGraph
+        ) const {
             GraphType & graph = graphManager.getGraph();
-            
-            std::set< vertex_descriptor > visitedVertices;
 
             // liste des vertex auxquels sont rattachées une ou plusieurs antennes
             std::map<vertex_descriptor, std::vector<std::list<oriented_edge_descriptor>>> mVertexAntennas;
@@ -1078,101 +1359,21 @@ namespace app
             {
                 ++display;
 
-                // if( sTreatedDangles.find( *vit ) != sTreatedDangles.end() ) continue;
-                if( visitedVertices.find( *vit ) != visitedVertices.end() ) continue;
                 if( graph.degree( *vit ) != 1 ) continue;
-
-                // sTreatedDangles.insert(*vit);
 
                 if( _vertexIsCp(graph, *vit) ) continue;
 
-                // seulement les vertex qui touchent une CL ?
+                std::pair<bool, std::list<oriented_edge_descriptor>> pAntenna = _getAntenna(graphManager, *vit, sTreatedFeatures, isPlanarGraph);
 
-                // DEBUG
-                // ign::geometry::Point p = graph.getGeometry(*vit);
-                // _logger->log(epg::log::DEBUG, p.toString());
-                // if (p.distance(ign::geometry::Point(3965504.403,3156805.469)) < 2) {
-                //     bool test = true;
-                // }
-
-                std::list<oriented_edge_descriptor> lAntennaEdges;
-                bool isConnected2CF = false;
-
-                std::vector< oriented_edge_descriptor > vEdges;
-                graph.incidentEdges( *vit, vEdges );
-
-                oriented_edge_descriptor nextEdge = vEdges.front(); // si nextEdge n'est pas une CL ?
-                if (graphManager.isCl(nextEdge.descriptor)) {
-                    _logger->log(epg::log::WARN, "Antenna is connecting line [cl id] "+graph.origins(nextEdge.descriptor)[0]);
-                    continue;
-                }
-
-                std::string edgeFeatId = graph.origins(nextEdge.descriptor)[0];
-                if (sTreatedFeatures.find(edgeFeatId) != sTreatedFeatures.end())
-                    continue;
-                sTreatedFeatures.insert(edgeFeatId);
-
-                std::string country = graphManager.getCountry(nextEdge.descriptor);
-
-                //DEBUG
-                // if (country=="be#fr") {
-                //     bool test = true;
-                // }
-                // std::string id = graph.origins(nextEdge.descriptor)[0];
-                // if (id == "a15662a7-be3c-434f-8124-2a3ab80691d8") {
-                //     bool test = true;
-                // }
-
-                vertex_descriptor vTarget = GraphType::nullVertex();
-                
-                while( true )
-                {
-                    if (graphManager.getCountry(nextEdge.descriptor) != country) {
-                        isConnected2CF = true;
-                        break;
-                    }
-
-                    //DEBUG
-                    // ign::geometry::LineString ls = graph.getGeometry(nextEdge.descriptor);
-                    // if (ls.distance(ign::geometry::Point(3800840.443,3131644.081)) < 4) {
-                    //     bool test = true;
-                    // }
-
-                    _addAntennaEdges(graph, nextEdge, lAntennaEdges, isPlanarGraph);
-
-                    vTarget = _getTarget(graph, nextEdge, isPlanarGraph);
-
-                    if (graphManager.isCl(nextEdge.descriptor) && graph.degree(graph.source( nextEdge )) == 2 ) {
-                        _logger->log(epg::log::WARN, "Antenna connected to connecting line [cl id] "+graph.origins(nextEdge.descriptor)[0]);
-                        isConnected2CF = true;
-                        break;
-                    }
-
-                    bool targetIsCp = _vertexIsCp(graph, vTarget);
-                    if( targetIsCp )
-                        isConnected2CF = true;
-
-                    if( graph.degree( vTarget ) != 2 || targetIsCp) { // ou si nextEdge est une CL ?
-                        if( graph.degree( vTarget ) == 1 /*antenne isolee*/)
-                        {
-                            visitedVertices.insert( vTarget );
-                            sTreatedFeatures.insert(graph.origins(nextEdge.descriptor)[0]);
-                        }
-                        break;
-                    }
-
-                    nextEdge = _getNextEdge(graph, nextEdge.descriptor, vTarget, isPlanarGraph);
-                }
-
-                if (!lAntennaEdges.empty()) {
-                    vertex_descriptor vd = graph.target(lAntennaEdges.back());
+                if (!pAntenna.second.empty()) {
+                    vertex_descriptor vd = graph.target(pAntenna.second.back());
                     std::map<vertex_descriptor, std::vector<std::list<oriented_edge_descriptor>>>::const_iterator mit = mVertexAntennas.find(vd);
                     if( mit == mVertexAntennas.end() ) {
                         mVertexAntennas.insert(std::make_pair(vd, std::vector<std::list<oriented_edge_descriptor>>()));
                     }
-                    mVertexAntennas[vd].push_back(lAntennaEdges);
+                    mVertexAntennas[vd].push_back(pAntenna.second);
 
-                    if (isConnected2CF)
+                    if (pAntenna.first)
                         sVerticesConnected2CF.insert(vd);
                 }
             }
@@ -1183,55 +1384,55 @@ namespace app
             std::map<vertex_descriptor, std::vector<std::list<oriented_edge_descriptor>>>::iterator mit;
             for (mit = mVertexAntennas.begin() ; mit != mVertexAntennas.end() ; mit++) {
                 ++display2;
-                _logger->log(epg::log::DEBUG, "pouet1");
-                _logger->log(epg::log::DEBUG, graph.getGeometry(mit->first).toString());
+                // _logger->log(epg::log::DEBUG, "pouet1");
+                // _logger->log(epg::log::DEBUG, graph.getGeometry(mit->first).toString());
                 bool bConnected2CF = sVerticesConnected2CF.find(mit->first) != sVerticesConnected2CF.end() || _vertexIsConnected2Cl(graphManager, mit->first);
-                _logger->log(epg::log::DEBUG, "pouet2");
+                // _logger->log(epg::log::DEBUG, "pouet2");
 
                 std::vector<std::list<oriented_edge_descriptor>>::const_iterator minVit;
                 bool isRemoved = false;
                 do {
-                    _logger->log(epg::log::DEBUG, "pouet3");
+                    // _logger->log(epg::log::DEBUG, "pouet3");
                     std::vector<std::list<oriented_edge_descriptor>>::const_iterator vit;
                     if ( mit->second.size() > 1) {
-                        _logger->log(epg::log::DEBUG, "pouet4");
+                        // _logger->log(epg::log::DEBUG, "pouet4");
                         double minLength = std::numeric_limits<double>::max();
                         for (vit = mit->second.begin() ; vit != mit->second.end() ; ++vit) {
-                            _logger->log(epg::log::DEBUG, "pouet5");
-                            _logger->log(epg::log::DEBUG, graph.getGeometry(graph.target(vit->back())).toString());
-                            _logger->log(epg::log::DEBUG, graph.getGeometry(vit->front()).toString());
+                            // _logger->log(epg::log::DEBUG, "pouet5");
+                            // _logger->log(epg::log::DEBUG, graph.getGeometry(graph.target(vit->back())).toString());
+                            // _logger->log(epg::log::DEBUG, graph.getGeometry(vit->front()).toString());
                             double length = _getAntennaLength(graph, *vit);
-                            _logger->log(epg::log::DEBUG, "pouet6");
+                            // _logger->log(epg::log::DEBUG, "pouet6");
                             if (length < minLength) {
                                 minLength = length;
                                 minVit = vit;
                             }
                         }
                     } else {
-                        _logger->log(epg::log::DEBUG, "pouet7");
+                        // _logger->log(epg::log::DEBUG, "pouet7");
                         minVit = mit->second.begin();
                     }
-                    _logger->log(epg::log::DEBUG, "pouet8");
+                    // _logger->log(epg::log::DEBUG, "pouet8");
                     _logger->log(epg::log::DEBUG, graph.getGeometry(minVit->begin()->descriptor).toString());
-                    _logger->log(epg::log::DEBUG, "pouet81");
+                    // _logger->log(epg::log::DEBUG, "pouet81");
 
                     std::string country = graphManager.getCountry(minVit->begin()->descriptor);
                     
 
-                    _logger->log(epg::log::DEBUG, "pouet9");
+                    // _logger->log(epg::log::DEBUG, "pouet9");
                     
                     isRemoved = _cleanAntenna(graph, country, *minVit, bConnected2CF);
 
-                    _logger->log(epg::log::DEBUG, "pouet10");
+                    // _logger->log(epg::log::DEBUG, "pouet10");
                     if (isRemoved) {
                          bHasRemovedAntenna = true;
                          mit->second.erase(minVit);
                     }
-                    _logger->log(epg::log::DEBUG, "pouet11");
+                    // _logger->log(epg::log::DEBUG, "pouet11");
                 } while (isRemoved && graph.degree(mit->first) > 2 && mit->second.size() > 0);
-                _logger->log(epg::log::DEBUG, "pouet12");
+                // _logger->log(epg::log::DEBUG, "pouet12");
             }
-            _logger->log(epg::log::DEBUG, "pouet13");
+            // _logger->log(epg::log::DEBUG, "pouet13");
 
             return bHasRemovedAntenna;
         }

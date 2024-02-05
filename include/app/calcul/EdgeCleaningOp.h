@@ -89,6 +89,7 @@ namespace calcul{
 		void _loadGraph(
 			app::calcul::detail::EdgeCleaningGraphManager & graphManager,
 			bool planarize,
+			bool simplifiedPlanarization = false,
 			ign::feature::FeatureFilter filter = ign::feature::FeatureFilter()
 		) const;
 
@@ -108,6 +109,9 @@ namespace calcul{
 			std::string country,
 			ContainerType const& container
 		) const {
+			bool isCl = country.find("#") != std::string::npos;
+			if (isCl) return 1;
+			
             double lengthInCountry = 0;
             double length = 0;
             typename ContainerType::const_iterator lit = container.begin();
@@ -234,9 +238,14 @@ namespace calcul{
 		) const;
 
 		//--
+		ign::geometry::LineString _refineGeom(ign::geometry::LineString const& ls) const;
+
+		//--
 		bool _isSlimSurface( 
             ign::geometry::Polygon const& poly, 
-            double maxWidth
+            double maxWidth,
+			ign::geometry::Point const ** p1 = 0,
+            ign::geometry::Point const ** p2 = 0
 		) const;
 
 		//--
@@ -266,6 +275,20 @@ namespace calcul{
 
 		//--
 		bool _cleanGraphFaces(detail::EdgeCleaningGraphManager & graphManager) const;
+
+		//--
+		void _cleanFacesAntennas(
+            detail::EdgeCleaningGraphManager & graphManager, 
+            std::set<vertex_descriptor> const& sVertices
+        ) const ;
+
+        //--
+        std::pair<bool, std::list<app::calcul::detail::EdgeCleaningGraphManager::oriented_edge_descriptor>> _getAntenna(
+            detail::EdgeCleaningGraphManager const& graphManager,
+            vertex_descriptor v,
+            std::set<std::string> & sTreatedFeatures,
+            bool isPlanarGraph
+        ) const;
 
 		//--
 		bool _cleanAntennas(

@@ -45,6 +45,7 @@ namespace detail{
             GraphType                                                      _graph;
             ign::geometry::graph::tools::SnapRoundPlanarizer<GraphType>*   _builder;
             ign::geometry::graph::builder::SimpleGraphBuilder<GraphType>*  _simpleBuilder;
+            bool                                                           _simplifiedPlanarization;
 
         public:
 
@@ -52,7 +53,8 @@ namespace detail{
             //--
             EdgeCleaningGraphManager() :
                 _builder(0),
-                _simpleBuilder(0)
+                _simpleBuilder(0),
+                _simplifiedPlanarization(false)
             {
             };
 
@@ -61,6 +63,10 @@ namespace detail{
                 if (_builder) delete _builder;
                 if (_simpleBuilder) delete _simpleBuilder;
             };
+
+            void setSimplifiedPlanarization(bool simplified) {
+                _simplifiedPlanarization = simplified;
+            }
 
             inline GraphType const& getGraph() const {
                 return _graph;

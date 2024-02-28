@@ -1,5 +1,4 @@
 #include <app/calcul/CFeatGenerationOp.h>
-#include <app/calcul/detail/ClMerger.h>
 //#include <app/tools/CountryQueryErmTrans.h>
 #include <app/params/ThemeParameters.h>
 #include <app/geometry/tools/LengthIndexedLineString.h>
@@ -39,6 +38,9 @@
 #include<epg/graph/tools/createPath.h>
 //#include <epg/calcul/merging/MergingByLength.h>
 #include <epg/graph/EpgFeatureGraph.h>
+
+//OME2
+#include <ome2/calcul/detail/ClMerger.h>
 
 
 // BOOST
@@ -1608,7 +1610,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 	std::ostringstream ss1;
 	ss1 << linkedFeatIdName << " LIKE '%#%'";
 	ign::feature::FeatureFilter mergeFilter(ss1.str());
-	detail::ClMerger::mergeAll(_idGeneratorCL.get(), _fsCL, mergeFilter);
+	ome2::calcul::detail::ClMerger::mergeAll(_fsCL, mergeFilter, _idGeneratorCL.get());
 
 	_logger->log(epg::log::TITLE, "[ END FUSION CONNECTING LINES ] : " + epg::tools::TimeTools::getTime());
 }

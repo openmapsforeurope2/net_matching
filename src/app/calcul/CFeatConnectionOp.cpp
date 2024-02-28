@@ -4,7 +4,6 @@
 #include <app/geometry/tools/LineStringSplitter.h>
 #include <app/tools/StringTools.h>
 #include <app/tools/translateVertex.h>
-#include <app/calcul/detail/ClMerger.h>
 
 // BOOST
 #include <boost/progress.hpp>
@@ -26,6 +25,9 @@
 #include <ign/tools/stringtools.h>
 #include <ign/geometry/algorithm/LineMergerOpGeos.h>
 #include <ign/geometry/algorithm/HausdorffDistanceOp.h>
+
+//OME2
+#include <ome2/calcul/detail/ClMerger.h>
 
 namespace app
 {
@@ -217,7 +219,7 @@ namespace app
                 // }
 
                 //fusionner les cl adjacentes avec le même edgeLink, récuperer le géométrie fusionnée et lister les cl traitées pour ne pas les traiter de nouveau
-                ign::geometry::LineString mergedClGeom = detail::ClMerger::merge(_fsCl, fCl, foundFeatureId.second, sTreatedCl);
+                ign::geometry::LineString mergedClGeom = ome2::calcul::detail::ClMerger::merge(_fsCl, fCl, foundFeatureId.second, sTreatedCl);
                 
                 std::pair<bool, ign::feature::Feature> foundEdge = _getNearestChild(mergedClGeom, foundFeatureId.second, mParentChilds);
                 std::string edgeId = foundEdge.second.getId();

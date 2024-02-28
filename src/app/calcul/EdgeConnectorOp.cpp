@@ -4,7 +4,7 @@
 #include <app/geometry/tools/LineStringSplitter.h>
 #include <app/tools/StringTools.h>
 #include <app/tools/translateVertex.h>
-#include <app/calcul/detail/ClMerger.h>
+
 
 // BOOST
 #include <boost/progress.hpp>
@@ -21,6 +21,8 @@
 // #include <epg/calcul/matching/detail/LineStringSimpleDampedDeformer.h>
 #include <epg/tools/FilterTools.h>
 #include <epg/tools/geometry/LineIntersector.h>
+
+//#include <ome2/calcul/detail/ClMerger.h>
 
 // SOCLE
 #include <ign/geometry/graph/builder/SimpleGraphBuilder.h>

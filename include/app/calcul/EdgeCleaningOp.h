@@ -238,9 +238,6 @@ namespace calcul{
 		) const;
 
 		//--
-		ign::geometry::LineString _refineGeom(ign::geometry::LineString const& ls) const;
-
-		//--
 		bool _isSlimSurface( 
             ign::geometry::Polygon const& poly, 
             double maxWidth,

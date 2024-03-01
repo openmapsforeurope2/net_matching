@@ -2,7 +2,7 @@
 #include <app/calcul/EdgeCleaningOp.h>
 #include <app/params/ThemeParameters.h>
 #include <app/calcul/detail/graph/concept/EdgeCleaningGraphSpecializations.h>
-#include <app/geometry/tools/getEndingPoints.h>
+
 
 // BOOST
 #include <boost/progress.hpp>
@@ -16,6 +16,9 @@
 #include <epg/tools/TimeTools.h>
 #include <epg/tools/FilterTools.h>
 #include <epg/graph/tools/convertPathToLineString.h>
+
+//OME2
+#include <ome2/geometry/tools/getEndingPoints.h>
 
 // SOCLE
 #include <ign/geometry/graph/detail/NextEdge.h>
@@ -546,63 +549,26 @@ namespace app
         ///
         ///
         ///
-        ign::geometry::LineString EdgeCleaningOp::_refineGeom(ign::geometry::LineString const& ls) const {
-            ign::geometry::LineString refinedLs;
-
-            const ign::geometry::Point * startPoint = &ls.startPoint();
-            refinedLs.addPoint(*startPoint);
-            for( size_t i = 0 ; i < ls.numSegments() ; ++i )
-            {
-                const ign::geometry::Point * endPoint = &ls.pointN(i+1);
-
-                double deltaX = (endPoint->x() - startPoint->x())/3;
-                double deltaY = (endPoint->y() - startPoint->y())/3;
-
-                refinedLs.addPoint(ign::geometry::Point(startPoint->x() + deltaX, startPoint->y() + deltaY));
-                refinedLs.addPoint(ign::geometry::Point(startPoint->x() + 2*deltaX, startPoint->y() + 2*deltaY));
-                refinedLs.addPoint(*endPoint);
-
-                startPoint = endPoint;
-            }
-            return refinedLs;
-        }
-
-        ///
-        ///
-        ///
         bool EdgeCleaningOp::_isSlimSurface( 
             ign::geometry::Polygon const& poly, 
             double maxWidth,
             ign::geometry::Point const ** p1,
             ign::geometry::Point const ** p2
 		) const {
+
+
             ign::geometry::LineString const& extRing = poly.exteriorRing();
-            ign::geometry::LineString refinedExtRing = _refineGeom(extRing);
-            std::pair<ign::geometry::Point, ign::geometry::Point> pEndingPoints = app::geometry::tools::getEndingPoints(refinedExtRing);
-            if ( pEndingPoints.first.isEmpty() ) {
+            std::pair<ign::geometry::Point, ign::geometry::Point> pGeomEndingPointsMedialAxis = ome2::geometry::tools::getGeomEndingPointsMedialAxis(extRing);
+            if (pGeomEndingPointsMedialAxis.first.isEmpty() ) {
                 _logger->log(epg::log::WARN, "Not found ending points");
                 return true;
             }
 
-            int indexStart = -1;
-            int indexEnd = -1;
 
-            double minDistStart = std::numeric_limits<double>::max();;
-            double minDistEnd = std::numeric_limits<double>::max();;
-            for( size_t i = 0 ; i < extRing.numPoints()-1 ; ++i )
-            {
-                double distStart = pEndingPoints.first.distance(extRing.pointN(i));
-                if ( distStart < minDistStart ) {
-                    minDistStart = distStart;
-                    indexStart = i;
-                }
-                
-                double distEnd = pEndingPoints.second.distance(extRing.pointN(i));
-                if ( distEnd < minDistEnd ) {
-                    minDistEnd = distEnd;
-                    indexEnd = i;
-                }
-            }
+			std::pair<int, int> pIndexEndingPointsOnExtRing = ome2::geometry::tools::getIndexEndingPointsOnExtRing(extRing, pGeomEndingPointsMedialAxis);
+
+			int indexStart = pIndexEndingPointsOnExtRing.first;
+			int indexEnd = pIndexEndingPointsOnExtRing.second;
 
             if (indexStart < 0 || indexEnd<0 || indexStart == indexEnd) {
                 _logger->log(epg::log::ERROR, "Error in slim surface calculation : error in ending points calculation");

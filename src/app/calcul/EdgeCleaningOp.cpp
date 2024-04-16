@@ -18,7 +18,7 @@
 #include <epg/graph/tools/convertPathToLineString.h>
 
 //OME2
-#include <ome2/geometry/tools/getEndingPoints.h>
+#include <ome2/geometry/tools/GetEndingPointsOp.h>
 
 // SOCLE
 #include <ign/geometry/graph/detail/NextEdge.h>

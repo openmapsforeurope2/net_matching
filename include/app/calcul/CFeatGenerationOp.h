@@ -8,6 +8,8 @@
 #include <epg/sql/tools/IdGeneratorFactory.h>
 #include <epg/tools/MultiLineStringTool.h>
 
+#include <ome2/calcul/utils/attributeMerger.h>
+
 namespace app{
 namespace calcul{
 
@@ -78,7 +80,7 @@ namespace calcul{
 
 		bool _getNearestCP(ign::feature::Feature const& fCP, double distMergeCP, std::map < std::string, ign::feature::Feature>& mCPNear) const;
 
-		void _addFeatAttributeMergingOnBorder(ign::feature::Feature& featMergedAttr, ign::feature::Feature& featAttrToAdd, std::string separator);
+		//void _addFeatAttributeMergingOnBorder(ign::feature::Feature& featMergedAttr, ign::feature::Feature& featAttrToAdd, std::string separator);
 
 		void _deleteClByAngleAndDistEdges(double angleMax, double distMax, double snapOnVertexBorder);
 
@@ -151,9 +153,11 @@ namespace calcul{
 		epg::sql::tools::IdGeneratorInterfacePtr _idGeneratorCP;
 		epg::sql::tools::IdGeneratorInterfacePtr _idGeneratorCL;
 
-		std::set<std::string> _sAttrNameToConcat;
+		ome2::calcul::utils::AttributeMerger*				_attrMergerOnBorder;
+
+		/*std::set<std::string> _sAttrNameToConcat;
 		std::set<std::string> _sAttrNameW;
-		std::set<std::string> _sAttrNameJson;
+		std::set<std::string> _sAttrNameJson;*/
 		
 
 	};

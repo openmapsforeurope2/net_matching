@@ -196,6 +196,8 @@ app::calcul::CFeatGenerationOp::CFeatGenerationOp(std::string countryCodeDouble,
 
 app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 {
+	_attrMergerOnBorder = 0;
+	delete _attrMergerOnBorder;
 	_shapeLogger->closeShape("CLBeforeMerge");
 	_shapeLogger->closeShape("ClMergedBeforeUpdate");
 	_shapeLogger->closeShape("ClDeletedNoCandidatefound");
@@ -234,31 +236,11 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	epg::tools::StringTools::Split(_countryCodeDouble, "#", _vCountriesCodeName);
 	_verbose = verbose;
 
-	///recuperation de la liste des attributs à concatener dans la fusion des attributs
+	///recuperation de la liste des attributs à concatener, de w et json dans la fusion des attributs
 	std::string listAttr2concatName = themeParameters->getValue(LIST_ATTR_TO_CONCAT).toString();
-	//on recup les attribut a concat et on les mets dans un vecteur en splitant
-	std::vector<std::string> vAttrNameToConcat;
-	epg::tools::StringTools::Split(listAttr2concatName, "/", vAttrNameToConcat);
-	for (size_t i = 0; i < vAttrNameToConcat.size(); ++i) {
-		_sAttrNameToConcat.insert(vAttrNameToConcat[i]);
-	}
-
-	///recuperation de la liste des attributs à concatener dans la fusion des attributs
 	std::string listAttrWName = themeParameters->getValue(LIST_ATTR_W).toString();
-	//on recup les attribut a concat et on les mets dans un vecteur en splitant
-	std::vector<std::string> vAttrNameW;
-	epg::tools::StringTools::Split(listAttrWName, "/", vAttrNameW);
-	for (size_t i = 0; i < vAttrNameW.size(); ++i) {
-		_sAttrNameW.insert(vAttrNameW[i]);
-	}
-
 	std::string listAttrJsonName = themeParameters->getValue(LIST_ATTR_JSON).toString();
-	//on recup les attribut a concat et on les mets dans un vecteur en splitant
-	std::vector<std::string> vAttrNameJson;
-	epg::tools::StringTools::Split(listAttrJsonName, "/", vAttrNameJson);
-	for (size_t i = 0; i < vAttrNameJson.size(); ++i) {
-		_sAttrNameJson.insert(vAttrNameJson[i]);
-	}
+	ome2::calcul::utils::AttributeMerger* _attrMergerOnBorder = new ome2::calcul::utils::AttributeMerger(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
 
 	///recuperation des features
 	std::string const boundaryTableName = epg::utils::replaceTableName(context->getEpgParameters().getValue(TARGET_BOUNDARY_TABLE).toString());
@@ -332,7 +314,7 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 			<< "european_route_number" << " type varchar(255);"*/
 			<< "ALTER TABLE " << clTableName << " ADD COLUMN " << context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString() << " character varying(255);";
 		//patch pour ne pas avoir des enums et eviter les soucis lors de la fusion des attributs	
-		for (std::set<std::string>::iterator sit = _sAttrNameToConcat.begin(); sit != _sAttrNameToConcat.end(); ++sit)
+		for (std::set<std::string>::iterator sit = _attrMergerOnBorder->getAttrNameToConcat().begin(); sit != _attrMergerOnBorder->getAttrNameToConcat().end(); ++sit)
 			ss << "ALTER TABLE " << clTableName << " ALTER COLUMN " << *sit << " TYPE character varying(255);";
 			
 				
@@ -1246,6 +1228,7 @@ bool app::calcul::CFeatGenerationOp::_getNearestCP(
 	return true;
 }
 
+/*
 void app::calcul::CFeatGenerationOp::_addFeatAttributeMergingOnBorder(
 	ign::feature::Feature& featMerged,
 	ign::feature::Feature& featAttrToAdd,
@@ -1312,7 +1295,7 @@ void app::calcul::CFeatGenerationOp::_addFeatAttributeMergingOnBorder(
 		}
 
 	}
-}
+}*/
 
 void  app::calcul::CFeatGenerationOp::_snapCl2Cl(
 	double distMaxClClosest
@@ -1588,7 +1571,8 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 			sEdgesMerged.insert(cl2merge.second);
 			ign::feature::Feature fClNew = _fsCL->newFeature();
 			fClNew = mIdClOriginsCountry1.find(cl2merge.first)->second;
-			_addFeatAttributeMergingOnBorder(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
+			_attrMergerOnBorder->addFeatAttributeMerger(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
+			//_addFeatAttributeMergingOnBorder(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 
 			std::string idCLNew = _idGeneratorCL->next();
 			fClNew.setId(idCLNew);
@@ -1782,11 +1766,13 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 
 			if (countryCodeCLArround < countryCodeCLCurr) {
 				fCLNew = fCLArround;
-				_addFeatAttributeMergingOnBorder(fCLNew, fCLCurr, separator);
+				_attrMergerOnBorder->addFeatAttributeMerger(fCLNew, fCLCurr, separator);
+				//_addFeatAttributeMergingOnBorder(fCLNew, fCLCurr, separator);
 			}
 			else {
 				fCLNew = fCLCurr;
-				_addFeatAttributeMergingOnBorder(fCLNew, fCLArround, separator);
+				_attrMergerOnBorder->addFeatAttributeMerger(fCLNew, fCLArround, separator);
+				//_addFeatAttributeMergingOnBorder(fCLNew, fCLArround, separator);
 			}
 
 			std::string idCLNew = _idGeneratorCL->next();

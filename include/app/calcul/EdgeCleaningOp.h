@@ -229,14 +229,7 @@ namespace calcul{
             std::list<oriented_edge_descriptor> const& lAntennas,
             bool bAntennaIsConnected2CF
         ) const;
-
-		//--
-		std::pair<ign::geometry::LineString, ign::geometry::LineString> _getSubLineStrings(
-			size_t id1, 
-            size_t id2, 
-			ign::geometry::LineString const& ls
-		) const;
-
+		
 		//--
 		bool _isSlimSurface( 
             ign::geometry::Polygon const& poly, 

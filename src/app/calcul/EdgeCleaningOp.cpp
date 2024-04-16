@@ -18,7 +18,8 @@
 #include <epg/graph/tools/convertPathToLineString.h>
 
 //OME2
-#include <ome2/geometry/tools/getEndingPoints.h>
+#include <ome2/geometry/tools/GetEndingPointsOp.h>
+#include <ome2/geometry/tools/lineStringTools.h>
 
 // SOCLE
 #include <ign/geometry/graph/detail/NextEdge.h>
@@ -476,42 +477,6 @@ namespace app
         ///
         ///
         ///
-        std::pair<ign::geometry::LineString,ign::geometry::LineString> EdgeCleaningOp::_getSubLineStrings(
-            size_t id1, 
-            size_t id2, 
-            ign::geometry::LineString const& closedLs
-        ) const {
-            std::pair<ign::geometry::LineString, ign::geometry::LineString> pLs;
-            size_t lastId = closedLs.numPoints()-1;
-            if (id1 == id2 || id2 < id1 || id1 == 0 && id2 == lastId) {
-                _logger->log(epg::log::ERROR, "Error in getSubLinestrings : bad indexes values");
-                return pLs;
-            }
-                
-            size_t id = id1;
-            do {
-                if (id == id2 || id == 0 && id2 == lastId) {
-                    pLs.first.addPoint(closedLs.pointN(id));
-                    pLs.second.addPoint(closedLs.pointN(id));
-                } else if (id < id1)
-                    pLs.second.addPoint(closedLs.pointN(id));
-                else if (id < id2)
-                    pLs.first.addPoint(closedLs.pointN(id));
-                else
-                    pLs.second.addPoint(closedLs.pointN(id));
-
-                ++id;
-                if (id == lastId) id = 0;
-            } while (id != id1);
-
-            pLs.second.addPoint(closedLs.pointN(id1));
-
-            return pLs;
-        }
-
-        ///
-        ///
-        ///
         // bool EdgeCleaningOp::_isSlimSurface( 
         //     ign::geometry::LineString const& closedLs, 
         //     double maxWidth
@@ -555,33 +520,27 @@ namespace app
             ign::geometry::Point const ** p1,
             ign::geometry::Point const ** p2
 		) const {
-
-
             ign::geometry::LineString const& extRing = poly.exteriorRing();
-            std::pair<ign::geometry::Point, ign::geometry::Point> pGeomEndingPointsMedialAxis = ome2::geometry::tools::getGeomEndingPointsMedialAxis(extRing);
-            if (pGeomEndingPointsMedialAxis.first.isEmpty() ) {
-                _logger->log(epg::log::WARN, "Not found ending points");
-                return true;
-            }
 
+            std::pair<bool, std::pair<size_t, size_t>> foundIndexes = ome2::geometry::tools::GetEndingPointsOp::computeIndex(extRing);
 
-			std::pair<int, int> pIndexEndingPointsOnExtRing = ome2::geometry::tools::getIndexEndingPointsOnExtRing(extRing, pGeomEndingPointsMedialAxis);
-
-			int indexStart = pIndexEndingPointsOnExtRing.first;
-			int indexEnd = pIndexEndingPointsOnExtRing.second;
-
-            if (indexStart < 0 || indexEnd<0 || indexStart == indexEnd) {
+            if (!foundIndexes.first) {
                 _logger->log(epg::log::ERROR, "Error in slim surface calculation : error in ending points calculation");
                 _logger->log(epg::log::ERROR, poly.toString());
                 return false;
             }
 
-            std::pair<ign::geometry::LineString,ign::geometry::LineString> pLs = _getSubLineStrings(std::min(indexStart, indexEnd), std::max(indexStart, indexEnd), extRing);
+            std::pair<bool, std::pair<ign::geometry::LineString,ign::geometry::LineString>> foundSides = ome2::geometry::tools::getSubLineStrings(foundIndexes.second.first, foundIndexes.second.second, extRing);
 
-            if (p1) *p1 = &extRing.pointN(std::min(indexStart, indexEnd));
-            if (p2) *p2 = &extRing.pointN(std::max(indexStart, indexEnd));
+            if ( !foundSides.first ) {
+                _logger->log(epg::log::ERROR, "Error in slim surface calculation : error in sides calculation");
+                return false;
+            }
 
-            double hausdorffDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(pLs.first, pLs.second);
+            if (p1) *p1 = &extRing.pointN(foundIndexes.second.first);
+            if (p2) *p2 = &extRing.pointN(foundIndexes.second.second);
+
+            double hausdorffDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(foundSides.second.first, foundSides.second.second);
 
             if (hausdorffDist < 0) {
                 _logger->log(epg::log::ERROR, "Error in slim surface calculation : hausdorff distance < 0");

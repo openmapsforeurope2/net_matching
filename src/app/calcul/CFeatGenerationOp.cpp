@@ -313,8 +313,9 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 			<< "ALTER TABLE " << clTableName << " ALTER COLUMN "
 			<< "european_route_number" << " type varchar(255);"*/
 			<< "ALTER TABLE " << clTableName << " ADD COLUMN " << context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString() << " character varying(255);";
-		//patch pour ne pas avoir des enums et eviter les soucis lors de la fusion des attributs	
-		for (std::set<std::string>::iterator sit = _attrMergerOnBorder->getAttrNameToConcat().begin(); sit != _attrMergerOnBorder->getAttrNameToConcat().end(); ++sit)
+		//patch pour ne pas avoir des enums et eviter les soucis lors de la fusion des attributs
+		std::set<std::string> sAttrNameToConcat = _attrMergerOnBorder->getAttrNameToConcat();	
+		for (std::set<std::string>::iterator sit = sAttrNameToConcat.begin(); sit != sAttrNameToConcat.end(); ++sit)
 			ss << "ALTER TABLE " << clTableName << " ALTER COLUMN " << *sit << " TYPE character varying(255);";
 			
 				

@@ -1,7 +1,0 @@
-/usr/local/src/tn_matching/build-unix-release/CMakeFiles/install/strip.dir
-/usr/local/src/tn_matching/build-unix-release/CMakeFiles/edit_cache.dir
-/usr/local/src/tn_matching/build-unix-release/CMakeFiles/ome2_tn_matching.dir
-/usr/local/src/tn_matching/build-unix-release/CMakeFiles/list_install_components.dir
-/usr/local/src/tn_matching/build-unix-release/CMakeFiles/install/local.dir
-/usr/local/src/tn_matching/build-unix-release/CMakeFiles/rebuild_cache.dir
-/usr/local/src/tn_matching/build-unix-release/CMakeFiles/install.dir

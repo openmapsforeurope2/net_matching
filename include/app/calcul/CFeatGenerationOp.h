@@ -8,7 +8,7 @@
 #include <epg/sql/tools/IdGeneratorFactory.h>
 #include <epg/tools/MultiLineStringTool.h>
 
-#include <ome2/calcul/utils/attributeMerger.h>
+#include <app/calcul/utils/attributeMerger.h>
 
 namespace app{
 namespace calcul{
@@ -153,7 +153,7 @@ namespace calcul{
 		epg::sql::tools::IdGeneratorInterfacePtr _idGeneratorCP;
 		epg::sql::tools::IdGeneratorInterfacePtr _idGeneratorCL;
 
-		ome2::calcul::utils::AttributeMerger*				_attrMergerOnBorder;
+		app::calcul::utils::AttributeMerger*				_attrMergerOnBorder;
 
 		/*std::set<std::string> _sAttrNameToConcat;
 		std::set<std::string> _sAttrNameW;

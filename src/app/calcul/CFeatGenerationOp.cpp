@@ -240,7 +240,7 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	std::string listAttr2concatName = themeParameters->getValue(LIST_ATTR_TO_CONCAT).toString();
 	std::string listAttrWName = themeParameters->getValue(LIST_ATTR_W).toString();
 	std::string listAttrJsonName = themeParameters->getValue(LIST_ATTR_JSON).toString();
-	ome2::calcul::utils::AttributeMerger* _attrMergerOnBorder = new ome2::calcul::utils::AttributeMerger(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
+	app::calcul::utils::AttributeMerger* _attrMergerOnBorder = new app::calcul::utils::AttributeMerger(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
 
 	///recuperation des features
 	std::string const boundaryTableName = epg::utils::replaceTableName(context->getEpgParameters().getValue(TARGET_BOUNDARY_TABLE).toString());

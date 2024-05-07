@@ -11,9 +11,20 @@
 #include <epg/log/EpgLogger.h>
 
 
+app::calcul::utils::AttributeMerger::AttributeMerger() {
+}
+
 app::calcul::utils::AttributeMerger::AttributeMerger(std::string listAttr2concatName, std::string listAttrWName, std::string listAttrJsonName, std::string separtor )
 {
+	setLists(listAttr2concatName, listAttrWName, listAttrJsonName, separtor);
+}
 
+app::calcul::utils::AttributeMerger::~AttributeMerger()
+{
+}
+
+void app::calcul::utils::AttributeMerger::setLists(std::string listAttr2concatName, std::string listAttrWName, std::string listAttrJsonName, std::string separtor )
+{
 	_setListToSetAttr(listAttr2concatName, _sAttrNameToConcat, separtor);
 
 	//DEBUG
@@ -32,13 +43,7 @@ app::calcul::utils::AttributeMerger::AttributeMerger(std::string listAttr2concat
 	}
 
 	_setListToSetAttr(listAttrJsonName, _sAttrNameJson, separtor);
-
 }
-
-app::calcul::utils::AttributeMerger::~AttributeMerger()
-{
-}
-
 
 void app::calcul::utils::AttributeMerger::_setListToSetAttr(std::string& listAttrName, std::set<std::string>& setAttrName, std::string separtor)
 {

@@ -60,7 +60,7 @@ void app::calcul::CFeatGenerationOp::computeCL()
 
 	//DEBUG
 	_logger->log(epg::log::DEBUG, "coucou4");
-	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder->getAttrNameW().begin());
+	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
 
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
@@ -118,7 +118,7 @@ void app::calcul::CFeatGenerationOp::computeCL()
 
 	//DEBUG
 	_logger->log(epg::log::DEBUG, "coucou5");
-	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder->getAttrNameW().begin());
+	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
 
 	_mergeIntersectingClWithGraph(distMaxEdges, snapProjCl2edge);
 //	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresmerge", "", false, true);
@@ -205,8 +205,8 @@ app::calcul::CFeatGenerationOp::CFeatGenerationOp(std::string countryCodeDouble,
 app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 {
 	
-	delete _attrMergerOnBorder;
-	_attrMergerOnBorder = 0;
+	// delete _attrMergerOnBorder;
+	// _attrMergerOnBorder = 0;
 	_shapeLogger->closeShape("CLBeforeMerge");
 	_shapeLogger->closeShape("ClMergedBeforeUpdate");
 	_shapeLogger->closeShape("ClDeletedNoCandidatefound");
@@ -249,11 +249,12 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	std::string listAttr2concatName = themeParameters->getValue(LIST_ATTR_TO_CONCAT).toString();
 	std::string listAttrWName = themeParameters->getValue(LIST_ATTR_W).toString();
 	std::string listAttrJsonName = themeParameters->getValue(LIST_ATTR_JSON).toString();
-	app::calcul::utils::AttributeMerger* _attrMergerOnBorder = new app::calcul::utils::AttributeMerger(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
+	// app::calcul::utils::AttributeMerger* _attrMergerOnBorder = new app::calcul::utils::AttributeMerger(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
+	_attrMergerOnBorder.setLists(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
 
 	//DEBUG
 	_logger->log(epg::log::DEBUG, "coucou");
-	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder->getAttrNameW().begin());
+	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
 	
 
 	///recuperation des features
@@ -328,7 +329,7 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 			<< "european_route_number" << " type varchar(255);"*/
 			<< "ALTER TABLE " << clTableName << " ADD COLUMN " << context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString() << " character varying(255);";
 		//patch pour ne pas avoir des enums et eviter les soucis lors de la fusion des attributs
-		std::set<std::string> sAttrNameToConcat = _attrMergerOnBorder->getAttrNameToConcat();	
+		std::set<std::string> sAttrNameToConcat = _attrMergerOnBorder.getAttrNameToConcat();	
 		for (std::set<std::string>::iterator sit = sAttrNameToConcat.begin(); sit != sAttrNameToConcat.end(); ++sit)
 			ss << "ALTER TABLE " << clTableName << " ALTER COLUMN " << *sit << " TYPE character varying(255);";
 			
@@ -347,7 +348,7 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 
 	//DEBUG
 	_logger->log(epg::log::DEBUG, "coucou2");
-	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder->getAttrNameW().begin());
+	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
 }
 
 
@@ -1465,7 +1466,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 {
 	//DEBUG
 	_logger->log(epg::log::DEBUG, "coucou3");
-	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder->getAttrNameW().begin());
+	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
 
 	_logger->log(epg::log::TITLE, "[ BEGIN FUSION CONNECTING LINES ] : " + epg::tools::TimeTools::getTime());
 	epg::Context* context = epg::ContextS::getInstance();
@@ -1651,9 +1652,9 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 
 			//DEBUG
 			_logger->log(epg::log::DEBUG, "coucou3");
-			_logger->log(epg::log::DEBUG, *_attrMergerOnBorder->getAttrNameW().begin());
+			_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
 
-			_attrMergerOnBorder->addFeatAttributeMerger(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
+			_attrMergerOnBorder.addFeatAttributeMerger(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 			//_addFeatAttributeMergingOnBorder(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 
 			//DEBUG
@@ -1859,12 +1860,12 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 
 			if (countryCodeCLArround < countryCodeCLCurr) {
 				fCLNew = fCLArround;
-				_attrMergerOnBorder->addFeatAttributeMerger(fCLNew, fCLCurr, separator);
+				_attrMergerOnBorder.addFeatAttributeMerger(fCLNew, fCLCurr, separator);
 				//_addFeatAttributeMergingOnBorder(fCLNew, fCLCurr, separator);
 			}
 			else {
 				fCLNew = fCLCurr;
-				_attrMergerOnBorder->addFeatAttributeMerger(fCLNew, fCLArround, separator);
+				_attrMergerOnBorder.addFeatAttributeMerger(fCLNew, fCLArround, separator);
 				//_addFeatAttributeMergingOnBorder(fCLNew, fCLArround, separator);
 			}
 

@@ -12,6 +12,8 @@ namespace utils {
 
 	public:
 
+		AttributeMerger();
+
 		AttributeMerger(std::string listAttr2concatName, std::string listAttrWName, std::string listAttrJsonName, std::string separtor);
 
 		~AttributeMerger();
@@ -23,6 +25,7 @@ namespace utils {
 			std::string separator
 		);
 
+		void setLists(std::string listAttr2concatName, std::string listAttrWName, std::string listAttrJsonName, std::string separtor );
 
 		std::set<std::string> getAttrNameToConcat() { return _sAttrNameToConcat;};
 		std::set<std::string> getAttrNameW() { return _sAttrNameW;};

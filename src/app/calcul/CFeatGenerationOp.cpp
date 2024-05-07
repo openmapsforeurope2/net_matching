@@ -1475,7 +1475,11 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 
 		std::vector<std::string> vClOrigins = graphCl.origins(*eit);
 
-
+		//DEBUG
+		for(size_t i = 0 ; i < vClOrigins.size() ; ++i) {
+			_logger->log(epg::log::DEBUG, vClOrigins[i]);
+		}
+		_logger->log(epg::log::DEBUG, "");
 
 		ign::geometry::LineString lsCl = graphCl.getGeometry(*eit);
 
@@ -1485,6 +1489,9 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 		}
 
 		std::map<std::string, ign::feature::Feature> mIdClOriginsCountry1, mIdClOriginsCountry2;
+
+		//DEBUG
+		_logger->log(epg::log::DEBUG, "debug1");
 
 		//recuperation des edges liés aux CLs
 		for (std::vector<std::string>::iterator vit = vClOrigins.begin(); vit != vClOrigins.end(); ++vit) {
@@ -1503,10 +1510,17 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 			else //ne devrait pas arriver
 				continue;
 		}
+
+		//DEBUG
+		_logger->log(epg::log::DEBUG, "debug2");
+
 		if (mIdClOriginsCountry1.size() == 0 || mIdClOriginsCountry2.size() == 0) {
 			++eit;
 			continue;//pas de fusion, CL de un seul pays
 		}
+
+		//DEBUG
+		_logger->log(epg::log::DEBUG, "debug3");
 
 		//recuperation des portions d'edges associées et selection des CLs à fusionner
 		std::set<std::string> sEdgesMerged;
@@ -1582,8 +1596,13 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 
 			_fsCL->createFeature(fClNew, idCLNew);
 		}
+		//DEBUG
+		_logger->log(epg::log::DEBUG, "debug8");
+
 		++eit;
 	}
+
+	_logger->log(epg::log::DEBUG, "debug9");
 
 	//suppression des CL sans #
 	std::ostringstream ss;

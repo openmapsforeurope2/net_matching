@@ -59,6 +59,7 @@ namespace params{
 		_initParameter( EC_SNAP_DIST, "EC_SNAP_DIST");
 		_initParameter( EC_SNAP_2_EDGE_END_DIST, "EC_SNAP_2_EDGE_END_DIST");
 		
+		_initParameter( ECL_SQL_FILTER, "ECL_SQL_FILTER");
 		_initParameter( ECL_SLIM_SURFACE_WIDTH, "ECL_SLIM_SURFACE_WIDTH");
 		_initParameter( ECL_SLIM_SURFACE_MAX_AREA, "ECL_SLIM_SURFACE_MAX_AREA" );
 		_initParameter( ECL_SLIM_SURFACE_MAX_NB_POINTS, "ECL_SLIM_SURFACE_MAX_NB_POINTS" );

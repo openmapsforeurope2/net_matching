@@ -107,18 +107,20 @@ int main(int argc, char *argv[])
         cFeatConnectionOp.computeCp();
 
         // nettoyage
+        std::string const eclSqlFilter = themeParameters->getValue(ECL_SQL_FILTER).toString();
+
 		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCode, verbose);
         std::set<std::string> sTreatedFeatures;
         edgeCleaningOp.cleanFaces();
         // edgeCleaningOp.cleanPathsOutOfCountry();
         edgeCleaningOp.cleanParalelleEdges();
-        edgeCleaningOp.cleanFacesAndAntennaByCountry(sTreatedFeatures, ign::feature::FeatureFilter("form_of_way <> 'bicycle_road'"));
+        edgeCleaningOp.cleanFacesAndAntennaByCountry(sTreatedFeatures, ign::feature::FeatureFilter(eclSqlFilter));
 
         app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
 
         // nettoyage
         edgeCleaningOp.cleanParalelleEdges();
-        edgeCleaningOp.cleanFaces2(ign::feature::FeatureFilter("form_of_way <> 'bicycle_road'"));
+        edgeCleaningOp.cleanFaces2(ign::feature::FeatureFilter(eclSqlFilter));
 
         // app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
 

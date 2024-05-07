@@ -19,6 +19,10 @@ app::calcul::utils::AttributeMerger::AttributeMerger(std::string listAttr2concat
 
 }
 
+app::calcul::utils::AttributeMerger::~AttributeMerger()
+{
+}
+
 
 void app::calcul::utils::AttributeMerger::_setListToSetAttr(std::string& listAttrName, std::set<std::string>& setAttrName, std::string separtor)
 {

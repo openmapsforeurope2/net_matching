@@ -14,6 +14,8 @@ namespace utils {
 
 		AttributeMerger(std::string listAttr2concatName, std::string listAttrWName, std::string listAttrJsonName, std::string separtor);
 
+		~AttributeMerger();
+
 
 		void addFeatAttributeMerger(
 			ign::feature::Feature& featMerged,

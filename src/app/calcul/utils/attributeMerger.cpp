@@ -22,10 +22,21 @@ app::calcul::utils::AttributeMerger::AttributeMerger(std::string listAttr2concat
 
 void app::calcul::utils::AttributeMerger::_setListToSetAttr(std::string& listAttrName, std::set<std::string>& setAttrName, std::string separtor)
 {
+	//DEBUG
+	epg::log::EpgLogger* logger = epg::log::EpgLoggerS::getInstance();
+	logger->log(epg::log::DEBUG, "B1");
+	logger->log(epg::log::DEBUG, listAttrName);
+	logger->log(epg::log::DEBUG, separtor);
+
 	std::vector<std::string> vAttrName;
 	epg::tools::StringTools::Split(listAttrName, separtor, vAttrName);
-	for (size_t i = 0; i < vAttrName.size(); ++i) 
+	for (size_t i = 0; i < vAttrName.size(); ++i){
+		logger->log(epg::log::DEBUG, vAttrName[i]);
+
 		setAttrName.insert(vAttrName[i]);
+		logger->log(epg::log::DEBUG, "B2");
+	}
+		
 	
 }
 

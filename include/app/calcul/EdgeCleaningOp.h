@@ -48,10 +48,10 @@ namespace calcul{
 		void cleanFaces2ByCountry() const;
 
 		/// \brief
-		void cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures, ign::feature::FeatureFilter filter = ign::feature::FeatureFilter()) const;
+		void cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures, std::string const& sqlFilter) const;
 
 		/// \brief
-		bool cleanFaces2(ign::feature::FeatureFilter filter = ign::feature::FeatureFilter()) const;
+		bool cleanFaces2(std::string const& sqlFilter) const;
 
 		/// \brief
 		void cleanPathsOutOfCountry() const;

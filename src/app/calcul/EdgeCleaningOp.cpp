@@ -663,15 +663,14 @@ namespace app
             std::vector<std::string> vCountry;
 		    epg::tools::StringTools::Split(_countryCode, "#", vCountry);
             for (size_t i = 0 ; i < vCountry.size() ; ++i) {
-                ign::feature::FeatureFilter filter(countryCodeName +" = '"+vCountry[i]+"'");
-                cleanFaces2(filter);
+                cleanFaces2(countryCodeName +" = '"+vCountry[i]+"'");
             }
         }
 
         ///
         ///
         ///
-        void EdgeCleaningOp::cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures, ign::feature::FeatureFilter filter_) const
+        void EdgeCleaningOp::cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures, std::string const& sqlFilter) const
         {
             epg::Context* context = epg::ContextS::getInstance();
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
@@ -684,8 +683,11 @@ namespace app
 		    epg::tools::StringTools::Split(_countryCode, "#", vCountry);
             for (size_t i = 0 ; i < vCountry.size() ; ++i) {
                 detail::EdgeCleaningGraphManager graphManager;
-                ign::feature::FeatureFilter filter = filter_;
+
+                ign::feature::FeatureFilter filter;
+                if (sqlFilter!="") filter.setPropertyConditions(sqlFilter);
                 epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" LIKE '%"+vCountry[i]+"%'");
+
                 _loadGraph(graphManager, isPlanar, isSimplified, filter);
 
                 // std::set<vertex_descriptor> sTreatedDangles;
@@ -704,8 +706,11 @@ namespace app
         ///
         ///
         ///
-        bool EdgeCleaningOp::cleanFaces2(ign::feature::FeatureFilter filter) const
+        bool EdgeCleaningOp::cleanFaces2(std::string const& sqlFilter) const
         {
+            ign::feature::FeatureFilter filter;
+            if (sqlFilter!="") filter.setPropertyConditions(sqlFilter);
+
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, true/*planarize*/, false/*simplified*/, filter);
 

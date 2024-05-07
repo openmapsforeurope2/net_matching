@@ -114,13 +114,13 @@ int main(int argc, char *argv[])
         edgeCleaningOp.cleanFaces();
         // edgeCleaningOp.cleanPathsOutOfCountry();
         edgeCleaningOp.cleanParalelleEdges();
-        edgeCleaningOp.cleanFacesAndAntennaByCountry(sTreatedFeatures, ign::feature::FeatureFilter(eclSqlFilter));
+        edgeCleaningOp.cleanFacesAndAntennaByCountry(sTreatedFeatures, eclSqlFilter);
 
         app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
 
         // nettoyage
         edgeCleaningOp.cleanParalelleEdges();
-        edgeCleaningOp.cleanFaces2(ign::feature::FeatureFilter(eclSqlFilter));
+        edgeCleaningOp.cleanFaces2(eclSqlFilter);
 
         // app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
 

@@ -58,6 +58,10 @@ void app::calcul::CFeatGenerationOp::computeCL()
 {
 	_logger->log(epg::log::TITLE, "[ BEGIN CL GENERATION FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
+	//DEBUG
+	_logger->log(epg::log::DEBUG, "coucou4");
+	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder->getAttrNameW().begin());
+
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	std::string const idName = context->getEpgParameters().getValue(ID).toString();
@@ -111,6 +115,10 @@ void app::calcul::CFeatGenerationOp::computeCL()
 		}
 	}
 //	epg::utils::CopyTableUtils::copyTable(clTableName,idName,geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName+"_avtmerge", "", false,true);
+
+	//DEBUG
+	_logger->log(epg::log::DEBUG, "coucou5");
+	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder->getAttrNameW().begin());
 
 	_mergeIntersectingClWithGraph(distMaxEdges, snapProjCl2edge);
 //	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresmerge", "", false, true);
@@ -336,6 +344,10 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	_idGeneratorCL = epg::sql::tools::IdGeneratorInterfacePtr(epg::sql::tools::IdGeneratorFactory::getNew(*_fsCL, "CONNECTINGLINE"));
 
 	_logger->log(epg::log::TITLE, "[ END INITIALIZATION ] : " + epg::tools::TimeTools::getTime());
+
+	//DEBUG
+	_logger->log(epg::log::DEBUG, "coucou2");
+	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder->getAttrNameW().begin());
 }
 
 
@@ -1451,6 +1463,10 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 	double snapProjCl2edge
 )
 {
+	//DEBUG
+	_logger->log(epg::log::DEBUG, "coucou3");
+	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder->getAttrNameW().begin());
+
 	_logger->log(epg::log::TITLE, "[ BEGIN FUSION CONNECTING LINES ] : " + epg::tools::TimeTools::getTime());
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
@@ -1632,6 +1648,10 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 
 			//DEBUG
 			_logger->log(epg::log::DEBUG, "debug62");
+
+			//DEBUG
+			_logger->log(epg::log::DEBUG, "coucou3");
+			_logger->log(epg::log::DEBUG, *_attrMergerOnBorder->getAttrNameW().begin());
 
 			_attrMergerOnBorder->addFeatAttributeMerger(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 			//_addFeatAttributeMergingOnBorder(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);

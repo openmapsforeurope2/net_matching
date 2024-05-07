@@ -196,8 +196,9 @@ app::calcul::CFeatGenerationOp::CFeatGenerationOp(std::string countryCodeDouble,
 
 app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 {
-	_attrMergerOnBorder = 0;
+	
 	delete _attrMergerOnBorder;
+	_attrMergerOnBorder = 0;
 	_shapeLogger->closeShape("CLBeforeMerge");
 	_shapeLogger->closeShape("ClMergedBeforeUpdate");
 	_shapeLogger->closeShape("ClDeletedNoCandidatefound");

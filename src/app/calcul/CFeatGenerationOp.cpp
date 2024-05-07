@@ -1612,11 +1612,21 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 
 			//DEBUG
 			_logger->log(epg::log::DEBUG, "debug6");
+			_logger->log(epg::log::DEBUG, cl2merge.first);
+			_logger->log(epg::log::DEBUG, cl2merge.second);
 
 			sEdgesMerged.insert(cl2merge.first);
 			sEdgesMerged.insert(cl2merge.second);
+
+			//DEBUG
+			_logger->log(epg::log::DEBUG, "debug61");
+
 			ign::feature::Feature fClNew = _fsCL->newFeature();
 			fClNew = mIdClOriginsCountry1.find(cl2merge.first)->second;
+
+			//DEBUG
+			_logger->log(epg::log::DEBUG, "debug62");
+
 			_attrMergerOnBorder->addFeatAttributeMerger(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 			//_addFeatAttributeMergingOnBorder(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 

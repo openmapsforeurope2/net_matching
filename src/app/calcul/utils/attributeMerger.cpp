@@ -57,6 +57,9 @@ void app::calcul::utils::AttributeMerger::addFeatAttributeMerger(
 
 		//DEBUG
 		logger->log(epg::log::DEBUG, attrName);
+		for (std::set<std::string>::const_iterator sit = _sAttrNameW.begin() ; sit != _sAttrNameW.end() ; ++sit ) {
+			logger->log(epg::log::DEBUG, *sit);
+		}
 
 		if (_sAttrNameW.find(attrName) != _sAttrNameW.end()) //on ne fusionne pas les attributs de travail
 			continue;

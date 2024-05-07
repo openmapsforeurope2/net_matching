@@ -7,6 +7,7 @@
 
 #include <epg/tools/StringTools.h>
 
+//DEBUG
 #include <epg/log/EpgLogger.h>
 
 
@@ -16,6 +17,7 @@ app::calcul::utils::AttributeMerger::AttributeMerger(std::string listAttr2concat
 	_setListToSetAttr(listAttr2concatName, _sAttrNameToConcat, separtor);
 
 	//DEBUG
+	epg::log::EpgLogger* logger = epg::log::EpgLoggerS::getInstance();
 	logger->log(epg::log::DEBUG, "C1");
 	for (std::set<std::string>::const_iterator sit = _sAttrNameW.begin() ; sit != _sAttrNameW.end() ; ++sit ) {
 		logger->log(epg::log::DEBUG, *sit);

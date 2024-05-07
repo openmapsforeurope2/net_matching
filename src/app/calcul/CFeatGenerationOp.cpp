@@ -243,6 +243,11 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	std::string listAttrJsonName = themeParameters->getValue(LIST_ATTR_JSON).toString();
 	app::calcul::utils::AttributeMerger* _attrMergerOnBorder = new app::calcul::utils::AttributeMerger(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
 
+	//DEBUG
+	_logger->log(epg::log::DEBUG, "coucou");
+	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder->getAttrNameW().begin());
+	
+
 	///recuperation des features
 	std::string const boundaryTableName = epg::utils::replaceTableName(context->getEpgParameters().getValue(TARGET_BOUNDARY_TABLE).toString());
 	_fsBoundary = context->getDataBaseManager().getFeatureStore(boundaryTableName, idName, geomName);

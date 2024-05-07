@@ -1529,10 +1529,17 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 		while(nbEdgesMerged != sEdgesMerged.size() ){
 			nbEdgesMerged = sEdgesMerged.size();
 
+			//DEBUG
+			_logger->log(epg::log::DEBUG, "debug40");
+
 			double distMin = 100000;
 			std::pair<std::string, std::string> cl2merge;
 
 			for (std::map<std::string, ign::feature::Feature>::iterator mit1 = mIdClOriginsCountry1.begin(); mit1 != mIdClOriginsCountry1.end(); ++mit1) {
+
+				//DEBUG
+				_logger->log(epg::log::DEBUG, "debug41");
+
 				std::string idEdgeLinked1 = mit1->second.getAttribute(linkedFeatIdName).toString();
 				if (sEdgesMerged.find(mit1->first) != sEdgesMerged.end())//deja utilise pour merge
 					continue;
@@ -1544,7 +1551,14 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 				if (lsClEdge1.isEmpty())
 					continue;
 
+				//DEBUG
+				_logger->log(epg::log::DEBUG, "debug42");
+
 				for (std::map<std::string, ign::feature::Feature>::iterator mit2 = mIdClOriginsCountry2.begin(); mit2 != mIdClOriginsCountry2.end(); ++mit2) {
+
+					//DEBUG
+					_logger->log(epg::log::DEBUG, "debug43");
+
 					std::string idEdgeLinked2 = mit2->second.getAttribute(linkedFeatIdName).toString();
 					if (sEdgesMerged.find(mit2->first) != sEdgesMerged.end())//deja utilise pour merge
 						continue;
@@ -1556,6 +1570,9 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 
 					if (lsClEdge2.isEmpty())
 						continue;
+
+					//DEBUG
+					_logger->log(epg::log::DEBUG, "debug44");
 
 					double hausdorffDistEdges = ign::geometry::algorithm::OptimizedHausdorffDistanceOp::distance(lsClEdge1, lsClEdge2);
 
@@ -1570,6 +1587,9 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 
 						continue;//on ne garde que les CL dont les edges associés sont proches (sous un seuil)
 					}
+
+					//DEBUG
+					_logger->log(epg::log::DEBUG, "debug45");
 						
 
 					if (hausdorffDistEdges < distMin) {
@@ -1577,11 +1597,22 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 						cl2merge = std::make_pair(mit1->first, mit2->first);
 					}
 
+					//DEBUG
+					_logger->log(epg::log::DEBUG, "debug46");
+
 				}
 			}
+
+			//DEBUG
+			_logger->log(epg::log::DEBUG, "debug5");
+
 			if (cl2merge.first.empty()) {
 				continue;//break
 			}
+
+			//DEBUG
+			_logger->log(epg::log::DEBUG, "debug6");
+
 			sEdgesMerged.insert(cl2merge.first);
 			sEdgesMerged.insert(cl2merge.second);
 			ign::feature::Feature fClNew = _fsCL->newFeature();
@@ -1589,12 +1620,18 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 			_attrMergerOnBorder->addFeatAttributeMerger(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 			//_addFeatAttributeMergingOnBorder(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 
+			//DEBUG
+			_logger->log(epg::log::DEBUG, "debug7");
+
 			std::string idCLNew = _idGeneratorCL->next();
 			fClNew.setId(idCLNew);
 			lsCl.setFillZ(0);
 			fClNew.setGeometry(lsCl);
 
 			_fsCL->createFeature(fClNew, idCLNew);
+
+			//DEBUG
+			_logger->log(epg::log::DEBUG, "debug71");
 		}
 		//DEBUG
 		_logger->log(epg::log::DEBUG, "debug8");

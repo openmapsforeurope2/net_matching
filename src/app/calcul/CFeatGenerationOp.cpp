@@ -1930,6 +1930,7 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 				continue;
 
 			_logger->log(epg::log::DEBUG, "salut2");
+			_logger->log(epg::log::DEBUG, fCl.getAttribute(linkedFeatIdName).toString());
 
 			//on verifie l'angle entre la projection de la cl sur les portions d'edges
 			std::vector<std::string> vEdgeslinked;

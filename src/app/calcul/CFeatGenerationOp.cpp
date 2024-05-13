@@ -93,6 +93,10 @@ void app::calcul::CFeatGenerationOp::computeCL()
 	{
 		ign::feature::Feature fBoundary = itBoundary->next();
 		_logger->log(epg::log::INFO, "id boundary :"+ fBoundary.getId());
+
+		//DEBUG
+		// if (fBoundary.getId() != "fd8c7927-7e77-422e-a50e-67a4989550fc") continue;
+
 		std::string boundaryType = fBoundary.getAttribute("boundary_type").toString();
 		// On ne traite que les frontières de type international_boundary ou coastline_sea_limit
 		// On aurait pu filtrer en entrée mais le filtre semble très long, peut-être à cause de l'enum qui oblige à utiliser boundary_type::text like '%coastline_sea_limit%'
@@ -1921,18 +1925,25 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 
 			//verifier si la cl n'est pas liée a au moins une cl à chaque extremite
 			edge_descriptor edCl = graphCl.getInducedEdges(fCl.getId()).second[0].descriptor;
+			_logger->log(epg::log::DEBUG, "salut1");
 			if (graphCl.degree(graphCl.source(edCl)) > 1 && graphCl.degree(graphCl.target(edCl)) > 1)
 				continue;
+
+			_logger->log(epg::log::DEBUG, "salut2");
 
 			//on verifie l'angle entre la projection de la cl sur les portions d'edges
 			std::vector<std::string> vEdgeslinked;
 			epg::tools::StringTools::Split(fCl.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinked);
+			_logger->log(epg::log::DEBUG, "salut3");
 			std::string idEdgLinked1 = vEdgeslinked[0];
 			std::string idEdgLinked2 = vEdgeslinked[1];
+			_logger->log(epg::log::DEBUG, "salut4");
 			ign::feature::Feature fEdg1, fEdg2;
 			_fsEdge->getFeatureById(idEdgLinked1, fEdg1);
 			_fsEdge->getFeatureById(idEdgLinked2, fEdg2);
+			_logger->log(epg::log::DEBUG, "salut5");
 			if (fEdg1.getId().empty()) {
+				_logger->log(epg::log::DEBUG, "salut6");
 				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not matching linked edge : " + idEdgLinked1);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
@@ -1942,6 +1953,7 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 				continue;
 			}
 			if (fEdg2.getId().empty()) {
+				_logger->log(epg::log::DEBUG, "salut7");
 				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not matching linked edge : " + idEdgLinked2);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
@@ -1950,13 +1962,18 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 				sCl2delete.insert(fCl.getId());
 				continue;
 			}
+			_logger->log(epg::log::DEBUG, "salut8");
 			ign::geometry::LineString lsEdg1 = fEdg1.getGeometry().asLineString();
 			ign::geometry::LineString lsEdg2 = fEdg2.getGeometry().asLineString();
+			_logger->log(epg::log::DEBUG, "salut9");
 			ign::geometry::LineString lsCl = fCl.getGeometry().asLineString();
 			ign::geometry::LineString lsProjClEdg1, lsProjClEdg2;
+			_logger->log(epg::log::DEBUG, "salut10");
 			_getGeomProjClOnEdge(lsCl, lsEdg1, lsProjClEdg1, snapProjCl2edge);
 			_getGeomProjClOnEdge(lsCl, lsEdg2, lsProjClEdg2, snapProjCl2edge);
+			_logger->log(epg::log::DEBUG, "salut11");
 			if (lsProjClEdg1.isEmpty()) {
+				_logger->log(epg::log::DEBUG, "salut12");
 				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not projecting on matching linked edge : " + idEdgLinked1);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
@@ -1966,6 +1983,7 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 				continue;
 			}
 			if (lsProjClEdg2.isEmpty()) {
+				_logger->log(epg::log::DEBUG, "salut13");
 				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + "  not projecting on matching linked edge : " + idEdgLinked2);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
@@ -1974,14 +1992,19 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 				sCl2delete.insert(fCl.getId());
 				continue;
 			}
+			_logger->log(epg::log::DEBUG, "salut14");
 			ign::math::Vec2d vec1(lsProjClEdg1.endPoint().x() - lsProjClEdg1.startPoint().x(), lsProjClEdg1.endPoint().y() - lsProjClEdg1.startPoint().y());
 			ign::math::Vec2d vec2(lsProjClEdg2.endPoint().x() - lsProjClEdg2.startPoint().x(), lsProjClEdg2.endPoint().y() - lsProjClEdg2.startPoint().y());
 			double angleEdgesLinked = epg::tools::geometry::angle(vec1, vec2);
 
+			_logger->log(epg::log::DEBUG, "salut15");
 			double hausdorffDist = ign::geometry::algorithm::OptimizedHausdorffDistanceOp::distance(lsProjClEdg1, lsProjClEdg2);
+
+			_logger->log(epg::log::DEBUG, "salut16");
 
 			//si angle trop important entre les deux edges on ne crée pas de Cl
 			if (angleEdgesLinked > angleMax && angleEdgesLinked < (M_PI - angleMax) || hausdorffDist > distMax) {
+				_logger->log(epg::log::DEBUG, "salut17");
 				sCl2delete.insert(fCl.getId());
 				{
 					ign::feature::Feature fShaplog = fCl;
@@ -1990,13 +2013,18 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 					fShaplog.setGeometry(lsSphaplog);
 					_shapeLogger->writeFeature("ClDeleteByAngleDistEdges", fShaplog);
 				}
+				_logger->log(epg::log::DEBUG, "salut18");
 			}
 		}
+		_logger->log(epg::log::DEBUG, "salut19");
 		for (std::set<std::string>::iterator sit = sCl2delete.begin(); sit != sCl2delete.end(); ++sit) 
 			_fsCL->deleteFeature(*sit);
 		
+		_logger->log(epg::log::DEBUG, "salut20");
+		
 		numCl2delete = sCl2delete.size();
 	}
+	_logger->log(epg::log::DEBUG, "salut21");
 
 	//_logger->log(epg::log::INFO, "Nb CL supprimées par angle des edges superieur a un seuil et non utile à la continuité : " + ign::data::Integer(sCl2delete.size()).toString());
 	_logger->log(epg::log::TITLE, "[ END DELETE CL BY ANGLE EDGES FOR :" + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());

@@ -253,7 +253,6 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	std::string listAttr2concatName = themeParameters->getValue(LIST_ATTR_TO_CONCAT).toString();
 	std::string listAttrWName = themeParameters->getValue(LIST_ATTR_W).toString();
 	std::string listAttrJsonName = themeParameters->getValue(LIST_ATTR_JSON).toString();
-	// app::calcul::utils::AttributeMerger* _attrMergerOnBorder = new app::calcul::utils::AttributeMerger(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
 	_attrMergerOnBorder.setLists(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
 
 	//DEBUG
@@ -333,9 +332,9 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 			<< "european_route_number" << " type varchar(255);"*/
 			<< "ALTER TABLE " << clTableName << " ADD COLUMN " << context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString() << " character varying(255);";
 		//patch pour ne pas avoir des enums et eviter les soucis lors de la fusion des attributs
-		std::set<std::string> sAttrNameToConcat = _attrMergerOnBorder.getAttrNameToConcat();	
-		for (std::set<std::string>::iterator sit = sAttrNameToConcat.begin(); sit != sAttrNameToConcat.end(); ++sit)
-			ss << "ALTER TABLE " << clTableName << " ALTER COLUMN " << *sit << " TYPE character varying(255);";
+		// std::set<std::string> sAttrNameToConcat = _attrMergerOnBorder.getAttrNameToConcat();	
+		// for (std::set<std::string>::iterator sit = sAttrNameToConcat.begin(); sit != sAttrNameToConcat.end(); ++sit)
+		// 	ss << "ALTER TABLE " << clTableName << " ALTER COLUMN " << *sit << " TYPE character varying(255);";
 			
 				
 		context->getDataBaseManager().getConnection()->update(ss.str());

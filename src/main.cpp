@@ -88,7 +88,11 @@ int main(int argc, char *argv[])
         //theme parameters
         themeParametersFile = context->getConfigParameters().getValue( THEME_PARAMETER_FILE ).toString();
 		app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-        epg::params::tools::loadParams( *themeParameters, themeParametersFile );
+        epg::params::tools::loadParams( *themeParameters, themeParametersFile, countryCode );
+
+        //DEBUG
+        std::string test = themeParameters->getParameter(ECL_SLIM_SURFACE_WIDTH).getValue().toString();
+        std::string test2 = themeParameters->getParameter(CP_TABLE_SUFFIX).getValue().toString();
 
         //lancement du traitement
 		bool clCompute = themeParameters->getValue(CL_COMPUTE).toBoolean();

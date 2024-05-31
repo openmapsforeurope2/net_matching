@@ -98,12 +98,12 @@ int main(int argc, char *argv[])
 		app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
         epg::params::tools::loadParams( *themeParameters, themeParametersFile, countryCode );
         if ( themeParameters->getValue(CL_TABLE).toString() == "" )
-            themeParameters->setParameter(CL_TABLE, ign::data::String(context->getEpgParameters().getValue(EDGE_TABLE).toString() + themeParameters->getValue(CL_TABLE_SUFFIX).toString()));
+            themeParameters->setParameter(CL_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CL_TABLE_SUFFIX).toString()));
         if ( themeParameters->getValue(CP_TABLE).toString() == "" ) 
-            themeParameters->setParameter(CP_TABLE, ign::data::String(context->getEpgParameters().getValue(EDGE_TABLE).toString() + themeParameters->getValue(CP_TABLE_SUFFIX).toString()));
+            themeParameters->setParameter(CP_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CP_TABLE_SUFFIX).toString()));
 
         //créer les tables CP et CL vides si elles n'existent pas
-        app::utils::createCpClTables();
+        app::utils::createCpClTables(themeParameters->getValue(EDGE_TABLE_INIT).toString());
 
         logger->log(epg::log::INFO, "[START EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 

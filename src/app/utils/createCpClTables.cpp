@@ -10,11 +10,10 @@ namespace app{
 namespace utils{
 
     //--
-    void createCpClTables() {
+    void createCpClTables(std::string const& edgeTableName) {
         epg::Context* context = epg::ContextS::getInstance();
         app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
 
-        std::string const edgeTableName = context->getEpgParameters().getValue(EDGE_TABLE).toString();
         std::string const idName = context->getEpgParameters().getValue(ID).toString();
 	    std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
         std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();

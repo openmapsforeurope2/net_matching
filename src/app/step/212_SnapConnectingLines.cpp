@@ -26,8 +26,9 @@ namespace app {
 		{
 			//--
 			epg::Context* context = epg::ContextS::getInstance();
-			std::string idName = context->getEpgParameters().getValue( ID ).toString();
-			std::string geomName = context->getEpgParameters().getValue( GEOM ).toString();
+			epg::params::EpgParameters & epgParams = context->getEpgParameters();
+			std::string idName = epgParams.getValue( ID ).toString();
+			std::string geomName = epgParams.getValue( GEOM ).toString();
 			//--
 			params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
 			std::string countryCodeW = themeParameters->getParameter(COUNTRY_CODE_W).getValue().toString();
@@ -42,13 +43,17 @@ namespace app {
 				getCurrentWorkingTableName(CL_TABLE),
 				"", false, true
 			);
+			
+			//--
 			themeParameters->setParameter(CL_TABLE, ign::data::String(getCurrentWorkingTableName(CL_TABLE)));
+			epgParams.setParameter(EDGE_TABLE, ign::data::String(themeParameters->getParameter(EDGE_TABLE_INIT).getValue().toString()));
 
 			//--
 			app::calcul::CFeatGenerationOp::SnapConnectingLines(countryCodeW, verbose);
 
 			//--
 			themeParameters->setParameter(CL_TABLE, ign::data::String(refTableName));
+			epgParams.setParameter(EDGE_TABLE, ign::data::String(""));
 		}
 
 	}

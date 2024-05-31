@@ -15,6 +15,10 @@ namespace params{
 	///
 	ThemeParameters::ThemeParameters()
 	{
+		_initParameter( EDGE_TABLE_INIT, "EDGE_TABLE_INIT" );
+		_initParameter( COUNTRY_CODE_W, "COUNTRY_CODE_W" );
+		_initParameter( W_TAG, "W_TAG" );
+		
 		_initParameter( LANDMASK_TABLE, "LANDMASK_TABLE" );
 		_initParameter( LAND_COVER_TYPE, "LAND_COVER_TYPE" );
 		_initParameter( TYPE_LAND_AREA, "TYPE_LAND_AREA" );
@@ -36,7 +40,6 @@ namespace params{
 		_initParameter( CP_CP_2_CL_SNAP_DIST, "CP_CP_2_CL_SNAP_DIST");
 		_initParameter( CP_VERTEX_CL_SNAP_DIST, "CP_VERTEX_CL_SNAP_DIST");
 
-		_initParameter( CL_COMPUTE, "CL_COMPUTE");
 		_initParameter( CL_BUFFER_DIST, "CL_BUFFER_DIST");
 		_initParameter( CL_THRESHOLD_NO_CL, "CL_THRESHOLD_NO_CL");
 		_initParameter( CL_RATIO_IN_BUFFER, "CL_RATIO_IN_BUFFER");

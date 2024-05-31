@@ -54,6 +54,50 @@ namespace app
         }
 
         ///
+		///
+		///
+		void CFeatConnectionOp::ComputeClImport(
+            std::string countryCode,
+            bool verbose
+        ) {
+			CFeatConnectionOp op(countryCode, verbose);
+            op.computeClImport();
+		}
+
+		///
+		///
+		///
+		void CFeatConnectionOp::computeClImport()
+		{
+			epg::Context* context = epg::ContextS::getInstance();
+			std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+
+			ign::feature::FeatureIteratorPtr itCL = _fsCl->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCode + "'"));
+
+			while (itCL->hasNext())
+			{
+				ign::feature::Feature fCL = itCL->next();
+				ign::geometry::LineString lsCL = fCL.getGeometry().asLineString();
+
+				ign::feature::Feature fNewEdge = fCL;
+				lsCL.setFillZ(0);
+				fNewEdge.setGeometry(lsCL);
+				_fsEdge->createFeature(fNewEdge);
+			}
+		}
+
+        ///
+        ///
+        ///
+        void CFeatConnectionOp::ComputeCp(
+            std::string countryCode,
+            bool verbose
+        ) {
+            CFeatConnectionOp op(countryCode, verbose);
+            op.computeCp();
+        }
+
+        ///
         ///
         ///
         void CFeatConnectionOp::computeCp()
@@ -64,6 +108,17 @@ namespace app
 			for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
                 _computeCp(*vit);
             }
+        }
+
+        ///
+        ///
+        ///
+        void CFeatConnectionOp::ComputeCl(
+            std::string countryCode,
+            bool verbose
+        ) {
+            CFeatConnectionOp op(countryCode, verbose);
+            op.computeCl();
         }
 
         ///
@@ -1056,29 +1111,6 @@ namespace app
             }
 
         }
-
-		///
-		///
-		///
-		void CFeatConnectionOp::computeClImport()
-		{
-
-			epg::Context* context = epg::ContextS::getInstance();
-			std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
-
-			ign::feature::FeatureIteratorPtr itCL = _fsCl->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCode + "'"));
-
-			while (itCL->hasNext())
-			{
-				ign::feature::Feature fCL = itCL->next();
-				ign::geometry::LineString lsCL = fCL.getGeometry().asLineString();
-
-				ign::feature::Feature fNewEdge = fCL;
-				lsCL.setFillZ(0);
-				fNewEdge.setGeometry(lsCL);
-				_fsEdge->createFeature(fNewEdge);
-			}
-		}
     }
 }
 

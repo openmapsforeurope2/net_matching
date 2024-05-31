@@ -9,10 +9,8 @@
 
 //APP
 #include <app/params/ThemeParameters.h>
-#include <app/calcul/CFeatConnectionOp.h>
-#include <app/calcul/CFeatGenerationOp.h>
-#include <app/calcul/EdgeCleaningOp.h>
-#include <app/calcul/EdgeConnectorOp.h>
+#include <app/step/tools/initSteps.h>
+#include <app/utils/createCpClTables.h>
 
 
 namespace po = boost::program_options;
@@ -25,15 +23,27 @@ int main(int argc, char *argv[])
     std::string     logDirectory = "";
     std::string     epgParametersFile = "";
     std::string     themeParametersFile = "";
+    std::string     stepCode = "";
     std::string     countryCode = "";
     bool            verbose = true;
+
+
+    epg::step::StepSuite< app::params::ThemeParametersS > stepSuite;
+    app::step::tools::initSteps(stepSuite);
+
+	std::ostringstream OperatorDetail;
+	OperatorDetail << "set step :" << std::endl
+		<< stepSuite.toString();
+
 
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "produce help message")
         ("c" , po::value< std::string >(&epgParametersFile)     , "conf file" )
         ("cc" , po::value< std::string >(&countryCode)          , "country code" )
+        ("sp", po::value< std::string >(&stepCode), OperatorDetail.str().c_str())
     ;
+    stepCode = "210-280";
 
     //main log
     std::string     logFileName = "log.txt";
@@ -83,54 +93,22 @@ int main(int argc, char *argv[])
         epg::log::ShapeLogger* shapeLogger = epg::log::ShapeLoggerS::getInstance();
 	    shapeLogger->setDataDirectory( context->getLogDirectory()+"/shape" );
         
-		logger->log(epg::log::INFO, "[START EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
-        
         //theme parameters
         themeParametersFile = context->getConfigParameters().getValue( THEME_PARAMETER_FILE ).toString();
 		app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
         epg::params::tools::loadParams( *themeParameters, themeParametersFile, countryCode );
+        if ( themeParameters->getValue(CL_TABLE).toString() == "" )
+            themeParameters->setParameter(CL_TABLE, ign::data::String(context->getEpgParameters().getValue(EDGE_TABLE).toString() + themeParameters->getValue(CL_TABLE_SUFFIX).toString()));
+        if ( themeParameters->getValue(CP_TABLE).toString() == "" ) 
+            themeParameters->setParameter(CP_TABLE, ign::data::String(context->getEpgParameters().getValue(EDGE_TABLE).toString() + themeParameters->getValue(CP_TABLE_SUFFIX).toString()));
 
-        //DEBUG
-        std::string test = themeParameters->getParameter(ECL_SLIM_SURFACE_WIDTH).getValue().toString();
-        std::string test2 = themeParameters->getParameter(CP_TABLE_SUFFIX).getValue().toString();
+        //créer les tables CP et CL vides si elles n'existent pas
+        app::utils::createCpClTables();
+
+        logger->log(epg::log::INFO, "[START EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 
         //lancement du traitement
-		bool clCompute = themeParameters->getValue(CL_COMPUTE).toBoolean();
-		
-		app::calcul::CFeatGenerationOp cFeatGenerationOp(countryCode);
-        app::calcul::CFeatConnectionOp cFeatConnectionOp(countryCode, verbose);
-		
-		if (clCompute)
-		{
-			cFeatGenerationOp.computeCL();
-            cFeatConnectionOp.computeCl();
-            cFeatConnectionOp.computeClImport();
-		}
-
-		cFeatGenerationOp.computeCP();
-        cFeatConnectionOp.computeCp();
-
-        // nettoyage
-        std::string const eclSqlFilter = themeParameters->getValue(ECL_SQL_FILTER).toString();
-
-		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCode, verbose);
-        std::set<std::string> sTreatedFeatures;
-        edgeCleaningOp.cleanFaces();
-        // edgeCleaningOp.cleanPathsOutOfCountry();
-        edgeCleaningOp.cleanParalelleEdges();
-        edgeCleaningOp.cleanFacesAndAntennaByCountry(sTreatedFeatures, eclSqlFilter);
-
-        app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
-
-        // nettoyage
-        edgeCleaningOp.cleanParalelleEdges();
-        edgeCleaningOp.cleanFaces2(eclSqlFilter);
-
-        // app::calcul::EdgeConnectorOp::compute(countryCode, verbose);
-
-        // edgeCleaningOp.cleanFaces2(ign::feature::FeatureFilter("form_of_way <> 'bicycle_road'"));
-
-        edgeCleaningOp.cleanAntennas(sTreatedFeatures);
+		stepSuite.run(stepCode, verbose);
 
 		logger->log(epg::log::INFO, "[END EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 

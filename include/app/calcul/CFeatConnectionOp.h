@@ -42,6 +42,26 @@ namespace calcul{
 		/// \brief
 		~CFeatConnectionOp();
 
+
+		/// \brief
+		static void ComputeCp( 
+            std::string countryCode, 
+            bool verbose 
+        );
+
+		/// \brief
+		static void ComputeCl( 
+            std::string countryCode, 
+            bool verbose 
+        );
+
+		/// \brief
+		static void ComputeClImport( 
+            std::string countryCode, 
+            bool verbose 
+        );
+
+
 		/// \brief
 		void computeCp();
 
@@ -53,7 +73,7 @@ namespace calcul{
 
 		/// \brief
 		void computeClImport();
-		
+
 
 	private:
 		//--
@@ -72,6 +92,7 @@ namespace calcul{
 		std::string                                        _countryCode;
 		//--
 		bool                                               _verbose;
+
 
 	private:
 
@@ -144,6 +165,7 @@ namespace calcul{
 		//--
 		ign::math::Vec2d _computeDisplacement( std::vector< ign::math::Vec2d > const& vVectors ) const;
 
+		//--
 		void _importCLintoEdgeTable();
     };
 

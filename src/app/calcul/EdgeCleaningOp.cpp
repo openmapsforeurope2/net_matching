@@ -28,6 +28,7 @@
 #include <ign/math/LineT.h>
 #include <ign/math/Line2T.h>
 
+
 namespace app
 {
     namespace calcul
@@ -670,7 +671,7 @@ namespace app
         ///
         ///
         ///
-        void EdgeCleaningOp::cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures, std::string const& sqlFilter) const
+        void EdgeCleaningOp::cleanFacesAndAntennaByCountry(std::string const& sqlFilter) const
         {
             epg::Context* context = epg::ContextS::getInstance();
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
@@ -688,6 +689,9 @@ namespace app
                 if (sqlFilter!="") filter.setPropertyConditions(sqlFilter);
                 epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" LIKE '%"+vCountry[i]+"%'");
 
+                std::set<std::string> sTreatedFeatures = _getTreatedFeatures(filter);
+                std::set<std::string> sOldTreatedFeatures = sTreatedFeatures;
+
                 _loadGraph(graphManager, isPlanar, isSimplified, filter);
 
                 // std::set<vertex_descriptor> sTreatedDangles;
@@ -699,8 +703,60 @@ namespace app
                     bChangeOccured = _cleanAntennas(graphManager, /*sTreatedDangles,*/ sTreatedFeatures, isPlanar);
                     if (bChangeOccured)
                         bChangeOccured = _cleanFaces2(graphManager);
-                } 
+                }
+
+                _tagNewTreatedFeatures(sOldTreatedFeatures, sTreatedFeatures);
             }
+        }
+
+        ///
+        ///
+        ///
+        std::set<std::string> EdgeCleaningOp::_getTreatedFeatures(ign::feature::FeatureFilter const& filter_) const
+        {
+            std::set<std::string> sTreatedFeatures;
+
+            app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
+			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+
+            ign::feature::FeatureFilter filter = filter_;
+            epg::tools::FilterTools::addAndConditions(filter, wTagName +" = '"+_tag+"'");
+
+            ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
+            while (itEdge->hasNext())
+            {
+                ign::feature::Feature const& fEdge = itEdge->next();
+                std::string edgeId = fEdge.getId();
+                sTreatedFeatures.insert(edgeId);
+            }
+
+            return sTreatedFeatures;
+        }
+
+        ///
+        ///
+        ///
+        void EdgeCleaningOp::_tagNewTreatedFeatures(
+            std::set<std::string> const& sOldTreatedFeatures, 
+            std::set<std::string> const& sTreatedFeatures
+        ) const {
+            // epg parameters
+            epg::Context* context = epg::ContextS::getInstance();
+            epg::params::EpgParameters const& epgParams = context->getEpgParameters();
+            std::string const idName = epgParams.getValue(ID).toString();
+            std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
+            //--
+            app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
+			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+
+            std::string newTreatedFeatures = "";
+            for (std::set<std::string>::const_iterator sit = sTreatedFeatures.begin() ; sit != sTreatedFeatures.end() ; ++sit) {
+                if( sOldTreatedFeatures.find(*sit) != sOldTreatedFeatures.end() ) continue;
+                newTreatedFeatures += (sit == sTreatedFeatures.begin() ? "'" : ",'") + *sit +"'";
+            }
+
+            if (newTreatedFeatures != "")
+                epg::ContextS::getInstance()->getDataBaseManager().setValueColumn(_fsEdge->getTableName(), wTagName, _tag, idName + " IN ("+newTreatedFeatures+")");
         }
 
         ///
@@ -1242,12 +1298,21 @@ namespace app
         //
         ///
         ///
-        bool EdgeCleaningOp::cleanAntennas(std::set<std::string> & sTreatedFeatures) const
+        bool EdgeCleaningOp::cleanAntennas() const
         {
+            ign::feature::FeatureFilter filter;
+
+            std::set<std::string> sTreatedFeatures = _getTreatedFeatures(filter);
+            std::set<std::string> sOldTreatedFeatures = sTreatedFeatures;
+
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, false);
 
-            return _cleanAntennas(graphManager, /*sTreatedDangles,*/ sTreatedFeatures);
+            bool bChangeOccured = _cleanAntennas(graphManager, /*sTreatedDangles,*/ sTreatedFeatures);
+
+            _tagNewTreatedFeatures(sOldTreatedFeatures, sTreatedFeatures);
+
+            return bChangeOccured;
         }
 
         ///

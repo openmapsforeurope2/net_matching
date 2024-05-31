@@ -48,7 +48,7 @@ namespace calcul{
 		void cleanFaces2ByCountry() const;
 
 		/// \brief
-		void cleanFacesAndAntennaByCountry(std::set<std::string> & sTreatedFeatures, std::string const& sqlFilter) const;
+		void cleanFacesAndAntennaByCountry(std::string const& sqlFilter) const;
 
 		/// \brief
 		bool cleanFaces2(std::string const& sqlFilter) const;
@@ -57,7 +57,7 @@ namespace calcul{
 		void cleanPathsOutOfCountry() const;
 
         /// \brief
-		bool cleanAntennas(std::set<std::string> & sTreatedFeatures) const;
+		bool cleanAntennas() const;
 
 		/// \brief
 		void cleanParalelleEdges() const;
@@ -79,6 +79,8 @@ namespace calcul{
 		std::string                                          _countryCode;
 		//--
 		bool                                                 _verbose;
+		//--
+		inline static std::string const                      _tag = "EdgeCleaningOpTag";
 
 	private:
 
@@ -255,6 +257,15 @@ namespace calcul{
 		double _getPathLength(
             GraphType const& graph, 
             std::list<oriented_edge_descriptor> const& path
+        ) const;
+
+		//--
+		std::set<std::string> _getTreatedFeatures(ign::feature::FeatureFilter const& filter_) const;
+
+        //--
+        void _tagNewTreatedFeatures(
+            std::set<std::string> const& sOldTreatedFeatures, 
+            std::set<std::string> const& sTreatedFeatures
         ) const;
 
 		//--

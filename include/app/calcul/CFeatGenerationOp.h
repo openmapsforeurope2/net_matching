@@ -24,13 +24,26 @@ namespace calcul{
 		typedef typename GraphType::edge_descriptor edge_descriptor;
 		typedef typename GraphType::vertex_descriptor vertex_descriptor;
 
-		//static void compute(std::string countryCode, bool verbose);
-		void computeCL();
-		void computeCP();
+		static void ComputeCL(std::string countryCodeDouble, bool verbose = false);
+		static void ComputeCP(std::string countryCodeDouble, bool verbose = false);
 
-
+		static void GenerateConnectingLinesByCountry(std::string countryCodeDouble, bool verbose = false);
+		static void MergeConnectingLinesOnBorder(std::string countryCodeDouble, bool verbose = false);
+		static void SnapConnectingLines(std::string countryCodeDouble, bool verbose = false);
+		static void DeleteConnectingLines(std::string countryCodeDouble, bool verbose = false);
+		static void UpdateGeomConnectingLines(std::string countryCodeDouble, bool verbose = false);
+		static void UpdateGeomByContinuity(std::string countryCodeDouble, bool verbose = false);
+		
 	private:
 
+		void _computeCL();
+		void _computeCP();
+		void _generateConnectingLinesByCountry();
+		void _mergeConnectingLinesOnBorder();
+		void _snapConnectingLines();
+		void _deleteConnectingLines();
+		void _updateGeomConnectingLines();
+		void _updateGeomByContinuity();
 
 		void _init(std::string countryCodeDouble, bool verbose);
 

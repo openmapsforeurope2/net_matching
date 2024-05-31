@@ -7,7 +7,7 @@
 namespace app{
 namespace step{
 
-	class UpdateGeomConnectinLines : public epg::step::StepBase< app::params::ThemeParametersS > {
+	class UpdateGeomConnectingLines : public epg::step::StepBase< app::params::ThemeParametersS > {
 
 	public:
 
@@ -15,7 +15,7 @@ namespace step{
 		int getCode() { return 214; };
 
 		/// \brief
-		std::string getName() { return "UpdateGeomConnectinLines"; };
+		std::string getName() { return "UpdateGeomConnectingLines"; };
 
 		/// \brief
 		void onCompute( bool );

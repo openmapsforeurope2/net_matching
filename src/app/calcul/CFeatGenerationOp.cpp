@@ -53,49 +53,71 @@
 #include <QJsonArray>
 
 
-
-void app::calcul::CFeatGenerationOp::computeCL()
+///
+///
+///
+app::calcul::CFeatGenerationOp::CFeatGenerationOp(std::string countryCodeDouble, bool verbose)
 {
-	_logger->log(epg::log::TITLE, "[ BEGIN CL GENERATION FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+	_init(countryCodeDouble, verbose);
+}
 
-	//DEBUG
-	_logger->log(epg::log::DEBUG, "coucou4");
-	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
+///
+///
+///
+app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
+{
+	_shapeLogger->closeShape("CLBeforeMerge");
+	_shapeLogger->closeShape("ClMergedBeforeUpdate");
+	_shapeLogger->closeShape("ClDeletedNoCandidatefound");
+	_shapeLogger->closeShape("ClDoublon");
+	_shapeLogger->closeShape("ClDeleteByAngleDistEdges");
+	_shapeLogger->closeShape("ClDebug");
+	_shapeLogger->closeShape("edgeClCutByCp");
+	_shapeLogger->closeShape("lsBorderCutByAngle");
+	
+}
 
+///
+///
+///
+void app::calcul::CFeatGenerationOp::GenerateConnectingLinesByCountry(std::string countryCodeDouble, bool verbose)
+{
+	CFeatGenerationOp op(countryCodeDouble, verbose);
+    op._generateConnectingLinesByCountry();
+}
+
+///
+///
+///
+void app::calcul::CFeatGenerationOp::_generateConnectingLinesByCountry()
+{
+	_logger->log(epg::log::TITLE, "[ BEGIN CL GENERATION BY COUNTRY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
+	//--
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
-	std::string const idName = context->getEpgParameters().getValue(ID).toString();
-	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
-	std::string const clTableName = _fsCL->getTableName();
 
+	//--
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	double const distBuffer = themeParameters->getValue(CL_BUFFER_DIST).toDouble();
 	double const thresholdNoCL = themeParameters->getValue(CL_THRESHOLD_NO_CL).toDouble();
 	double const ratioInBuff = themeParameters->getValue(CL_RATIO_IN_BUFFER).toDouble();
 	double const snapOnVertexBorder = themeParameters->getValue(CL_SNAP_ON_VERTEX_BORDER_DIST).toDouble();
-	double const distMaxClClosest = themeParameters->getValue(CL_CL_CLOSEST_MAX_DIST).toDouble();
 	double angleMaxBorder = themeParameters->getValue(CL_BORDER_MAX_ANGLE).toDouble();
 	double angleMaxEdges = themeParameters->getValue(CL_EDGE_MAX_ANGLE).toDouble();
-	double const distCLIntersected = themeParameters->getValue(CL_CL_INTERSECTED_DIST).toDouble();
 	double const distMergeCL = themeParameters->getValue(CL_MERGE_CL_DIST).toDouble();
-	double const distMaxEdges = themeParameters->getValue(CL_EDGE_MAX_DIST).toDouble();
-	double const snapProjCl2edge = themeParameters->getValue(CL_SNAP_PROJ_CL_2_EDGE_DIST).toDouble();
-	double const minLengthCl2merge = themeParameters->getValue(CL_CL_2_MERGE_MIN_LENGTH).toDouble();
 	double angleMaxToCutBorder = themeParameters->getValue(ANGLE_MAX_2_CUT_BORDER).toDouble();
 	
-
 	angleMaxBorder = angleMaxBorder * M_PI / 180;
 	angleMaxEdges = angleMaxEdges * M_PI / 180;
 	angleMaxToCutBorder = angleMaxToCutBorder * M_PI / 180;
 
+	//--
 	ign::feature::FeatureIteratorPtr itBoundary = _fsBoundary->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCodeDouble + "'"));
 	while (itBoundary->hasNext())
 	{
 		ign::feature::Feature fBoundary = itBoundary->next();
 		_logger->log(epg::log::INFO, "id boundary :"+ fBoundary.getId());
-
-		//DEBUG
-		// if (fBoundary.getId() != "fd8c7927-7e77-422e-a50e-67a4989550fc") continue;
 
 		std::string boundaryType = fBoundary.getAttribute("boundary_type").toString();
 		// On ne traite que les frontières de type international_boundary ou coastline_sea_limit
@@ -118,50 +140,179 @@ void app::calcul::CFeatGenerationOp::computeCL()
 			_getCLfromBorder(lsBoundaryCutByAngle, buffBorder, distBuffer, thresholdNoCL, angleMaxBorder, ratioInBuff, snapOnVertexBorder);
 		}
 	}
-//	epg::utils::CopyTableUtils::copyTable(clTableName,idName,geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName+"_avtmerge", "", false,true);
 
-	//DEBUG
-	_logger->log(epg::log::DEBUG, "coucou5");
-	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
+	_logger->log(epg::log::TITLE, "[ END CL GENERATION BY COUNTRY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+}
+
+///
+///
+///
+void app::calcul::CFeatGenerationOp::MergeConnectingLinesOnBorder(std::string countryCodeDouble, bool verbose)
+{
+	CFeatGenerationOp op(countryCodeDouble, verbose);
+    op._mergeConnectingLinesOnBorder();
+}
+
+///
+///
+///
+void app::calcul::CFeatGenerationOp::_mergeConnectingLinesOnBorder()
+{
+	_logger->log(epg::log::TITLE, "[ BEGIN CL MERGING FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
+	//--
+	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+	double const distMaxEdges = themeParameters->getValue(CL_EDGE_MAX_DIST).toDouble();
+	double const snapProjCl2edge = themeParameters->getValue(CL_SNAP_PROJ_CL_2_EDGE_DIST).toDouble();
 
 	_mergeIntersectingClWithGraph(distMaxEdges, snapProjCl2edge);
-//	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresmerge", "", false, true);
+
+	_logger->log(epg::log::TITLE, "[ END CL MERGING FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+}
+
+///
+///
+///
+void app::calcul::CFeatGenerationOp::SnapConnectingLines(std::string countryCodeDouble, bool verbose)
+{
+	CFeatGenerationOp op(countryCodeDouble, verbose);
+    op._snapConnectingLines();
+}
+
+///
+///
+///
+void app::calcul::CFeatGenerationOp::_snapConnectingLines()
+{
+	_logger->log(epg::log::TITLE, "[ BEGIN CL SNAPPING FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
+	//--
+	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+	double const distMaxClClosest = themeParameters->getValue(CL_CL_CLOSEST_MAX_DIST).toDouble();
 
 	_snapCl2Cl( distMaxClClosest);
 
-	//_getClDoublonGeom();
+	_logger->log(epg::log::TITLE, "[ END CL SNAPPING FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+}
+
+///
+///
+///
+void app::calcul::CFeatGenerationOp::DeleteConnectingLines(std::string countryCodeDouble, bool verbose)
+{
+	CFeatGenerationOp op(countryCodeDouble, verbose);
+    op._deleteConnectingLines();
+}
+
+///
+///
+///
+void app::calcul::CFeatGenerationOp::_deleteConnectingLines()
+{
+	_logger->log(epg::log::TITLE, "[ BEGIN CL DELETING FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
+	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+	double angleMaxEdges = themeParameters->getValue(CL_EDGE_MAX_ANGLE).toDouble();
+	double const distMaxEdges = themeParameters->getValue(CL_EDGE_MAX_DIST).toDouble();
+	double const snapProjCl2edge = themeParameters->getValue(CL_SNAP_PROJ_CL_2_EDGE_DIST).toDouble();
+
+	angleMaxEdges = angleMaxEdges * M_PI / 180;
+
 	_deleteClByAngleAndDistEdges(angleMaxEdges, distMaxEdges, snapProjCl2edge);
-//	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresdeletebyangle", "", false, true);
 
 	_deleteCLUnderThreshold();
-//	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresdeletebyseuilmin", "", false, true);
 
-	//boucle sur CC?
+	_logger->log(epg::log::TITLE, "[ END CL DELETING FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+}
+
+///
+///
+///
+void app::calcul::CFeatGenerationOp::UpdateGeomConnectingLines(std::string countryCodeDouble, bool verbose)
+{
+	CFeatGenerationOp op(countryCodeDouble, verbose);
+    op._updateGeomConnectingLines();
+}
+
+///
+///
+///
+void app::calcul::CFeatGenerationOp::_updateGeomConnectingLines()
+{
+	_logger->log(epg::log::TITLE, "[ BEGIN CL UPDATE GEOMETRY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
+	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+	double const snapProjCl2edge = themeParameters->getValue(CL_SNAP_PROJ_CL_2_EDGE_DIST).toDouble();
+
+	_updateGeomCL( snapProjCl2edge);
+
+	_logger->log(epg::log::TITLE, "[ END CL UPDATE GEOMETRY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+}
+
+///
+///
+///
+void app::calcul::CFeatGenerationOp::UpdateGeomByContinuity(std::string countryCodeDouble, bool verbose)
+{
+	CFeatGenerationOp op(countryCodeDouble, verbose);
+    op._updateGeomByContinuity();
+}
+
+///
+///
+///
+void app::calcul::CFeatGenerationOp::_updateGeomByContinuity()
+{
+	_logger->log(epg::log::TITLE, "[ BEGIN CL UPDATE CONTINUITY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
 	GraphType graphCL;
 	_loadGraphCL(graphCL);
 
-	_updateGeomCL( snapProjCl2edge);
-//	epg::utils::CopyTableUtils::copyTable(clTableName, idName, geomName, ign::geometry::Geometry::GeometryTypeLineString, clTableName + "_apresupdate", "", false, true);
-
 	_setContinuityCl(graphCL);
 
+	_logger->log(epg::log::TITLE, "[ END CL UPDATE CONTINUITY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+}
 
-	//bool isLocSenesitive = false;
-	//bool isIccSensitive = false;
-	//epg::graph::EpgFeatureGraph graphClMerge;
-	//graphClMerge.load(ign::)
-	//_loadGraphCL( graphClMerge);
+///
+///
+///
+void app::calcul::CFeatGenerationOp::ComputeCL(std::string countryCodeDouble, bool verbose)
+{
+	CFeatGenerationOp op(countryCodeDouble, verbose);
+    op._computeCL();
+}
 
-	//_mergingClByLength(graphClMerge, minLengthCl2merge);
+///
+///
+///
+void app::calcul::CFeatGenerationOp::_computeCL()
+{
+	_logger->log(epg::log::TITLE, "[ BEGIN CL GENERATION FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
-	//_snapCl2Cl( distMaxClClosest);
+	_generateConnectingLinesByCountry();
+	_mergeConnectingLinesOnBorder();
+    _snapConnectingLines();
+	_deleteConnectingLines();
+	_updateGeomConnectingLines();
+	_updateGeomByContinuity();
 
 	_logger->log(epg::log::TITLE, "[ END CL GENERATION FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
 }
 
+///
+///
+///
+void app::calcul::CFeatGenerationOp::ComputeCP(std::string countryCodeDouble, bool verbose)
+{
+	CFeatGenerationOp op(countryCodeDouble, verbose);
+    op._computeCP();
+}
 
-void app::calcul::CFeatGenerationOp::computeCP()
+///
+///
+///
+void app::calcul::CFeatGenerationOp::_computeCP()
 {
 	_logger->log(epg::log::TITLE, "[ BEGIN CP GENERATION FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
@@ -199,28 +350,6 @@ void app::calcul::CFeatGenerationOp::computeCP()
 
 	_logger->log(epg::log::TITLE, "[ END CP GENERATION FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 }
-
-app::calcul::CFeatGenerationOp::CFeatGenerationOp(std::string countryCodeDouble, bool verbose)
-{
-	//debug//test
-	_init(countryCodeDouble, verbose);
-}
-
-app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
-{
-	
-	// delete _attrMergerOnBorder;
-	// _attrMergerOnBorder = 0;
-	_shapeLogger->closeShape("CLBeforeMerge");
-	_shapeLogger->closeShape("ClMergedBeforeUpdate");
-	_shapeLogger->closeShape("ClDeletedNoCandidatefound");
-	_shapeLogger->closeShape("ClDoublon");
-	_shapeLogger->closeShape("ClDeleteByAngleDistEdges");
-	_shapeLogger->closeShape("ClDebug");
-	_shapeLogger->closeShape("edgeClCutByCp");
-	_shapeLogger->closeShape("lsBorderCutByAngle");
-	
-}
 	
 ///
 ///
@@ -233,7 +362,9 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	std::string const idName = context->getEpgParameters().getValue(ID).toString();
 	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
-	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	std::string const cpTableName = themeParameters->getValue(CP_TABLE).toString();
+	std::string const clTableName = themeParameters->getValue(CL_TABLE).toString();
 	
 	_shapeLogger = epg::log::ShapeLoggerS::getInstance();
 	_shapeLogger->addShape("CLBeforeMerge", epg::log::ShapeLogger::LINESTRING);
@@ -254,10 +385,6 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	std::string listAttrWName = themeParameters->getValue(LIST_ATTR_W).toString();
 	std::string listAttrJsonName = themeParameters->getValue(LIST_ATTR_JSON).toString();
 	_attrMergerOnBorder.setLists(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
-
-	//DEBUG
-	_logger->log(epg::log::DEBUG, "coucou");
-	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
 	
 
 	///recuperation des features
@@ -271,75 +398,7 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 
 	_reqFilterEdges2generateCF = themeParameters->getValue(SQL_FILTER_EDGES_2_GENERATE_CF).toString();
 
-	std::string edgeTableName = context->getEpgParameters().getValue(EDGE_TABLE).toString();
-
-	///Create tmp_cp table
-	std::string cpTableName = themeParameters->getValue(CP_TABLE).toString();
-	if ( cpTableName == "" ) {
-		std::string const cpTableSuffix = themeParameters->getValue(CP_TABLE_SUFFIX).toString();
-		cpTableName = edgeTableName + cpTableSuffix;
-	}
-	cpTableName = epg::utils::replaceTableName(cpTableName);
-	
-	// if (!context->getDataBaseManager().tableExists(cpTableName)) {
-	{
-		std::ostringstream ss;
-		ss << "DROP TABLE IF EXISTS " << cpTableName << " ;";
-		ss << "CREATE TABLE " << cpTableName
-			<< " AS TABLE " << edgeTableName
-			<< " WITH NO DATA;"
-			<< "ALTER TABLE " << cpTableName << " ALTER COLUMN "
-			<< geomName << " type geometry(PointZ, 0);"
-			<< "ALTER TABLE " << cpTableName << " ALTER COLUMN "
-			<< idName << " type varchar(255);"
-			<< "ALTER TABLE " << cpTableName << " ALTER COLUMN "
-			<< countryCodeName << " type varchar(255);"
-			<< "ALTER TABLE " << cpTableName << " ALTER COLUMN "
-			<< "w_national_identifier" << " type varchar(255);"
-/*			<< "ALTER TABLE " << cpTableName << " ALTER COLUMN "
-			<< "national_road_code" << " type varchar(255);"
-			<< "ALTER TABLE " << cpTableName << " ALTER COLUMN "
-			<< "european_route_number" << " type varchar(255);"*/
-			<< "ALTER TABLE " << cpTableName << " ADD COLUMN " << context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString() << " character varying(255);";
-
-		context->getDataBaseManager().getConnection()->update(ss.str());
-	}
-	// Create tmp_cl table
-	std::string clTableName = themeParameters->getValue(CL_TABLE).toString();
-	if ( clTableName == "" ) {
-		std::string const clTableSuffix = themeParameters->getValue(CL_TABLE_SUFFIX).toString();
-		clTableName = edgeTableName + clTableSuffix;
-	}
-	clTableName = epg::utils::replaceTableName(clTableName);
-	// if (!context->getDataBaseManager().tableExists(clTableName)) {
-	{
-		std::ostringstream ss;
-		ss << "DROP TABLE IF EXISTS " << clTableName << " ;";
-		ss << "CREATE TABLE " << clTableName
-			<< " AS TABLE " << edgeTableName
-			<< " WITH NO DATA;"
-			<< "ALTER TABLE " << clTableName << " ALTER COLUMN "
-			<< geomName << " type geometry(LineStringZ, 0);"
-			<< "ALTER TABLE " << clTableName << " ALTER COLUMN "
-			<< idName << " type varchar(255);"
-			<< "ALTER TABLE " << clTableName << " ALTER COLUMN "
-			<< countryCodeName << " type varchar(255);"
-			<< "ALTER TABLE " << clTableName << " ALTER COLUMN "
-			<< "w_national_identifier" << " type varchar(255);"
-/*			<< "ALTER TABLE " << clTableName << " ALTER COLUMN "
-			<< "national_road_code" << " type varchar(255);"
-			<< "ALTER TABLE " << clTableName << " ALTER COLUMN "
-			<< "european_route_number" << " type varchar(255);"*/
-			<< "ALTER TABLE " << clTableName << " ADD COLUMN " << context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString() << " character varying(255);";
-		//patch pour ne pas avoir des enums et eviter les soucis lors de la fusion des attributs
-		// std::set<std::string> sAttrNameToConcat = _attrMergerOnBorder.getAttrNameToConcat();	
-		// for (std::set<std::string>::iterator sit = sAttrNameToConcat.begin(); sit != sAttrNameToConcat.end(); ++sit)
-		// 	ss << "ALTER TABLE " << clTableName << " ALTER COLUMN " << *sit << " TYPE character varying(255);";
-			
-				
-		context->getDataBaseManager().getConnection()->update(ss.str());
-	}
-
+	//--
 	_fsCP = context->getDataBaseManager().getFeatureStore(cpTableName, idName, geomName);
 	_fsCL = context->getDataBaseManager().getFeatureStore(clTableName, idName, geomName);
 
@@ -348,10 +407,6 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	_idGeneratorCL = epg::sql::tools::IdGeneratorInterfacePtr(epg::sql::tools::IdGeneratorFactory::getNew(*_fsCL, "CONNECTINGLINE"));
 
 	_logger->log(epg::log::TITLE, "[ END INITIALIZATION ] : " + epg::tools::TimeTools::getTime());
-
-	//DEBUG
-	_logger->log(epg::log::DEBUG, "coucou2");
-	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
 }
 
 

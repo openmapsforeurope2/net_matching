@@ -752,7 +752,7 @@ namespace app
             std::string newTreatedFeatures = "";
             for (std::set<std::string>::const_iterator sit = sTreatedFeatures.begin() ; sit != sTreatedFeatures.end() ; ++sit) {
                 if( sOldTreatedFeatures.find(*sit) != sOldTreatedFeatures.end() ) continue;
-                newTreatedFeatures += (sit == sTreatedFeatures.begin() ? "'" : ",'") + *sit +"'";
+                newTreatedFeatures += (newTreatedFeatures == "" ? "'" : ",'") + *sit +"'";
             }
 
             if (newTreatedFeatures != "")

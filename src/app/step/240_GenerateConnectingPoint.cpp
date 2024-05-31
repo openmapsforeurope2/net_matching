@@ -33,13 +33,13 @@ namespace app {
 		void GenerateConnectingPoint::onCompute( bool verbose = false )
 		{
 			//--
-			epg::Context* context = epg::ContextS::getInstance();
-			std::string idName = context->getEpgParameters().getValue( ID ).toString();
-			std::string geomName = context->getEpgParameters().getValue( GEOM ).toString();
+			std::string idName = _epgParams.getValue( ID ).toString();
+			std::string geomName = _epgParams.getValue( GEOM ).toString();
+			std::string edgeRefTableName = _epgParams.getValue( EDGE_TABLE ).toString();
 			//--
 			params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-			std::string countryCodeW = themeParameters->getParameter(COUNTRY_CODE_W).getValue().toString();
-			std::string refTableName = themeParameters->getParameter(CP_TABLE).getValue().toString();
+			std::string countryCodeW = _themeParams.getParameter(COUNTRY_CODE_W).getValue().toString();
+			std::string cpRefTableName = _themeParams.getParameter(CP_TABLE).getValue().toString();
 
 			//--
 			epg::utils::CopyTableUtils::copyTable(
@@ -50,13 +50,17 @@ namespace app {
 				getCurrentWorkingTableName(CP_TABLE),
 				"", false, true
 			);
-			themeParameters->setParameter(CP_TABLE, ign::data::String(getCurrentWorkingTableName(CP_TABLE)));
+			
+			//--
+			_themeParams.setParameter(CP_TABLE, ign::data::String(getCurrentWorkingTableName(CP_TABLE)));
+			_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));
 
 			//--
 			app::calcul::CFeatGenerationOp::ComputeCP(countryCodeW, verbose);
 
 			//--
-			themeParameters->setParameter(CP_TABLE, ign::data::String(refTableName));
+			_themeParams.setParameter(CP_TABLE, ign::data::String(cpRefTableName));
+			_epgParams.setParameter(EDGE_TABLE, ign::data::String(edgeRefTableName));
 		}
 
 	}

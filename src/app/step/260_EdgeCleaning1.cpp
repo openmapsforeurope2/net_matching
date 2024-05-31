@@ -27,17 +27,16 @@ namespace step {
 	void EdgeCleaning1::onCompute( bool verbose = false )
 	{
 		//--
-		params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-		std::string const countryCodeW = themeParameters->getParameter(COUNTRY_CODE_W).getValue().toString();
-		std::string const eclSqlFilter = themeParameters->getValue(ECL_SQL_FILTER).toString();
-		std::string const cpRefTableName = themeParameters->getParameter(CP_TABLE).getValue().toString();
+		std::string const countryCodeW = _themeParams.getParameter(COUNTRY_CODE_W).getValue().toString();
+		std::string const eclSqlFilter = _themeParams.getValue(ECL_SQL_FILTER).toString();
+		std::string const cpRefTableName = _themeParams.getParameter(CP_TABLE).getValue().toString();
 
 		//--
 		_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));
 		ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true, true);
 
 		//--
-		themeParameters->setParameter(CP_TABLE, ign::data::String(getLastWorkingTableName(CP_TABLE)));
+		_themeParams.setParameter(CP_TABLE, ign::data::String(getLastWorkingTableName(CP_TABLE)));
 
 		//--
 		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCodeW, verbose);
@@ -47,7 +46,7 @@ namespace step {
         edgeCleaningOp.cleanFacesAndAntennaByCountry(eclSqlFilter);
 
 		//--
-		themeParameters->setParameter(CP_TABLE, ign::data::String(cpRefTableName));
+		_themeParams.setParameter(CP_TABLE, ign::data::String(cpRefTableName));
 	}
 
 }

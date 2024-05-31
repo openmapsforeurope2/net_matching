@@ -363,6 +363,7 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	std::string const idName = context->getEpgParameters().getValue(ID).toString();
 	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	std::string const edgeTableName = context->getEpgParameters().getValue(EDGE_TABLE).toString();
 	std::string const cpTableName = themeParameters->getValue(CP_TABLE).toString();
 	std::string const clTableName = themeParameters->getValue(CL_TABLE).toString();
 	
@@ -394,7 +395,7 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	std::string const landmaskTableName = epg::utils::replaceTableName(themeParameters->getValue(LANDMASK_TABLE).toString());
 	_fsLandmask= context->getDataBaseManager().getFeatureStore(landmaskTableName, idName, geomName);
 
-	_fsEdge = context->getFeatureStore(epg::EDGE);
+	_fsEdge = context->getDataBaseManager().getFeatureStore(edgeTableName, idName, geomName);
 
 	_reqFilterEdges2generateCF = themeParameters->getValue(SQL_FILTER_EDGES_2_GENERATE_CF).toString();
 

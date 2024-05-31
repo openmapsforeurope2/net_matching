@@ -27,8 +27,7 @@ namespace step {
 	void EdgeConnection::onCompute( bool verbose = false )
 	{
 		//--
-		params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-		std::string const countryCodeW = themeParameters->getParameter(COUNTRY_CODE_W).getValue().toString();
+		std::string const countryCodeW = _themeParams.getParameter(COUNTRY_CODE_W).getValue().toString();
 
 		//--
 		_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));

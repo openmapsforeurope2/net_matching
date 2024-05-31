@@ -25,14 +25,13 @@ namespace app {
 		void MergeConnectingLinesOnBorder::onCompute( bool verbose = false )
 		{
 			//--
-			epg::Context* context = epg::ContextS::getInstance();
-			epg::params::EpgParameters & epgParams = context->getEpgParameters();
-			std::string idName = epgParams.getValue( ID ).toString();
-			std::string geomName = epgParams.getValue( GEOM ).toString();
+			std::string idName = _epgParams.getValue( ID ).toString();
+			std::string geomName = _epgParams.getValue( GEOM ).toString();
+			std::string edgeRefTableName = _epgParams.getValue( EDGE_TABLE ).toString();
 			//--
 			params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-			std::string countryCodeW = themeParameters->getParameter(COUNTRY_CODE_W).getValue().toString();
-			std::string refTableName = themeParameters->getParameter(CL_TABLE).getValue().toString();
+			std::string countryCodeW = _themeParams.getParameter(COUNTRY_CODE_W).getValue().toString();
+			std::string clRefTableName = _themeParams.getParameter(CL_TABLE).getValue().toString();
 
 			//--
 			epg::utils::CopyTableUtils::copyTable(
@@ -45,15 +44,15 @@ namespace app {
 			);
 
 			//--
-			themeParameters->setParameter(CL_TABLE, ign::data::String(getCurrentWorkingTableName(CL_TABLE)));
-			epgParams.setParameter(EDGE_TABLE, ign::data::String(themeParameters->getParameter(EDGE_TABLE_INIT).getValue().toString()));
+			_themeParams.setParameter(CL_TABLE, ign::data::String(getCurrentWorkingTableName(CL_TABLE)));
+			_epgParams.setParameter(EDGE_TABLE, ign::data::String(_themeParams.getParameter(EDGE_TABLE_INIT).getValue().toString()));
 
 			//--
 			app::calcul::CFeatGenerationOp::MergeConnectingLinesOnBorder(countryCodeW, verbose);
 
 			//--
-			themeParameters->setParameter(CL_TABLE, ign::data::String(refTableName));
-			epgParams.setParameter(EDGE_TABLE, ign::data::String(""));
+			_themeParams.setParameter(CL_TABLE, ign::data::String(clRefTableName));
+			_epgParams.setParameter(EDGE_TABLE, ign::data::String(edgeRefTableName));
 		}
 
 	}

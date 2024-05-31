@@ -46,7 +46,7 @@ namespace app {
 				getLastWorkingTableName(CP_TABLE),
 				idName,
 				geomName,
-				ign::geometry::Geometry::GeometryTypeLineString,
+				ign::geometry::Geometry::GeometryTypePoint,
 				getCurrentWorkingTableName(CP_TABLE),
 				"", false, true
 			);

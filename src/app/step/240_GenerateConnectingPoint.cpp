@@ -53,7 +53,7 @@ namespace app {
 			
 			//--
 			_themeParams.setParameter(CP_TABLE, ign::data::String(getCurrentWorkingTableName(CP_TABLE)));
-			_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));
+			_epgParams.setParameter(EDGE_TABLE, ign::data::String(getLastWorkingTableName(EDGE_TABLE_INIT)));
 
 			//--
 			app::calcul::CFeatGenerationOp::ComputeCP(countryCodeW, verbose);

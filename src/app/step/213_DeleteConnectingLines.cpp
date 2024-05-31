@@ -53,7 +53,7 @@ namespace app {
 
 			//--
 			_themeParams.setParameter(CL_TABLE, ign::data::String(getCurrentWorkingTableName(CL_TABLE)));
-			_epgParams.setParameter(EDGE_TABLE, ign::data::String(_themeParams.getParameter(EDGE_TABLE_INIT).getValue().toString()));
+			_epgParams.setParameter(EDGE_TABLE, ign::data::String(getLastWorkingTableName(EDGE_TABLE_INIT)));
 
 			//--
 			app::calcul::CFeatGenerationOp::DeleteConnectingLines(countryCodeW, verbose);

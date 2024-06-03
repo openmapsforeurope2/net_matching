@@ -1098,9 +1098,11 @@ namespace app
             for ( vit = vDeformedEdges.begin() ; vit != vDeformedEdges.end() ; ++vit ) {
                 ign::geometry::LineString edgeGeom = graph.getGeometry(*vit);
 
+                _logger->log(epg::log::DEBUG, edgeGeom.toString());
+
                 std::string edgeId = graph.origins(*vit)[0];
 
-                // _logger->log(epg::log::DEBUG, edgeId);
+                _logger->log(epg::log::DEBUG, edgeId);
                 
                 ign::feature::Feature fEdge;
                 _fsEdge->getFeatureById(edgeId, fEdge);

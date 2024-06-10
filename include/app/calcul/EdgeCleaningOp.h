@@ -80,7 +80,8 @@ namespace calcul{
 		//--
 		bool                                                 _verbose;
 		//--
-		inline static std::string const                      _tag = "EdgeCleaningOpTag";
+		// inline static std::string const                      _tag = "EdgeCleaningOpTag"; //C++17
+		std::string                                          _tag;
 
 	private:
 

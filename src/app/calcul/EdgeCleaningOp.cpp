@@ -41,7 +41,8 @@ namespace app
             bool verbose
         ) : 
             _countryCode(borderCode),
-            _verbose(verbose)
+            _verbose(verbose),
+            _tag("EdgeCleaningOpTag")
         {
             _init();
         }

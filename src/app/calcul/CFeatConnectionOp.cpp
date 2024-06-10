@@ -207,6 +207,10 @@ namespace app
         ///
         void CFeatConnectionOp::_computeClDisplacements(std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements, std::string const& country) const
         {
+            //Patch pour gérer les pertes de continuité entre les cl
+            // map<point déplacement, geometry de la cl cible>
+            std::map<ign::geometry::Point, ign::geometry::LineString> mDisplacementCls;
+
             epg::Context *context = epg::ContextS::getInstance();
 
             // epg parameters
@@ -241,6 +245,9 @@ namespace app
                 ign::geometry::LineString const& clGeom = fCl.getGeometry().asLineString();
                 std::string const linkedFeatureId = fCl.getAttribute(linkedFeatureIdName).toString();
                 std::string const countryCode = fCl.getAttribute(countryCodeName).toString();
+
+                //DEBUG
+                std::string clId = fCl.getId();
 
                 // if (_verbose) _logger->log(epg::log::DEBUG, fCl.getId());
 
@@ -322,12 +329,7 @@ namespace app
                             mpCuttingPoints.addGeometry(startPoint);
                         }
                     }
-                    ign::math::Vec2d v1 = mergedClGeom.startPoint().toVec2d() - startPoint.toVec2d();
-                    mDisplacements.insert(std::make_pair(startPoint, v1));
-                    double n1 = v1.norm();
-                    if (n1 > 10) {
-                        _logger->log(epg::log::WARN, "Big displacement : "+std::to_string(n1)+" [" + linkedFeatureIdName + "] " + foundFeatureId.second);
-                    }
+                    _addDisplacement(startPoint, mergedClGeom.startPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
 
                     // size_t minId2 = vDist[2] < vDist[3] ? 2 : 3;
                     size_t minId2 = minId == 0  ? 3 : 2;
@@ -346,12 +348,7 @@ namespace app
                             mpCuttingPoints.addGeometry(startPoint);
                         }
                     }
-                    ign::math::Vec2d v2 = mergedClGeom.endPoint().toVec2d() - startPoint.toVec2d();
-                    mDisplacements.insert(std::make_pair(startPoint, v2));
-                    double n2 = v2.norm();
-                    if (n2 > 10) {
-                        _logger->log(epg::log::WARN, "Big displacement : "+std::to_string(n2)+" [" + linkedFeatureIdName + "] " + foundFeatureId.second);
-                    }
+                    _addDisplacement(startPoint, mergedClGeom.endPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
                 }
                 else
                 {
@@ -371,12 +368,7 @@ namespace app
                             mpCuttingPoints.addGeometry(startPoint);
                         }
                     }
-                    ign::math::Vec2d v1 = mergedClGeom.endPoint().toVec2d() - startPoint.toVec2d();
-                    mDisplacements.insert(std::make_pair(startPoint, v1));
-                    double n1 = v1.norm();
-                    if (n1 > 10) {
-                        _logger->log(epg::log::WARN, "Big displacement : "+std::to_string(n1)+" [" + linkedFeatureIdName + "] " + foundFeatureId.second);
-                    }
+                    _addDisplacement(startPoint, mergedClGeom.endPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
 
                     // size_t minId2 = vDist[0] < vDist[1] ? 0 : 1;
                     size_t minId2 = minId == 2  ? 1 : 0;
@@ -395,12 +387,7 @@ namespace app
                             mpCuttingPoints.addGeometry(startPoint);
                         }
                     }
-                    ign::math::Vec2d v2 = mergedClGeom.startPoint().toVec2d() - startPoint.toVec2d();
-                    mDisplacements.insert(std::make_pair(startPoint, v2));
-                    double n2 = v2.norm();
-                    if (n2 > 10) {
-                        _logger->log(epg::log::WARN, "Big displacement : "+std::to_string(n2)+" [" + linkedFeatureIdName + "] " + foundFeatureId.second);
-                    }
+                    _addDisplacement(startPoint, mergedClGeom.startPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
                 }
 
                 std::vector< ign::geometry::LineString > vNewGeom;
@@ -430,6 +417,13 @@ namespace app
                 for (size_t i = 0 ; i < vNewGeom.size() ; ++i) {
                     foundEdge.second.setGeometry(vNewGeom[i]);
                     
+                    //TODO faire un round avant enregistrement
+                    //TODO faire le meme round sur les point de deplacement
+                    //OU on recale tous les deplacements sur les extremités reelle des edges enregistrés
+                    //OU repérer tous les déplacements mDisplacements qui ont le meme point d'origin
+                    // VOIR comment apply displacement gérer si meme vertex avec plusieur ref deplacement
+                    // VOIR pourquoi on avait choisi d'utiliser une map pour enregistrer les deplacements, il faudrait faire en sorte de pour identifier et conserver tous les deplacements d'un meme point
+                    //idee :créer un segment entre les 2 points cibles et ne garder q'un seul des deux déplacements 
                     _fsEdge->createFeature(foundEdge.second);
                     mParentChilds.insert(value_type(parentId, foundEdge.second.getId()));
 
@@ -450,6 +444,75 @@ namespace app
         ///
         ///
         ///
+        void CFeatConnectionOp::_addDisplacement(
+            ign::geometry::Point const& sourcePoint,
+            ign::geometry::Point const& targetPoint,
+            std::map<ign::geometry::Point, ign::math::Vec2d>& mDisplacements,
+            std::map<ign::geometry::Point, ign::geometry::LineString>& mDisplacementCls,
+            ign::feature::Feature const& fCl,
+            std::string const& linkedFeatureId,
+            std::string const& country
+        ) const {
+
+            //DEBUG
+            // if(sourcePoint.distance(ign::geometry::Point(3901654.307,3019435.784))< 1e-1) {
+            //     bool test = true;
+            // }
+            
+            ign::math::Vec2d v = targetPoint.toVec2d() - sourcePoint.toVec2d();
+
+            double n = v.norm();
+            if (n > 10) {
+                std::string const linkedFeatureIdName = epg::ContextS::getInstance()->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
+                _logger->log(epg::log::WARN, "Big displacement : "+std::to_string(n)+" [" + linkedFeatureIdName + "] " + linkedFeatureId);
+            }
+
+            std::pair<std::map<ign::geometry::Point, ign::math::Vec2d>::iterator, bool>
+                ritFound = mDisplacements.insert(std::make_pair(sourcePoint, v));
+
+            std::pair<std::map<ign::geometry::Point, ign::geometry::LineString>::iterator, bool>
+                ritClFound = mDisplacementCls.insert(std::make_pair(sourcePoint, fCl.getGeometry().asLineString()));
+
+            ign::geometry::LineString cl2Geom;
+            ign::geometry::Point t2;
+            if( ritFound.second ) {
+                std::map<ign::geometry::Point, ign::math::Vec2d>::iterator itPt = std::prev(ritFound.first);
+                std::map<ign::geometry::Point, ign::geometry::LineString>::iterator itCl = std::prev(ritClFound.first);
+                bool foundPrev = ritFound.first != mDisplacements.begin() && ritFound.first->first.distance(itPt->first) < 1e-5;
+                if(!foundPrev) {
+                    itPt = std::next(ritFound.first);
+                    itCl = std::next(ritClFound.first);
+                    bool foundNext = itPt != mDisplacements.end() && ritFound.first->first.distance(itPt->first) < 1e-5;
+                    if (!foundNext) return;
+                }
+                cl2Geom = itCl->second;
+                t2 = ign::geometry::Point( itPt->first.x() + itPt->second.x(), itPt->first.y() + itPt->second.y() );
+                mDisplacements.erase(ritFound.first);
+                mDisplacementCls.erase(ritClFound.first);
+            } else {
+                cl2Geom = ritClFound.first->second;
+                t2 = ign::geometry::Point( ritFound.first->first.x() + ritFound.first->second.x(), ritFound.first->first.y() + ritFound.first->second.y() );
+            }
+            
+            // si la distance entre le point cible de ce déplacement (t1) et le point cible l'autre déplacement (t2) n'est pas trop supérieur 
+            // à la distance entre T1 est la CL de l'autre déplacement (cl2)
+            // --> on ne rajoute pas de connection entre cl
+            double distT1Cl2 = cl2Geom.distance(targetPoint); //plante ici
+            double distT1T2 = targetPoint.distance(t2);
+            if (distT1T2 > 1.1*distT1Cl2) return;
+
+
+            ign::feature::Feature newFeat = fCl;
+            newFeat.setGeometry(ign::geometry::LineString(sourcePoint, targetPoint));
+
+            _shapeLogger->writeFeature("cl_new_connection_cl_"+country, newFeat);
+
+            _fsEdge->createFeature(newFeat);
+        }
+
+        ///
+        ///
+        ///
         void CFeatConnectionOp::_computeCl(std::string const& country)
         {
             _shapeLogger = epg::log::ShapeLoggerS::getInstance();
@@ -457,6 +520,7 @@ namespace app
             _shapeLogger->addShape("cl_created_features_"+country, epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("cl_deleted_features_"+country, epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("cl_superposed_edges_"+country, epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("cl_new_connection_cl_"+country, epg::log::ShapeLogger::LINESTRING);
 
             std::map<ign::geometry::Point, ign::math::Vec2d> mDisplacements;
             _computeClDisplacements(mDisplacements, country);
@@ -514,6 +578,7 @@ namespace app
             _shapeLogger->closeShape("cl_created_features_"+country);
             _shapeLogger->closeShape("cl_deleted_features_"+country);
             _shapeLogger->closeShape("cl_superposed_edges_"+country);
+            _shapeLogger->closeShape("cl_new_connection_cl_"+country);
         };
 
         ///
@@ -826,6 +891,11 @@ namespace app
                 ign::feature::Feature const& fEdge = itEdge->next();
                 ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
 
+                 //DEBUG 
+                // if(ign::geometry::Point(3901652.835363,3019437.212460).distance(edgeGeom) < 0.1){
+                //     bool testy =true;
+                // }
+
                 graphBuilder.addEdge(edgeGeom, fEdge.getId());
 
                 ++display2;
@@ -907,13 +977,19 @@ namespace app
             std::map<ign::geometry::Point, ign::math::Vec2d>::const_iterator rit;
             for (rit = mReferences.begin(); rit != mReferences.end(); ++rit)
             {
-                std::pair<bool, vertex_descriptor> foundVertex = _getNearestVertex(graph, rit->first, 1e-5);
+                //DEBUG 
+                // if(ign::geometry::Point(3901652.835363,3019437.212460).distance(rit->first) < 0.1){
+                //     bool testy =true;
+                // }
+
+                std::pair<bool, vertex_descriptor> foundVertex = _getNearestVertex(graph, rit->first, 1e-2);
                 if (!foundVertex.first)
                 {
                     _logger->log(epg::log::WARN, "No node found at location : " + rit->first.toString());
                     continue;
                 }
 
+                //TODO logger si 2 ref pour un même vertex
                 typename std::map<vertex_descriptor, std::vector<ign::math::Vec2d>>::iterator
                     rit_bis = mDisplacements.insert(std::make_pair(foundVertex.second, std::vector<ign::math::Vec2d>())).first;
 

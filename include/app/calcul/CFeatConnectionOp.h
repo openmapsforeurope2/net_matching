@@ -115,6 +115,17 @@ namespace calcul{
 		void _computeCpCl(std::string const& country);
 
 		//--
+		void _addDisplacement(
+            ign::geometry::Point const& sourcePoint,
+            ign::geometry::Point const& targetPoint,
+            std::map<ign::geometry::Point, ign::math::Vec2d>& mDisplacements,
+			std::map<ign::geometry::Point, ign::geometry::LineString>& mDisplacementCls,
+            ign::feature::Feature const& fCl,
+            std::string const& linkedFeatureId,
+            std::string const& country
+        ) const;
+
+		//--
 		std::pair<bool, std::string> _getSingleValue(
             std::string edgeLinks,
             std::string countryCodes,

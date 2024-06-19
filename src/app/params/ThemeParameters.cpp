@@ -15,6 +15,7 @@ namespace params{
 	///
 	ThemeParameters::ThemeParameters()
 	{
+		_initParameter( DB_CONF_FILE, "DB_CONF_FILE" );
 		_initParameter( EDGE_TABLE_INIT, "EDGE_TABLE_INIT" );
 		_initParameter( COUNTRY_CODE_W, "COUNTRY_CODE_W" );
 		_initParameter( W_TAG, "W_TAG" );
@@ -24,8 +25,8 @@ namespace params{
 		_initParameter( TYPE_LAND_AREA, "TYPE_LAND_AREA" );
 		_initParameter( EDGE_LINK, "EDGE_LINK" );
 		_initParameter( FORM_OF_WAY, "FORM_OF_WAY" );
-		_initParameter(SNAP_DIST, "SNAP_DIST");
-		_initParameter(ANGLE_MAX_2_CUT_BORDER, "ANGLE_MAX_2_CUT_BORDER" );
+		_initParameter( SNAP_DIST, "SNAP_DIST");
+		_initParameter( ANGLE_MAX_2_CUT_BORDER, "ANGLE_MAX_2_CUT_BORDER" );
 		_initParameter( CP_TABLE, "CP_TABLE");
 		_initParameter( CL_TABLE, "CL_TABLE");
 		_initParameter( CP_TABLE_SUFFIX, "CP_TABLE_SUFFIX");
@@ -43,7 +44,7 @@ namespace params{
 		_initParameter( CL_BUFFER_DIST, "CL_BUFFER_DIST");
 		_initParameter( CL_THRESHOLD_NO_CL, "CL_THRESHOLD_NO_CL");
 		_initParameter( CL_RATIO_IN_BUFFER, "CL_RATIO_IN_BUFFER");
-		_initParameter(CL_SNAP_ON_VERTEX_BORDER_DIST, "CL_SNAP_ON_VERTEX_BORDER_DIST");
+		_initParameter( CL_SNAP_ON_VERTEX_BORDER_DIST, "CL_SNAP_ON_VERTEX_BORDER_DIST");
 		_initParameter( CL_CL_CLOSEST_MAX_DIST, "CL_CL_CLOSEST_MAX_DIST");
 		_initParameter( CL_BORDER_MAX_ANGLE, "CL_BORDER_MAX_ANGLE");
 		_initParameter( CL_EDGE_MAX_ANGLE, "CL_EDGE_MAX_ANGLE");
@@ -53,8 +54,8 @@ namespace params{
 		_initParameter( CL_SNAP_PROJ_CL_2_EDGE_DIST, "CL_SNAP_PROJ_CL_2_EDGE_DIST");
 		_initParameter( CL_CL_2_MERGE_MIN_LENGTH, "CL_CL_2_MERGE_MIN_LENGTH");
 
-		_initParameter(LIST_ATTR_TO_CONCAT, "LIST_ATTR_TO_CONCAT"); 
-		_initParameter(LIST_ATTR_JSON, "LIST_ATTR_JSON");
+		_initParameter( LIST_ATTR_TO_CONCAT, "LIST_ATTR_TO_CONCAT"); 
+		_initParameter( LIST_ATTR_JSON, "LIST_ATTR_JSON");
 		_initParameter( LIST_ATTR_W, "LIST_ATTR_W");
 		_initParameter( SQL_FILTER_EDGES_2_GENERATE_CF, "SQL_FILTER_EDGES_2_GENERATE_CF");
 
@@ -73,6 +74,7 @@ namespace params{
 		_initParameter( ECL_ANTENNA_MIN_LENGTH_IN_COUNTRY, "ECL_ANTENNA_MIN_LENGTH_IN_COUNTRY");
 		_initParameter( ECL_PARALELLE_EDGE_MAX_DIST, "ECL_PARALELLE_EDGE_MAX_DIST");
 		_initParameter( ECL_ANTENNA_MIN_DIST_2_NEIGHBOR, "ECL_ANTENNA_MIN_DIST_2_NEIGHBOR");
+		_initParameter( ECL_TINY_EDGE_MAX_LENGTH, "ECL_TINY_EDGE_MAX_LENGTH");
 	
 	}
 

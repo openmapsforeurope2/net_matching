@@ -40,6 +40,7 @@ namespace step {
 
 		//--
 		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCodeW, verbose);
+		edgeCleaningOp.cleanTinyEdges();
         edgeCleaningOp.cleanParalelleEdges();
         edgeCleaningOp.cleanFaces2(eclSqlFilter);
         // edgeCleaningOp.cleanFaces2(ign::feature::FeatureFilter("form_of_way <> 'bicycle_road'"));

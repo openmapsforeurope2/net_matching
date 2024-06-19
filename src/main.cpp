@@ -25,6 +25,7 @@ int main(int argc, char *argv[])
     std::string     themeParametersFile = "";
     std::string     stepCode = "";
     std::string     countryCode = "";
+    std::string     theme = "";
     bool            verbose = true;
 
 
@@ -40,6 +41,7 @@ int main(int argc, char *argv[])
     desc.add_options()
         ("help", "produce help message")
         ("c" , po::value< std::string >(&epgParametersFile)     , "conf file" )
+        ("t" , po::value< std::string >(&theme)                 , "theme" )
         ("cc" , po::value< std::string >(&countryCode)          , "country code" )
         ("sp", po::value< std::string >(&stepCode), OperatorDetail.str().c_str())
     ;
@@ -65,7 +67,7 @@ int main(int argc, char *argv[])
         }
 
         //parametres EPG
-		context->loadEpgParameters( epgParametersFile );
+		context->loadEpgParameters( epgParametersFile, theme );
 
         //Initialisation du log de prod
         logDirectory = context->getConfigParameters().getValue( LOG_DIRECTORY ).toString();
@@ -101,6 +103,9 @@ int main(int argc, char *argv[])
             themeParameters->setParameter(CL_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CL_TABLE_SUFFIX).toString()));
         if ( themeParameters->getValue(CP_TABLE).toString() == "" ) 
             themeParameters->setParameter(CP_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CP_TABLE_SUFFIX).toString()));
+
+        //info de connection db
+        context->loadEpgParameters( themeParameters->getValue(DB_CONF_FILE).toString() );
 
         //créer les tables CP et CL vides si elles n'existent pas
         app::utils::createCpClTables(themeParameters->getValue(EDGE_TABLE_INIT).toString());

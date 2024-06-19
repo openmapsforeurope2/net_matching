@@ -3,7 +3,7 @@
 #include <app/params/ThemeParameters.h>
 #include <app/geometry/tools/LineStringSplitter.h>
 #include <app/tools/StringTools.h>
-#include <app/tools/translateVertex.h>
+// #include <app/tools/translateVertex.h>
 
 
 // BOOST

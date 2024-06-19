@@ -2,6 +2,7 @@
 #include <app/calcul/EdgeCleaningOp.h>
 #include <app/params/ThemeParameters.h>
 #include <app/calcul/detail/graph/concept/EdgeCleaningGraphSpecializations.h>
+#include <app/tools/mergeVertices.h>
 
 
 // BOOST
@@ -836,12 +837,12 @@ namespace app
             std::set<edge_descriptor> sEdge2Remove;
 
             GraphType & graph = graphManager.getGraph();
-            boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning graph faces  % complete ]\n");
+            // boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning graph faces  % complete ]\n");
 
             face_iterator fit, fend;
             for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
 			{
-                ++display;
+                // ++display;
 
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
@@ -960,15 +961,8 @@ namespace app
                             branch2.push_back(vpCountryEdges[i]);
 
 
-                        for ( size_t i = 0; i < branch1.size() ; ++i)
-                            if ( i != branch1.size()-1 && 
-                                ( graph.degree(graph.target(*branch1[i].second.rbegin())) > 2 || _vertexIsCp(graph, graph.target(*branch1[i].second.rbegin())) ) 
-                            ) hasConnection1 = true;
-
-                        for ( size_t i = 0; i < branch2.size() ; ++i)
-                            if ( i != branch2.size()-1 && 
-                                ( graph.degree(graph.target(*branch2[i].second.rbegin())) > 2 || _vertexIsCp(graph, graph.target(*branch2[i].second.rbegin())) ) 
-                            ) hasConnection2 = true;
+                        hasConnection1 = _hasConnection(graph, branch1);
+                        hasConnection2 = _hasConnection(graph, branch2);    
                     }
 
                     // pour chaque branche on calcule le ratio et on regarde si il y a des connections
@@ -995,7 +989,7 @@ namespace app
                     // on supprime tous les chemins d'une branche si:
                     // - c'est la seule des 2 à n'avoir pas de connnexion
                     // - elle à le moins bon ration et les 2 branches n'ont pas de connexion
-                    bChangeOccured = true;
+                    bool bChangeOccuredTmp = true;
                     if (hasConnection1 && !hasConnection2) {
                         for (size_t i = 0 ; i < branch2.size() ; ++i)
                             _removePath(graph, branch2[i].second, sEdge2Remove);
@@ -1023,8 +1017,9 @@ namespace app
                             _shapeLogger->writeFeature("ecl_slim_face_2_path_same_country", feat);
                         }
                     } else {
-                        bChangeOccured = false;
+                        bChangeOccuredTmp = false;
                     }
+                    if (bChangeOccuredTmp) bChangeOccured = true;
                 } else {
                     // grande face
                     // si dans mauvais pays on supprime
@@ -1061,6 +1056,21 @@ namespace app
 
             return bChangeOccured;
         }
+
+        ///
+        ///
+        ///
+        bool EdgeCleaningOp::_hasConnection (GraphType const& graph, std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>  const& branch) const {
+            for ( size_t i = 0; i < branch.size() ; ++i) {
+                for ( std::list<oriented_edge_descriptor>::const_iterator lit = branch[i].second.begin() ; lit != branch[i].second.end() ; ++lit ) {
+                    if ( i == branch.size()-1 && std::next(lit) == branch[i].second.end() ) break;
+                    if ( graph.degree(graph.target(*lit)) > 2 || _vertexIsCp(graph, graph.target(*lit)) ) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
 
         ///
         ///
@@ -1555,6 +1565,99 @@ namespace app
                 }
             }
             return bRemovedAntenna;
+        }
+
+        ///
+        ///
+        ///
+        void EdgeCleaningOp::cleanTinyEdges() const
+        {
+            detail::EdgeCleaningGraphManager graphManager;
+            _loadGraph(graphManager, false);
+            GraphType & graph = graphManager.getGraph();
+
+            while ( _cleanTinyEdges(graph) ) {
+            }  
+        }
+
+        ///
+        ///
+        ///
+        bool EdgeCleaningOp::_cleanTinyEdges( GraphType & graph ) const
+        {
+            // app parameters
+            params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+            double const maxLength = themeParameters->getValue( ECL_TINY_EDGE_MAX_LENGTH ).toDouble();
+
+            std::map<edge_descriptor, edge_descriptor> mOldNewEdges;
+            std::set<edge_descriptor> sEdge2Remove;
+		    std::set<vertex_descriptor> sVertice2Remove;
+
+            std::list<edge_descriptor> lEdges;
+            edge_iterator eit, eend;
+            for (graph.edges(eit, eend); eit != eend; ++eit)
+                lEdges.push_back(*eit);
+
+            boost::progress_display display(lEdges.size(), std::cout, "[ cleaning tiny edges  % complete ]\n");
+            for (std::list<edge_descriptor>::const_iterator lit = lEdges.begin() ; lit != lEdges.end() ; ++lit)
+            {
+                ++display;
+                if ( sEdge2Remove.find(*lit) != sEdge2Remove.end() ) continue;
+
+                ign::geometry::LineString edgeGeom = graph.getGeometry(*lit);
+
+                if( edgeGeom.length() > maxLength ) continue; 
+
+                vertex_descriptor vRef = graph.degree(graph.target(*lit)) > graph.degree(graph.source(*lit)) ? graph.target(*lit) : graph.source(*lit);
+                vertex_descriptor v2Merge = graph.degree(graph.target(*lit)) > graph.degree(graph.source(*lit)) ? graph.source(*lit) : graph.target(*lit);
+
+                tools::mergeVertices( graph, v2Merge, vRef, mOldNewEdges, sEdge2Remove, sVertice2Remove );
+            }
+
+            if ( mOldNewEdges.size() == 0 ) return false;
+
+            _persistEdges(graph, mOldNewEdges, sEdge2Remove);
+
+            for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
+                graph.removeEdge(*sit);
+
+            for ( std::set<vertex_descriptor>::const_iterator sit = sVertice2Remove.begin() ; sit != sVertice2Remove.end() ; ++sit )
+                graph.removeVertex(*sit);
+            
+            return true;
+        }
+
+        ///
+        ///
+        ///
+        void EdgeCleaningOp::_persistEdges( 
+            GraphType & graph,
+            std::map<edge_descriptor, edge_descriptor> const& mOldNewEdges,
+            std::set<edge_descriptor> & sEdge2remove
+        ) const {
+            // app parameters
+            params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+            double const maxLength = themeParameters->getValue( ECL_TINY_EDGE_MAX_LENGTH ).toDouble();
+
+            for ( std::map<edge_descriptor, edge_descriptor>::const_iterator mit = mOldNewEdges.begin() ; mit != mOldNewEdges.end() ; ++mit ) {
+                ign::geometry::LineString edgeGeom = graph.getGeometry(mit->second);
+                // _logger->log(epg::log::DEBUG, edgeGeom.toString());
+
+                std::string edgeId = graph.origins(mit->second)[0];
+                // _logger->log(epg::log::DEBUG, edgeId);
+
+                if( graph.source(mit->second) ==  graph.target(mit->second) && edgeGeom.length() < maxLength ) {
+                    _fsEdge->deleteFeature(edgeId);
+                    sEdge2remove.insert(mit->second);
+                } else {
+                    ign::feature::Feature fEdge;
+                    _fsEdge->getFeatureById(edgeId, fEdge);
+
+                    fEdge.setGeometry(edgeGeom);
+
+                    _fsEdge->modifyFeature(fEdge);
+                } 
+            }
         }
 
         ///

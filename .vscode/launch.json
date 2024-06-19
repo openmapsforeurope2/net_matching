@@ -8,7 +8,7 @@
         "request": "launch",
         "program": "/usr/local/src/tn_matching/bin/ome2_tn_matchingd",
         "cwd": "/usr/local/src/tn_matching",
-        "args": ["--c", "/usr/local/src/tn_matching/data/config/epg_parameters.ini", "--cc", "be#fr", "--sp", "220"],
+        "args": ["--c", "/usr/local/src/tn_matching/data/config/epg_parameters.ini", "--t", "hy", "--cc", "be#fr", "--sp", "280"],
         "stopAtEntry": true,
         "environment": [{ "name": "config", "value": "Debug" }],
         "externalConsole": true,

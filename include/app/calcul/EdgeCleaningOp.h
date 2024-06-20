@@ -263,14 +263,15 @@ namespace calcul{
             ign::geometry::Polygon const& poly, 
             double maxWidth,
 			ign::geometry::Point const ** p1 = 0,
-            ign::geometry::Point const ** p2 = 0
+            ign::geometry::Point const ** p2 = 0,
+            bool useHausdorff = false
 		) const;
 
 		//--
-		bool _isSlimSurface( 
-            ign::geometry::LineString const& closedLs, 
-            double maxWidth
-		) const;
+		// bool _isSlimSurface( 
+        //     ign::geometry::LineString const& closedLs, 
+        //     double maxWidth
+		// ) const;
 
 		//--
         bool _getFacePaths(

@@ -521,7 +521,8 @@ namespace app
             ign::geometry::Polygon const& poly, 
             double maxWidth,
             ign::geometry::Point const ** p1,
-            ign::geometry::Point const ** p2
+            ign::geometry::Point const ** p2,
+            bool useHausdorff
 		) const {
             ign::geometry::LineString const& extRing = poly.exteriorRing();
 
@@ -543,14 +544,21 @@ namespace app
             if (p1) *p1 = &extRing.pointN(foundIndexes.second.first);
             if (p2) *p2 = &extRing.pointN(foundIndexes.second.second);
 
-            double hausdorffDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(foundSides.second.first, foundSides.second.second);
+            if (useHausdorff) {
+                double hausdorffDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(foundSides.second.first, foundSides.second.second);
 
-            if (hausdorffDist < 0) {
-                _logger->log(epg::log::ERROR, "Error in slim surface calculation : hausdorff distance < 0");
-                _logger->log(epg::log::ERROR, poly.toString());
-            }
+                if (hausdorffDist < 0) {
+                    _logger->log(epg::log::ERROR, "Error in slim surface calculation : hausdorff distance < 0");
+                    _logger->log(epg::log::ERROR, poly.toString());
+                }
 
-            return hausdorffDist >= 0 && hausdorffDist < maxWidth;
+                return hausdorffDist >= 0 && hausdorffDist < maxWidth;
+            } 
+
+            double meanWidth = 2 * ( poly.area() / (foundSides.second.first.length() + foundSides.second.second.length()) );
+
+            return meanWidth < maxWidth;
+            
         }
 
         ///
@@ -1598,6 +1606,9 @@ namespace app
             for (graph.edges(eit, eend); eit != eend; ++eit)
                 lEdges.push_back(*eit);
 
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "help1");
+
             boost::progress_display display(lEdges.size(), std::cout, "[ cleaning tiny edges  % complete ]\n");
             for (std::list<edge_descriptor>::const_iterator lit = lEdges.begin() ; lit != lEdges.end() ; ++lit)
             {
@@ -1616,7 +1627,13 @@ namespace app
 
             if ( mOldNewEdges.size() == 0 ) return false;
 
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "help2");
+
             _persistEdges(graph, mOldNewEdges, sEdge2Remove);
+
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "help3");
 
             for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
                 graph.removeEdge(*sit);
@@ -1641,10 +1658,10 @@ namespace app
 
             for ( std::map<edge_descriptor, edge_descriptor>::const_iterator mit = mOldNewEdges.begin() ; mit != mOldNewEdges.end() ; ++mit ) {
                 ign::geometry::LineString edgeGeom = graph.getGeometry(mit->second);
-                // _logger->log(epg::log::DEBUG, edgeGeom.toString());
+                _logger->log(epg::log::DEBUG, edgeGeom.toString());
 
                 std::string edgeId = graph.origins(mit->second)[0];
-                // _logger->log(epg::log::DEBUG, edgeId);
+                _logger->log(epg::log::DEBUG, edgeId);
 
                 if( graph.source(mit->second) ==  graph.target(mit->second) && edgeGeom.length() < maxLength ) {
                     _fsEdge->deleteFeature(edgeId);

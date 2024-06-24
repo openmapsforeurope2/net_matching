@@ -1630,6 +1630,8 @@ namespace app
             //DEBUG
             _logger->log(epg::log::DEBUG, "help2");
 
+            _concat(mOldNewEdges);
+
             _persistEdges(graph, mOldNewEdges, sEdge2Remove);
 
             //DEBUG
@@ -1642,6 +1644,31 @@ namespace app
                 graph.removeVertex(*sit);
             
             return true;
+        }
+
+        ///
+        ///
+        ///
+        void EdgeCleaningOp::_concat( 
+            std::map<edge_descriptor, edge_descriptor> & mOldNewEdges
+        ) const {
+            while (true) {
+                std::set<edge_descriptor> sTreated;          
+                for ( std::map<edge_descriptor, edge_descriptor>::iterator mit = mOldNewEdges.begin() ; mit != mOldNewEdges.end() ; ++mit ) {
+                    if ( sTreated.find(mit->first) != sTreated.end() ) continue;
+
+                    std::map<edge_descriptor, edge_descriptor>::const_iterator mit2 = mOldNewEdges.find(mit->second);
+                    if ( mit2 != mOldNewEdges.end()) {
+                        sTreated.insert(mit->second);
+                        mit->second = mit2->second;
+                    }   
+                }
+                if (sTreated.size() == 0 ) break;
+                for ( std::set<edge_descriptor>::const_iterator sit = sTreated.begin() ; sit != sTreated.end() ; ++sit ) {
+                    mOldNewEdges.erase(*sit);
+                }
+            }
+            
         }
 
         ///

@@ -382,6 +382,11 @@ namespace calcul{
 
 		//--
         bool _cleanTinyEdges( GraphType & graph ) const;
+
+		//--
+		void _concat( 
+            std::map<edge_descriptor, edge_descriptor> & mOldNewEdges
+        ) const;
         
 		//--
 		void _persistEdges(

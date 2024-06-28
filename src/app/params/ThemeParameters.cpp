@@ -20,6 +20,7 @@ namespace params{
 		_initParameter( COUNTRY_CODE_W, "COUNTRY_CODE_W" );
 		_initParameter( W_TAG, "W_TAG" );
 		
+		_initParameter(BOUNDARY_SMOOTHED_TABLE, "BOUNDARY_SMOOTHED_TABLE");
 		_initParameter( LANDMASK_TABLE, "LANDMASK_TABLE" );
 		_initParameter( LAND_COVER_TYPE, "LAND_COVER_TYPE" );
 		_initParameter( TYPE_LAND_AREA, "TYPE_LAND_AREA" );

@@ -74,6 +74,9 @@ app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 	_shapeLogger->closeShape("ClDebug");
 	_shapeLogger->closeShape("edgeClCutByCp");
 	_shapeLogger->closeShape("lsBorderCutByAngle");
+
+	_mlsBorderSmoothed = 0;
+	delete _mlsBorderSmoothed;
 	
 }
 
@@ -407,6 +410,19 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	_idGeneratorCP = epg::sql::tools::IdGeneratorInterfacePtr(epg::sql::tools::IdGeneratorFactory::getNew(*_fsCP, "CONNECTINGPOINT"));
 	_idGeneratorCL = epg::sql::tools::IdGeneratorInterfacePtr(epg::sql::tools::IdGeneratorFactory::getNew(*_fsCL, "CONNECTINGLINE"));
 
+
+
+	std::string  boundarySmoothedTableName;
+	if (themeParameters->getValue(BOUNDARY_SMOOTHED_TABLE).toString() != "")
+		boundarySmoothedTableName = epg::utils::replaceTableName(themeParameters->getValue(BOUNDARY_SMOOTHED_TABLE).toString());
+	else
+		boundarySmoothedTableName = boundaryTableName;
+	ign::feature::FeatureFilter filter(countryCodeName + " = '" + _countryCodeDouble + "'");
+	_mlsBorderSmoothed = new epg::tools::MultiLineStringTool(filter, *context->getDataBaseManager().getFeatureStore(boundarySmoothedTableName, idName, geomName));
+	
+
+
+
 	_logger->log(epg::log::TITLE, "[ END INITIALIZATION ] : " + epg::tools::TimeTools::getTime());
 }
 
@@ -463,8 +479,6 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
 	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
 
-	epg::tools::MultiLineStringTool mslBorder(lsBorder);
-
 	std::vector<ign::feature::FeatureAttributeType> listAttrEdge = _fsEdge->getFeatureType().attributes();
 
 	ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + buffBorder->toString() + "'),3035))");
@@ -497,7 +511,7 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 			//si l'edge est "proche" on considere qu'il est entierement dans le buffer et longe la frontiere
 			if (lsEdge.distance(lsBorder) < distBuffer && (angleEdgBorder < angleMax || angleEdgBorder > (M_PI - angleMax) ) ) {
 				ign::geometry::LineString lsCL;
-				_getGeomCL(lsCL, mslBorder, lsEdge, distBuffer,snapOnVertexBorder);
+				_getGeomCL(lsCL, *_mlsBorderSmoothed, lsEdge, distBuffer,snapOnVertexBorder);
 				if (lsCL.numPoints() >= 2) {
 					vLsProjectedOnBorder.push_back(lsCL);
 				}
@@ -536,7 +550,7 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 						//recup ptStart, ptFin et proj des pt sur la border
 						//recup de la border entre ces points pour recup de la geom CL
 						ign::geometry::LineString lsCL;
-						_getGeomCL(lsCL, mslBorder, subEdgesBorder[numfirstSubInBuff], distBuffer, snapOnVertexBorder);
+						_getGeomCL(lsCL, *_mlsBorderSmoothed, subEdgesBorder[numfirstSubInBuff], distBuffer, snapOnVertexBorder);
 						if (lsCL.numPoints() >= 2 ) {
 							vLsProjectedOnBorder.push_back(lsCL);
 						}
@@ -1523,9 +1537,6 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 	double snapProjCl2edge
 )
 {
-	//DEBUG
-	_logger->log(epg::log::DEBUG, "coucou3");
-	_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
 
 	_logger->log(epg::log::TITLE, "[ BEGIN FUSION CONNECTING LINES ] : " + epg::tools::TimeTools::getTime());
 	epg::Context* context = epg::ContextS::getInstance();
@@ -1561,7 +1572,6 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 		for(size_t i = 0 ; i < vClOrigins.size() ; ++i) {
 			_logger->log(epg::log::DEBUG, vClOrigins[i]);
 		}
-		_logger->log(epg::log::DEBUG, "");
 
 		ign::geometry::LineString lsCl = graphCl.getGeometry(*eit);
 
@@ -1571,9 +1581,6 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 		}
 
 		std::map<std::string, ign::feature::Feature> mIdClOriginsCountry1, mIdClOriginsCountry2;
-
-		//DEBUG
-		_logger->log(epg::log::DEBUG, "debug1");
 
 		//recuperation des edges liés aux CLs
 		for (std::vector<std::string>::iterator vit = vClOrigins.begin(); vit != vClOrigins.end(); ++vit) {
@@ -1593,16 +1600,10 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 				continue;
 		}
 
-		//DEBUG
-		_logger->log(epg::log::DEBUG, "debug2");
-
 		if (mIdClOriginsCountry1.size() == 0 || mIdClOriginsCountry2.size() == 0) {
 			++eit;
 			continue;//pas de fusion, CL de un seul pays
 		}
-
-		//DEBUG
-		_logger->log(epg::log::DEBUG, "debug3");
 
 		//recuperation des portions d'edges associées et selection des CLs à fusionner
 		std::set<std::string> sEdgesMerged;
@@ -1611,16 +1612,10 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 		while(nbEdgesMerged != sEdgesMerged.size() ){
 			nbEdgesMerged = sEdgesMerged.size();
 
-			//DEBUG
-			_logger->log(epg::log::DEBUG, "debug40");
-
 			double distMin = 100000;
 			std::pair<std::string, std::string> cl2merge;
 
 			for (std::map<std::string, ign::feature::Feature>::iterator mit1 = mIdClOriginsCountry1.begin(); mit1 != mIdClOriginsCountry1.end(); ++mit1) {
-
-				//DEBUG
-				_logger->log(epg::log::DEBUG, "debug41");
 
 				std::string idEdgeLinked1 = mit1->second.getAttribute(linkedFeatIdName).toString();
 				if (sEdgesMerged.find(mit1->first) != sEdgesMerged.end())//deja utilise pour merge
@@ -1633,13 +1628,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 				if (lsClEdge1.isEmpty())
 					continue;
 
-				//DEBUG
-				_logger->log(epg::log::DEBUG, "debug42");
-
 				for (std::map<std::string, ign::feature::Feature>::iterator mit2 = mIdClOriginsCountry2.begin(); mit2 != mIdClOriginsCountry2.end(); ++mit2) {
-
-					//DEBUG
-					_logger->log(epg::log::DEBUG, "debug43");
 
 					std::string idEdgeLinked2 = mit2->second.getAttribute(linkedFeatIdName).toString();
 					if (sEdgesMerged.find(mit2->first) != sEdgesMerged.end())//deja utilise pour merge
@@ -1653,9 +1642,6 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 					if (lsClEdge2.isEmpty())
 						continue;
 
-					//DEBUG
-					_logger->log(epg::log::DEBUG, "debug44");
-
 					double hausdorffDistEdges = ign::geometry::algorithm::OptimizedHausdorffDistanceOp::distance(lsClEdge1, lsClEdge2);
 
 					if (hausdorffDistEdges > distMaxEdges) {
@@ -1668,56 +1654,31 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 						_shapeLogger->writeFeature("ClDebug", feat, ss.str());
 
 						continue;//on ne garde que les CL dont les edges associés sont proches (sous un seuil)
-					}
-
-					//DEBUG
-					_logger->log(epg::log::DEBUG, "debug45");
-						
+					}		
 
 					if (hausdorffDistEdges < distMin) {
 						distMin = hausdorffDistEdges;
 						cl2merge = std::make_pair(mit1->first, mit2->first);
 					}
-
-					//DEBUG
-					_logger->log(epg::log::DEBUG, "debug46");
-
 				}
 			}
-
-			//DEBUG
-			_logger->log(epg::log::DEBUG, "debug5");
 
 			if (cl2merge.first.empty()) {
 				continue;//break
 			}
-
-			//DEBUG
-			_logger->log(epg::log::DEBUG, "debug6");
-			_logger->log(epg::log::DEBUG, cl2merge.first);
-			_logger->log(epg::log::DEBUG, cl2merge.second);
+			//_logger->log(epg::log::DEBUG, cl2merge.first);
+			//_logger->log(epg::log::DEBUG, cl2merge.second);
 
 			sEdgesMerged.insert(cl2merge.first);
 			sEdgesMerged.insert(cl2merge.second);
 
-			//DEBUG
-			_logger->log(epg::log::DEBUG, "debug61");
-
 			ign::feature::Feature fClNew = _fsCL->newFeature();
 			fClNew = mIdClOriginsCountry1.find(cl2merge.first)->second;
 
-			//DEBUG
-			_logger->log(epg::log::DEBUG, "debug62");
-
-			//DEBUG
-			_logger->log(epg::log::DEBUG, "coucou3");
-			_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
+			//_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
 
 			_attrMergerOnBorder.addFeatAttributeMerger(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 			//_addFeatAttributeMergingOnBorder(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
-
-			//DEBUG
-			_logger->log(epg::log::DEBUG, "debug7");
 
 			std::string idCLNew = _idGeneratorCL->next();
 			fClNew.setId(idCLNew);
@@ -1725,17 +1686,9 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 			fClNew.setGeometry(lsCl);
 
 			_fsCL->createFeature(fClNew, idCLNew);
-
-			//DEBUG
-			_logger->log(epg::log::DEBUG, "debug71");
 		}
-		//DEBUG
-		_logger->log(epg::log::DEBUG, "debug8");
-
 		++eit;
 	}
-
-	_logger->log(epg::log::DEBUG, "debug9");
 
 	//suppression des CL sans #
 	std::ostringstream ss;
@@ -1752,7 +1705,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 	_logger->log(epg::log::TITLE, "[ END FUSION CONNECTING LINES ] : " + epg::tools::TimeTools::getTime());
 }
 
-
+///!!!! PLUS UTILISER
 void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 	double distMergeCL,
 	double snapOnVertexBorder
@@ -1980,26 +1933,21 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 
 			//verifier si la cl n'est pas liée a au moins une cl à chaque extremite
 			edge_descriptor edCl = graphCl.getInducedEdges(fCl.getId()).second[0].descriptor;
-			_logger->log(epg::log::DEBUG, "salut1");
+
 			if (graphCl.degree(graphCl.source(edCl)) > 1 && graphCl.degree(graphCl.target(edCl)) > 1)
 				continue;
 
-			_logger->log(epg::log::DEBUG, "salut2");
 			_logger->log(epg::log::DEBUG, fCl.getAttribute(linkedFeatIdName).toString());
 
 			//on verifie l'angle entre la projection de la cl sur les portions d'edges
 			std::vector<std::string> vEdgeslinked;
 			epg::tools::StringTools::Split(fCl.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinked);
-			_logger->log(epg::log::DEBUG, "salut3");
 			std::string idEdgLinked1 = vEdgeslinked[0];
 			std::string idEdgLinked2 = vEdgeslinked[1];
-			_logger->log(epg::log::DEBUG, "salut4");
 			ign::feature::Feature fEdg1, fEdg2;
 			_fsEdge->getFeatureById(idEdgLinked1, fEdg1);
 			_fsEdge->getFeatureById(idEdgLinked2, fEdg2);
-			_logger->log(epg::log::DEBUG, "salut5");
 			if (fEdg1.getId().empty()) {
-				_logger->log(epg::log::DEBUG, "salut6");
 				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not matching linked edge : " + idEdgLinked1);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
@@ -2009,7 +1957,6 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 				continue;
 			}
 			if (fEdg2.getId().empty()) {
-				_logger->log(epg::log::DEBUG, "salut7");
 				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not matching linked edge : " + idEdgLinked2);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
@@ -2018,18 +1965,13 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 				sCl2delete.insert(fCl.getId());
 				continue;
 			}
-			_logger->log(epg::log::DEBUG, "salut8");
 			ign::geometry::LineString lsEdg1 = fEdg1.getGeometry().asLineString();
 			ign::geometry::LineString lsEdg2 = fEdg2.getGeometry().asLineString();
-			_logger->log(epg::log::DEBUG, "salut9");
 			ign::geometry::LineString lsCl = fCl.getGeometry().asLineString();
 			ign::geometry::LineString lsProjClEdg1, lsProjClEdg2;
-			_logger->log(epg::log::DEBUG, "salut10");
 			_getGeomProjClOnEdge(lsCl, lsEdg1, lsProjClEdg1, snapProjCl2edge);
 			_getGeomProjClOnEdge(lsCl, lsEdg2, lsProjClEdg2, snapProjCl2edge);
-			_logger->log(epg::log::DEBUG, "salut11");
 			if (lsProjClEdg1.isEmpty()) {
-				_logger->log(epg::log::DEBUG, "salut12");
 				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not projecting on matching linked edge : " + idEdgLinked1);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
@@ -2039,7 +1981,6 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 				continue;
 			}
 			if (lsProjClEdg2.isEmpty()) {
-				_logger->log(epg::log::DEBUG, "salut13");
 				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + "  not projecting on matching linked edge : " + idEdgLinked2);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
@@ -2048,19 +1989,14 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 				sCl2delete.insert(fCl.getId());
 				continue;
 			}
-			_logger->log(epg::log::DEBUG, "salut14");
 			ign::math::Vec2d vec1(lsProjClEdg1.endPoint().x() - lsProjClEdg1.startPoint().x(), lsProjClEdg1.endPoint().y() - lsProjClEdg1.startPoint().y());
 			ign::math::Vec2d vec2(lsProjClEdg2.endPoint().x() - lsProjClEdg2.startPoint().x(), lsProjClEdg2.endPoint().y() - lsProjClEdg2.startPoint().y());
 			double angleEdgesLinked = epg::tools::geometry::angle(vec1, vec2);
 
-			_logger->log(epg::log::DEBUG, "salut15");
 			double hausdorffDist = ign::geometry::algorithm::OptimizedHausdorffDistanceOp::distance(lsProjClEdg1, lsProjClEdg2);
-
-			_logger->log(epg::log::DEBUG, "salut16");
 
 			//si angle trop important entre les deux edges on ne crée pas de Cl
 			if (angleEdgesLinked > angleMax && angleEdgesLinked < (M_PI - angleMax) || hausdorffDist > distMax) {
-				_logger->log(epg::log::DEBUG, "salut17");
 				sCl2delete.insert(fCl.getId());
 				{
 					ign::feature::Feature fShaplog = fCl;
@@ -2069,18 +2005,16 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges( double angleM
 					fShaplog.setGeometry(lsSphaplog);
 					_shapeLogger->writeFeature("ClDeleteByAngleDistEdges", fShaplog);
 				}
-				_logger->log(epg::log::DEBUG, "salut18");
 			}
 		}
-		_logger->log(epg::log::DEBUG, "salut19");
+
 		for (std::set<std::string>::iterator sit = sCl2delete.begin(); sit != sCl2delete.end(); ++sit) 
 			_fsCL->deleteFeature(*sit);
-		
-		_logger->log(epg::log::DEBUG, "salut20");
+
 		
 		numCl2delete = sCl2delete.size();
 	}
-	_logger->log(epg::log::DEBUG, "salut21");
+
 
 	//_logger->log(epg::log::INFO, "Nb CL supprimées par angle des edges superieur a un seuil et non utile à la continuité : " + ign::data::Integer(sCl2delete.size()).toString());
 	_logger->log(epg::log::TITLE, "[ END DELETE CL BY ANGLE EDGES FOR :" + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());

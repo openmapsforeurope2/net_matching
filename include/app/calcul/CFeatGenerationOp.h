@@ -146,6 +146,7 @@ namespace calcul{
 	private:
 		ign::feature::sql::FeatureStorePostgis* _fsEdge;
 		ign::feature::sql::FeatureStorePostgis* _fsBoundary;
+		//ign::feature::sql::FeatureStorePostgis* _fsBoundarySmoothed;
 		ign::feature::sql::FeatureStorePostgis* _fsLandmask;
 		ign::feature::sql::FeatureStorePostgis* _fsCP;
 		ign::feature::sql::FeatureStorePostgis* _fsCL;
@@ -167,6 +168,8 @@ namespace calcul{
 		epg::sql::tools::IdGeneratorInterfacePtr _idGeneratorCL;
 
 		ome2::calcul::utils::AttributeMerger 				_attrMergerOnBorder;
+
+		epg::tools::MultiLineStringTool*					_mlsBorderSmoothed;
 
 		/*std::set<std::string> _sAttrNameToConcat;
 		std::set<std::string> _sAttrNameW;

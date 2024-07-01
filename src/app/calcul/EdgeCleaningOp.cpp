@@ -17,6 +17,7 @@
 #include <epg/tools/TimeTools.h>
 #include <epg/tools/FilterTools.h>
 #include <epg/graph/tools/convertPathToLineString.h>
+#include <epg/tools/geometry/getArea.h>
 
 //OME2
 #include <ome2/geometry/tools/GetEndingPointsOp.h>
@@ -521,8 +522,7 @@ namespace app
             ign::geometry::Polygon const& poly, 
             double maxWidth,
             ign::geometry::Point const ** p1,
-            ign::geometry::Point const ** p2,
-            bool useHausdorff
+            ign::geometry::Point const ** p2
 		) const {
             ign::geometry::LineString const& extRing = poly.exteriorRing();
 
@@ -544,21 +544,7 @@ namespace app
             if (p1) *p1 = &extRing.pointN(foundIndexes.second.first);
             if (p2) *p2 = &extRing.pointN(foundIndexes.second.second);
 
-            if (useHausdorff) {
-                double hausdorffDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(foundSides.second.first, foundSides.second.second);
-
-                if (hausdorffDist < 0) {
-                    _logger->log(epg::log::ERROR, "Error in slim surface calculation : hausdorff distance < 0");
-                    _logger->log(epg::log::ERROR, poly.toString());
-                }
-
-                return hausdorffDist >= 0 && hausdorffDist < maxWidth;
-            } 
-
-            double meanWidth = 2 * ( poly.area() / (foundSides.second.first.length() + foundSides.second.second.length()) );
-
-            return meanWidth < maxWidth;
-            
+            return _pathsGeomAreEqual(foundSides.second.first, foundSides.second.second, maxWidth);
         }
 
         ///
@@ -916,7 +902,7 @@ namespace app
                         ign::geometry::LineString lsFront = epg::graph::tools::convertPathToLineString(graph, vpCountryEdges.front().second);
                         ign::geometry::LineString lsBack = epg::graph::tools::convertPathToLineString(graph, vpCountryEdges.back().second);
 
-                        bUse1stMethode =  ign::geometry::algorithm::HausdorffDistanceOp::distance(lsFront, lsBack) <= slimSurfaceWidth;
+                        bUse1stMethode = _pathsGeomAreEqual(lsFront, lsBack, slimSurfaceWidth);
                     }
 
                     // contitution des branches
@@ -1101,6 +1087,42 @@ namespace app
 
                 _removePathAndGraphEdges(graph, pAntenna.second);
             }
+        }
+
+        ///
+        ///
+        ///
+        bool EdgeCleaningOp::_pathsGeomAreEqual(
+            ign::geometry::LineString & path1geom,
+            ign::geometry::LineString & path2geom,
+            double maxWidth,
+            bool useHausdorff
+        ) const {
+            if (useHausdorff) {
+                double hausdorffDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(path1geom, path2geom);
+
+                if (hausdorffDist < 0) {
+                    _logger->log(epg::log::ERROR, "Error in distance between paths calculation : hausdorff distance < 0");
+                    _logger->log(epg::log::ERROR, "path1 :" + path1geom.toString());
+                    _logger->log(epg::log::ERROR, "path2 :" + path2geom.toString());
+                }
+
+                return hausdorffDist >= 0 && hausdorffDist < maxWidth;
+            }
+
+            // calcul de l'aire
+            bool path1IsClosed = path1geom.isClosed();
+            bool path2IsClosed = path2geom.isClosed();
+            if (!path1IsClosed) path1geom.addPoint(path1geom.startPoint());
+            if (!path2IsClosed) path2geom.addPoint(path2geom.startPoint());
+            double area = epg::tools::geometry::getArea(path1geom) + epg::tools::geometry::getArea(path2geom);
+            if (!path1IsClosed) path1geom.removePointN(path1geom.numPoints()-1);
+            if (!path2IsClosed) path2geom.removePointN(path2geom.numPoints()-1);
+
+            //--
+            double meanWidth = 2 * ( area / (path1geom.length() + path2geom.length()) );
+
+            return meanWidth < maxWidth;
         }
 
         ///

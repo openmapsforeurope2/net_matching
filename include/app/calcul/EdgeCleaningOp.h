@@ -263,8 +263,7 @@ namespace calcul{
             ign::geometry::Polygon const& poly, 
             double maxWidth,
 			ign::geometry::Point const ** p1 = 0,
-            ign::geometry::Point const ** p2 = 0,
-            bool useHausdorff = false
+            ign::geometry::Point const ** p2 = 0
 		) const;
 
 		//--
@@ -318,7 +317,15 @@ namespace calcul{
 		void _cleanFacesAntennas(
             detail::EdgeCleaningGraphManager & graphManager, 
             std::set<vertex_descriptor> const& sVertices
-        ) const ;
+        ) const;
+
+		//--
+		bool _pathsGeomAreEqual(
+            ign::geometry::LineString & path1geom,
+            ign::geometry::LineString & path2geom,
+            double maxWidth,
+            bool useHausdorff = false
+        ) const;
 
         //--
         std::pair<bool, std::list<app::calcul::detail::EdgeCleaningGraphManager::oriented_edge_descriptor>> _getAntenna(

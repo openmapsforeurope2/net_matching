@@ -152,7 +152,7 @@ namespace calcul{
 		) const;
 
 		//--
-        void _removePath(
+        bool _removePath(
 			GraphType & graph, 
 			std::list<oriented_edge_descriptor> const& path, 
 			std::set<edge_descriptor>& sEdge2Remove
@@ -160,19 +160,24 @@ namespace calcul{
 
 		//--
 		template < typename ContainerType >
-        void _removeEdges(
+        bool _removeEdges(
 			GraphType & graph,
 			ContainerType const& container,
 			std::set<edge_descriptor>& sEdge2Remove
 		) const {
 			std::set<std::string> sFeature2Delete;
+			std::set<edge_descriptor> sEdge2RemoveTmp;
 
 			std::string currentOrigin = "";
+
+			bool abord = false;
 
             std::list<edge_descriptor>::const_iterator lit = container.begin();
             for ( ; lit != container.end() ; ++lit) {
                 if (graph.origins(*lit).size() > 1) {
-                    _logger->log(epg::log::WARN, "Edge with multiple origins [edge id] "+tools::StringTools::toString(graph.origins(*lit)));
+                    _logger->log(epg::log::ERROR, "Edge with multiple origins [edge id] "+tools::StringTools::toString(graph.origins(*lit)));
+					abord = true;
+					break;
                 }
 
 				std::set<std::string> sOrigins;
@@ -191,8 +196,13 @@ namespace calcul{
 				sFeature2Delete.insert(currentOrigin);
                 
 				if (graph.origins(*lit).size() == 1 )
-					sEdge2Remove.insert(*lit);
+					sEdge2RemoveTmp.insert(*lit);
             }
+
+			if (abord)
+				return false;
+
+			sEdge2Remove.insert(sEdge2RemoveTmp.begin(), sEdge2RemoveTmp.end());
 
 			for( std::set<std::string>::const_iterator sit = sFeature2Delete.begin(); sit != sFeature2Delete.end() ; ++sit) {
 				ign::feature::Feature dFeat;
@@ -202,27 +212,32 @@ namespace calcul{
 
 				_fsEdge->deleteFeature(*sit);
 			}
+
+			return true;
 			
         }
 
 		//--
-		void _removePathAndGraphEdges(
+		bool _removePathAndGraphEdges(
             GraphType & graph,
             std::list<oriented_edge_descriptor> const& path
         ) const;
 
 		//--
 		template < typename ContainerType >
-        void _removeEdgesAndGraphEdges(
+        bool _removeEdgesAndGraphEdges(
 			GraphType & graph,
 			ContainerType const& container
 		) const {
 			std::set<edge_descriptor> sEdge2Remove;
-			_removeEdges(graph, container, sEdge2Remove);
+			bool changeOccured = _removeEdges(graph, container, sEdge2Remove);
 
-			
-			for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
-				graph.removeEdge(*sit);
+			if(changeOccured) {
+				for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
+					graph.removeEdge(*sit);
+			}
+
+			return changeOccured;
 		}
 
 		//--
@@ -321,6 +336,7 @@ namespace calcul{
 
 		//--
 		bool _pathsGeomAreEqual(
+			ign::geometry::Polygon const& poly,
             ign::geometry::LineString & path1geom,
             ign::geometry::LineString & path2geom,
             double maxWidth,

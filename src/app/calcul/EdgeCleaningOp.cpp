@@ -544,7 +544,7 @@ namespace app
             if (p1) *p1 = &extRing.pointN(foundIndexes.second.first);
             if (p2) *p2 = &extRing.pointN(foundIndexes.second.second);
 
-            return _pathsGeomAreEqual(foundSides.second.first, foundSides.second.second, maxWidth);
+            return _pathsGeomAreEqual(poly, foundSides.second.first, foundSides.second.second, maxWidth);
         }
 
         ///
@@ -623,7 +623,7 @@ namespace app
         ///
         ///
         ///
-        void EdgeCleaningOp::_removePath(
+        bool EdgeCleaningOp::_removePath(
             GraphType & graph, std::list<oriented_edge_descriptor> const& path, 
             std::set<edge_descriptor>& sEdge2Remove
         ) const {
@@ -631,13 +631,13 @@ namespace app
             for (std::list<oriented_edge_descriptor>::const_iterator lit = path.begin() ; lit != path.end() ; ++lit)
                 lEdges.push_back(lit->descriptor);
 
-            _removeEdges(graph, lEdges, sEdge2Remove);
+            return _removeEdges(graph, lEdges, sEdge2Remove);
         }
 
         ///
         ///
         ///
-        void EdgeCleaningOp::_removePathAndGraphEdges(
+        bool EdgeCleaningOp::_removePathAndGraphEdges(
             GraphType & graph,
             std::list<oriented_edge_descriptor> const& path
         ) const {
@@ -645,7 +645,7 @@ namespace app
             for (std::list<oriented_edge_descriptor>::const_iterator lit = path.begin() ; lit != path.end() ; ++lit)
                 lEdges.push_back(lit->descriptor);
 
-            _removeEdgesAndGraphEdges(graph, lEdges);
+            return _removeEdgesAndGraphEdges(graph, lEdges);
         }
 
         ///
@@ -879,8 +879,11 @@ namespace app
                         feat.setGeometry(faceGeom);
                         _shapeLogger->writeFeature("ecl_slim_face_1_path", feat);
 
-                        _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
-                        bChangeOccured = true;
+                        bChangeOccured = _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
+
+                        // DEBUG
+                        _logger->log(epg::log::DEBUG, "bChangeOccured1");
+
                         continue;
                     }
 
@@ -902,7 +905,7 @@ namespace app
                         ign::geometry::LineString lsFront = epg::graph::tools::convertPathToLineString(graph, vpCountryEdges.front().second);
                         ign::geometry::LineString lsBack = epg::graph::tools::convertPathToLineString(graph, vpCountryEdges.back().second);
 
-                        bUse1stMethode = _pathsGeomAreEqual(lsFront, lsBack, slimSurfaceWidth);
+                        bUse1stMethode = _pathsGeomAreEqual(faceGeom, lsFront, lsBack, slimSurfaceWidth);
                     }
 
                     // contitution des branches
@@ -986,34 +989,40 @@ namespace app
                     bool bChangeOccuredTmp = true;
                     if (hasConnection1 && !hasConnection2) {
                         for (size_t i = 0 ; i < branch2.size() ; ++i)
-                            _removePath(graph, branch2[i].second, sEdge2Remove);
+                            bChangeOccuredTmp =_removePath(graph, branch2[i].second, sEdge2Remove);
                     } else if (!hasConnection1 && hasConnection2) {
                         for (size_t i = 0 ; i < branch1.size() ; ++i)
-                            _removePath(graph, branch1[i].second, sEdge2Remove);
+                            bChangeOccuredTmp = _removePath(graph, branch1[i].second, sEdge2Remove);
                     } else if (!hasConnection1 && !hasConnection2) {
                         if ( ratio1 > ratio2 ) 
                             for (size_t i = 0 ; i < branch2.size() ; ++i)
-                                _removePath(graph, branch2[i].second, sEdge2Remove);
+                                bChangeOccuredTmp = _removePath(graph, branch2[i].second, sEdge2Remove);
                         else if ( ratio1 < ratio2 )
                             for (size_t i = 0 ; i < branch1.size() ; ++i)
-                                _removePath(graph, branch1[i].second, sEdge2Remove);
+                                bChangeOccuredTmp = _removePath(graph, branch1[i].second, sEdge2Remove);
                         else {
                             // 2 chemins avec le même ratio, on garde le plus court
                             if (length1 < length2) {
                                 for (size_t i = 0 ; i < branch2.size() ; ++i)
-                                    _removePath(graph, branch2[i].second, sEdge2Remove);
+                                    bChangeOccuredTmp = _removePath(graph, branch2[i].second, sEdge2Remove);
                             } else {
                                 for (size_t i = 0 ; i < branch1.size() ; ++i)
-                                    _removePath(graph, branch1[i].second, sEdge2Remove);
+                                    bChangeOccuredTmp = _removePath(graph, branch1[i].second, sEdge2Remove);
                             }
-                            ign::feature::Feature feat;
-                            feat.setGeometry(faceGeom);
-                            _shapeLogger->writeFeature("ecl_slim_face_2_path_same_country", feat);
+                            if(bChangeOccuredTmp) {
+                                ign::feature::Feature feat;
+                                feat.setGeometry(faceGeom);
+                                _shapeLogger->writeFeature("ecl_slim_face_2_path_same_country", feat);
+                            }
                         }
                     } else {
                         bChangeOccuredTmp = false;
                     }
-                    if (bChangeOccuredTmp) bChangeOccured = true;
+                    if (bChangeOccuredTmp) {
+                        bChangeOccured = true;
+                        // DEBUG
+                        _logger->log(epg::log::DEBUG, "bChangeOccured2");
+                    }
                 } else {
                     // grande face
                     // si dans mauvais pays on supprime
@@ -1030,8 +1039,10 @@ namespace app
                             feat.setGeometry(faceGeom);
                             _shapeLogger->writeFeature("ecl_big_face_removed", feat);
 
-                            _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
-                            bChangeOccured = true;
+                            bChangeOccured = _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
+
+                            // DEBUG
+                            _logger->log(epg::log::DEBUG, "bChangeOccured3");
                         }
                     }
                 }
@@ -1093,36 +1104,32 @@ namespace app
         ///
         ///
         bool EdgeCleaningOp::_pathsGeomAreEqual(
+            ign::geometry::Polygon const& poly,
             ign::geometry::LineString & path1geom,
             ign::geometry::LineString & path2geom,
             double maxWidth,
             bool useHausdorff
         ) const {
+            double hausdorffDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(path1geom, path2geom);
+
+            if (hausdorffDist < 0) {
+                _logger->log(epg::log::ERROR, "Error in distance between paths calculation : hausdorff distance < 0");
+                _logger->log(epg::log::ERROR, "path1 :" + path1geom.toString());
+                _logger->log(epg::log::ERROR, "path2 :" + path2geom.toString());
+            }
+
             if (useHausdorff) {
-                double hausdorffDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(path1geom, path2geom);
-
-                if (hausdorffDist < 0) {
-                    _logger->log(epg::log::ERROR, "Error in distance between paths calculation : hausdorff distance < 0");
-                    _logger->log(epg::log::ERROR, "path1 :" + path1geom.toString());
-                    _logger->log(epg::log::ERROR, "path2 :" + path2geom.toString());
-                }
-
                 return hausdorffDist >= 0 && hausdorffDist < maxWidth;
             }
 
-            // calcul de l'aire
-            bool path1IsClosed = path1geom.isClosed();
-            bool path2IsClosed = path2geom.isClosed();
-            if (!path1IsClosed) path1geom.addPoint(path1geom.startPoint());
-            if (!path2IsClosed) path2geom.addPoint(path2geom.startPoint());
-            double area = epg::tools::geometry::getArea(path1geom) + epg::tools::geometry::getArea(path2geom);
-            if (!path1IsClosed) path1geom.removePointN(path1geom.numPoints()-1);
-            if (!path2IsClosed) path2geom.removePointN(path2geom.numPoints()-1);
-
             //--
-            double meanWidth = 2 * ( area / (path1geom.length() + path2geom.length()) );
+            double meanWidth = 2 * ( poly.area() / poly.exteriorRing().length() );
+            bool bHausdorff = hausdorffDist >= 0 && (hausdorffDist < 3*maxWidth);
+            // double l1 = path1geom.length();
+            // double l2 = path2geom.length();
+            // bool bLength = (std::max(l1, l2) / std::min(l1, l2)) < 2;
 
-            return meanWidth < maxWidth;
+            return meanWidth < maxWidth && bHausdorff;
         }
 
         ///
@@ -1558,8 +1565,7 @@ namespace app
             
             double antennaLength = _getAntennaLength(graph, lAntennaEdges);
             if (bAntennaIsConnected2CF && antennaLength < antennaMinLength) {
-                _removePathAndGraphEdges(graph, lAntennaEdges);
-                return true;
+                return _removePathAndGraphEdges(graph, lAntennaEdges);
             }
             
             // //DEBUG
@@ -1583,15 +1589,13 @@ namespace app
 
             bool bRemovedAntenna = false;
             if (pRatioLengthFirstPart.first < antennaRatioThreshold) {
-                _removePathAndGraphEdges(graph, lAntennaEdges);
-                bRemovedAntenna = true;
+                bRemovedAntenna = _removePathAndGraphEdges(graph, lAntennaEdges);
             } 
             else {
                 double ratioWithBuff = _getRatioWithBuff(graph, country, lAntennaEdges);
 
                 if (ratioWithBuff < antennaRatioThresholdWithBuff) {
-                    _removePathAndGraphEdges(graph, lAntennaEdges);
-                    bRemovedAntenna = true;
+                    bRemovedAntenna = _removePathAndGraphEdges(graph, lAntennaEdges);
                 }
             }
             return bRemovedAntenna;

@@ -75,9 +75,7 @@ app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 	_shapeLogger->closeShape("edgeClCutByCp");
 	_shapeLogger->closeShape("lsBorderCutByAngle");
 
-	_mlsBorderSmoothed = 0;
-	delete _mlsBorderSmoothed;
-	
+	delete _mlsBorderSmoothed;	
 }
 
 ///

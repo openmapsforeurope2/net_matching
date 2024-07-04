@@ -166,45 +166,47 @@ namespace calcul{
 			std::set<edge_descriptor>& sEdge2Remove
 		) const {
 			std::set<std::string> sFeature2Delete;
-			std::set<edge_descriptor> sEdge2RemoveTmp;
-
-			std::string currentOrigin = "";
-
-			bool abord = false;
+			bool aborded = false;
 
             std::list<edge_descriptor>::const_iterator lit = container.begin();
             for ( ; lit != container.end() ; ++lit) {
-                if (graph.origins(*lit).size() > 1) {
+                if (graph.origins(*lit).size() != 1) {
                     _logger->log(epg::log::ERROR, "Edge with multiple origins [edge id] "+tools::StringTools::toString(graph.origins(*lit)));
-					abord = true;
+					aborded = true;
 					break;
                 }
 
-				std::set<std::string> sOrigins;
-				for (size_t i = 0 ; i < graph.origins(*lit).size() ; ++i)
-					sOrigins.insert(graph.origins(*lit)[i]);
+				std::string origin = graph.origins(*lit)[0];
 
-				if (sOrigins.find(currentOrigin) != sOrigins.end()) continue;
-				
-				currentOrigin = *sOrigins.begin();
+				if( sFeature2Delete.find(origin) != sFeature2Delete.end() ) continue;
 
-				if (ign::tools::StringManip::FindSubString(currentOrigin,"CONNECTINGLINE")) {
-					_logger->log(epg::log::WARN, "Edge has a cl as origin [cl id] "+currentOrigin);
+				if (ign::tools::StringManip::FindSubString(origin,"CONNECTINGLINE")) {
+					_logger->log(epg::log::WARN, "Edge has a cl as origin [cl id] "+origin);
 					continue;
 				}
 				
-				sFeature2Delete.insert(currentOrigin);
-                
-				if (graph.origins(*lit).size() == 1 )
-					sEdge2RemoveTmp.insert(*lit);
+				sFeature2Delete.insert(origin);
             }
 
-			if (abord)
+			if (aborded)
 				return false;
 
-			sEdge2Remove.insert(sEdge2RemoveTmp.begin(), sEdge2RemoveTmp.end());
-
 			for( std::set<std::string>::const_iterator sit = sFeature2Delete.begin(); sit != sFeature2Delete.end() ; ++sit) {
+				std::pair<bool, std::vector<oriented_edge_descriptor>> foundInducedEdges = graph.getInducedEdges(*sit);
+
+				for(std::vector<oriented_edge_descriptor>::const_iterator vit = foundInducedEdges.second.begin() ; vit != foundInducedEdges.second.end() ; ++vit) {
+					std::vector<std::string> const& vOrigins = graph.origins(vit->descriptor);
+					if (vOrigins.size() != 1) {
+						std::vector<std::string> vOriginsNew;
+						for (std::vector<std::string>::const_iterator vit2 = vOrigins.begin() ; vit2 != vOrigins.end() ; ++vit2) {
+							if(*vit2 != *sit) vOriginsNew.push_back(*vit2);
+						}
+						graph.setOrigins(vit->descriptor, vOriginsNew);
+						continue;
+					}
+					sEdge2Remove.insert(vit->descriptor);
+				}
+
 				ign::feature::Feature dFeat;
 				_fsEdge->getFeatureById(*sit, dFeat);
 				if (!dFeat.getId().empty())
@@ -214,7 +216,6 @@ namespace calcul{
 			}
 
 			return true;
-			
         }
 
 		//--

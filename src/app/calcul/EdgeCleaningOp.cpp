@@ -690,13 +690,11 @@ namespace app
 
                 _loadGraph(graphManager, isPlanar, isSimplified, filter);
 
-                // std::set<vertex_descriptor> sTreatedDangles;
-
-                _cleanAntennas(graphManager, /*sTreatedDangles,*/ sTreatedFeatures, isPlanar);
+                _cleanAntennas(graphManager, sTreatedFeatures, isPlanar);
                 bool bChangeOccured = _cleanFaces2(graphManager);
 
                 while (bChangeOccured) {
-                    bChangeOccured = _cleanAntennas(graphManager, /*sTreatedDangles,*/ sTreatedFeatures, isPlanar);
+                    bChangeOccured = _cleanAntennas(graphManager, sTreatedFeatures, isPlanar);
                     if (bChangeOccured)
                         bChangeOccured = _cleanFaces2(graphManager);
                 }
@@ -811,6 +809,7 @@ namespace app
 
             while ( _cleanGraphFaces(graphManager) ) {
                 bChangeOccured = true;
+                graphManager.getGraph().createFaces();
             }
 
             return bChangeOccured;
@@ -842,10 +841,13 @@ namespace app
 
                 // DEBUG
                 _logger->log(epg::log::DEBUG, faceGeom.toString());
-                // if (faceGeom.intersects(ign::geometry::Point(4017129.38,3093853.68))) {
+                if (faceGeom.intersects(ign::geometry::Point(3912460.34,2999560.83))) {
+                    bool test = true;
+                }
+                // if (faceGeom.intersects(ign::geometry::Point(3989455.72,3143506.25))) {
                 //     bool test = true;
                 // }
-                // if (faceGeom.intersects(ign::geometry::Point(3989455.72,3143506.25))) {
+                // if (faceGeom.distance(ign::geometry::Point(3912602.72,2999661.13)) < 5) {
                 //     bool test = true;
                 // }
                 // double testArea = faceGeom.area();
@@ -1047,6 +1049,8 @@ namespace app
                     }
                 }
 			}
+
+            if (!bChangeOccured) return bChangeOccured;
 
             std::set<vertex_descriptor> sVertices;
             for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit ) {
@@ -1354,9 +1358,9 @@ namespace app
             std::set<std::string> sOldTreatedFeatures = sTreatedFeatures;
 
             detail::EdgeCleaningGraphManager graphManager;
-            _loadGraph(graphManager, false);
+            _loadGraph(graphManager, false /*isPlanar*/);
 
-            bool bChangeOccured = _cleanAntennas(graphManager, /*sTreatedDangles,*/ sTreatedFeatures);
+            bool bChangeOccured = _cleanAntennas(graphManager, sTreatedFeatures, false /*isPlanar*/);
 
             _tagNewTreatedFeatures(sOldTreatedFeatures, sTreatedFeatures);
 
@@ -1372,6 +1376,10 @@ namespace app
 
             while ( _cleanGraphAntennas(graphManager, sTreatedFeatures, isPlanarGraph) ) {
                 bChangeOccured = true;
+            }
+
+            if(isPlanarGraph && bChangeOccured) {
+                graphManager.getGraph().createFaces();
             }
 
             return bChangeOccured;

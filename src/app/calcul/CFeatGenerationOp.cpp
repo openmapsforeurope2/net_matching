@@ -853,7 +853,7 @@ void app::calcul::CFeatGenerationOp::_getGeomCL(
 	ign::geometry::Point ptStartToProject = lsStart2EndToPrject.startPoint();
 	ign::geometry::Point ptEndToProject = lsStart2EndToPrject.endPoint();
 	// std::pair< bool, ign::geometry::LineString > pathFound = mslBorder.getPathAlong(ptStartToProject, ptEndToProject, lsStart2EndToPrject, 2* distMaxBorder, distMaxBorder+1);
-	std::pair< bool, ign::geometry::LineString > pathFound = mslBorder.getPathAlong(ptStartToProject, ptEndToProject, lsStart2EndToPrject, 1000, 1000);
+	std::pair< bool, ign::geometry::LineString > pathFound = mslBorder.getPathAlong(ptStartToProject, ptEndToProject, lsStart2EndToPrject, 1000, 1000, snapOnVertexBorder);
 
 	if (pathFound.first)
 		lsCL = pathFound.second;

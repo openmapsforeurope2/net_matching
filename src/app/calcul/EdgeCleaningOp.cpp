@@ -841,9 +841,9 @@ namespace app
 
                 // DEBUG
                 _logger->log(epg::log::DEBUG, faceGeom.toString());
-                if (faceGeom.intersects(ign::geometry::Point(3912460.34,2999560.83))) {
-                    bool test = true;
-                }
+                // if (faceGeom.intersects(ign::geometry::Point(3912460.34,2999560.83))) {
+                //     bool test = true;
+                // }
                 // if (faceGeom.intersects(ign::geometry::Point(3989455.72,3143506.25))) {
                 //     bool test = true;
                 // }

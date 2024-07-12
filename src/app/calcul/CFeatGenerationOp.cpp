@@ -1536,7 +1536,6 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 	double snapProjCl2edge
 )
 {
-
 	_logger->log(epg::log::TITLE, "[ BEGIN FUSION CONNECTING LINES ] : " + epg::tools::TimeTools::getTime());
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
@@ -1566,12 +1565,6 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 		++display;
 
 		std::vector<std::string> vClOrigins = graphCl.origins(*eit);
-
-		//DEBUG
-		for(size_t i = 0 ; i < vClOrigins.size() ; ++i) {
-			_logger->log(epg::log::DEBUG, vClOrigins[i]);
-		}
-
 		ign::geometry::LineString lsCl = graphCl.getGeometry(*eit);
 
 		if (graphCl.origins(*eit).size() == 1) {

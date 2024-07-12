@@ -382,10 +382,6 @@ namespace app
                 ++display;
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
-                // DEBUG
-                // _logger->log(epg::log::DEBUG, "coucou");
-                _logger->log(epg::log::DEBUG, faceGeom.toString());
-
 				if (_isSlimSurface(faceGeom, slimSurfaceWidth)) {
 
                     std::map<std::string, std::list<edge_descriptor>> mlEdges;
@@ -840,7 +836,7 @@ namespace app
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
                 // DEBUG
-                _logger->log(epg::log::DEBUG, faceGeom.toString());
+                //_logger->log(epg::log::DEBUG, faceGeom.toString());
                 // if (faceGeom.intersects(ign::geometry::Point(3912460.34,2999560.83))) {
                 //     bool test = true;
                 // }
@@ -884,7 +880,7 @@ namespace app
                         bChangeOccured = _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
 
                         // DEBUG
-                        _logger->log(epg::log::DEBUG, "bChangeOccured1");
+                        //_logger->log(epg::log::DEBUG, "bChangeOccured1");
 
                         continue;
                     }
@@ -1023,7 +1019,7 @@ namespace app
                     if (bChangeOccuredTmp) {
                         bChangeOccured = true;
                         // DEBUG
-                        _logger->log(epg::log::DEBUG, "bChangeOccured2");
+                        //_logger->log(epg::log::DEBUG, "bChangeOccured2");
                     }
                 } else {
                     // grande face
@@ -1044,7 +1040,7 @@ namespace app
                             bChangeOccured = _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
 
                             // DEBUG
-                            _logger->log(epg::log::DEBUG, "bChangeOccured3");
+                            //_logger->log(epg::log::DEBUG, "bChangeOccured3");
                         }
                     }
                 }
@@ -1460,7 +1456,7 @@ namespace app
                         minVit = mit->second.begin();
                     }
                     // _logger->log(epg::log::DEBUG, "pouet8");
-                    _logger->log(epg::log::DEBUG, graph.getGeometry(minVit->begin()->descriptor).toString());
+                    //_logger->log(epg::log::DEBUG, graph.getGeometry(minVit->begin()->descriptor).toString());
                     // _logger->log(epg::log::DEBUG, "pouet81");
 
                     std::string country = graphManager.getCountry(minVit->begin()->descriptor);
@@ -1641,7 +1637,7 @@ namespace app
                 lEdges.push_back(*eit);
 
             //DEBUG
-            _logger->log(epg::log::DEBUG, "help1");
+            //_logger->log(epg::log::DEBUG, "help1");
 
             boost::progress_display display(lEdges.size(), std::cout, "[ cleaning tiny edges  % complete ]\n");
             for (std::list<edge_descriptor>::const_iterator lit = lEdges.begin() ; lit != lEdges.end() ; ++lit)
@@ -1662,14 +1658,14 @@ namespace app
             if ( mOldNewEdges.size() == 0 ) return false;
 
             //DEBUG
-            _logger->log(epg::log::DEBUG, "help2");
+            //_logger->log(epg::log::DEBUG, "help2");
 
             _concat(mOldNewEdges);
 
             _persistEdges(graph, mOldNewEdges, sEdge2Remove);
 
             //DEBUG
-            _logger->log(epg::log::DEBUG, "help3");
+            //_logger->log(epg::log::DEBUG, "help3");
 
             for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
                 graph.removeEdge(*sit);
@@ -1719,10 +1715,10 @@ namespace app
 
             for ( std::map<edge_descriptor, edge_descriptor>::const_iterator mit = mOldNewEdges.begin() ; mit != mOldNewEdges.end() ; ++mit ) {
                 ign::geometry::LineString edgeGeom = graph.getGeometry(mit->second);
-                _logger->log(epg::log::DEBUG, edgeGeom.toString());
+                //_logger->log(epg::log::DEBUG, edgeGeom.toString());
 
                 std::string edgeId = graph.origins(mit->second)[0];
-                _logger->log(epg::log::DEBUG, edgeId);
+                //_logger->log(epg::log::DEBUG, edgeId);
 
                 if( graph.source(mit->second) ==  graph.target(mit->second) && edgeGeom.length() < maxLength ) {
                     _fsEdge->deleteFeature(edgeId);

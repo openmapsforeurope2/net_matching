@@ -874,7 +874,7 @@ namespace app
                     // verifier si contour entierement composé d'un seul pays
                     // si oui regarder si faceGeom intersect le pays
                     // si oui --> continue
-                    std::pair<bool, std::string> isAllInCountry = _isAllInCountry(graphManager, *fit);
+                    std::pair<bool, std::string> isAllFromCountry = _isAllFromCountry(graphManager, *fit);
                     if(isAllInCountry.first) {
                         if(_intersectsCountry(faceGeom, isAllInCountry.second))
                             continue;
@@ -1081,7 +1081,7 @@ namespace app
         ///
         ///
         ///
-        std::pair<bool, std::string> EdgeCleaningOp::_isAllInCountry(
+        std::pair<bool, std::string> EdgeCleaningOp::_isAllFromCountry(
             detail::EdgeCleaningGraphManager & graphManager,
             face_descriptor fd
         ) const {

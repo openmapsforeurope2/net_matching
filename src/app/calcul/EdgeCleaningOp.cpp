@@ -875,8 +875,8 @@ namespace app
                     // si oui regarder si faceGeom intersect le pays
                     // si oui --> continue
                     std::pair<bool, std::string> isAllFromCountry = _isAllFromCountry(graphManager, *fit);
-                    if(isAllInCountry.first) {
-                        if(_intersectsCountry(faceGeom, isAllInCountry.second))
+                    if(isAllFromCountry.first) {
+                        if(_intersectsCountry(faceGeom, isAllFromCountry.second))
                             continue;
                     }
 

@@ -8,6 +8,9 @@
 // APP
 #include <app/calcul/detail/graph/EdgeCleaningGraph.h>
 
+// EPG
+#include <epg/tools/StringTools.h>
+
 namespace app{
 namespace calcul{
 namespace detail{
@@ -166,6 +169,31 @@ namespace detail{
                 std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(vOrigins.front());
                 if ( mit != _mEdges.end() ) return mit->second.country;
                 return "";
+            };
+
+            //--
+            std::set<std::string> getCountries(edge_descriptor e) const {
+                std::set<std::string> sCountry;
+                std::vector< std::string > const& vOrigins = _graph.origins(e);
+                for(std::vector< std::string >::const_iterator vit = vOrigins.begin() ; vit != vOrigins.end() ; ++vit) {
+                    std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(*vit);
+                    if ( mit != _mEdges.end() ) sCountry.insert(mit->second.country) ;
+                }
+                return sCountry;
+            };
+
+            //--
+            std::set<std::string> getSingleCountries(edge_descriptor e) const {
+                std::set<std::string> sCountry = getCountries(e);
+                std::set<std::string> sSingleCountry;
+
+                for(std::set<std::string>::const_iterator sit = sCountry.begin() ; sit != sCountry.end() ; ++sit) {
+                    std::vector<std::string> vCountry;
+                    epg::tools::StringTools::Split(*sit, "#", vCountry);
+
+                    sSingleCountry.insert(vCountry.begin(), vCountry.end());
+                }
+                return sSingleCountry;
             };
     };
 

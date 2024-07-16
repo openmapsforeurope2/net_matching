@@ -152,6 +152,18 @@ namespace calcul{
 		) const;
 
 		//--
+		std::pair<bool, std::string> _isAllFromCountry(
+            detail::EdgeCleaningGraphManager & graphManager,
+            face_descriptor fd
+        ) const;
+
+		//--
+		bool _intersectsCountry(
+            ign::geometry::Geometry const& geom,
+            std::string const& country
+        ) const;
+
+		//--
         bool _removePath(
 			GraphType & graph, 
 			std::list<oriented_edge_descriptor> const& path, 
@@ -159,64 +171,11 @@ namespace calcul{
 		) const;
 
 		//--
-		template < typename ContainerType >
         bool _removeEdges(
 			GraphType & graph,
-			ContainerType const& container,
+			std::list<edge_descriptor> const& lEdges,
 			std::set<edge_descriptor>& sEdge2Remove
-		) const {
-			std::set<std::string> sFeature2Delete;
-			bool aborded = false;
-
-            std::list<edge_descriptor>::const_iterator lit = container.begin();
-            for ( ; lit != container.end() ; ++lit) {
-                if (graph.origins(*lit).size() != 1) {
-                    _logger->log(epg::log::ERROR, "Edge with multiple origins [edge id] "+tools::StringTools::toString(graph.origins(*lit)));
-					aborded = true;
-					break;
-                }
-
-				std::string origin = graph.origins(*lit)[0];
-
-				if( sFeature2Delete.find(origin) != sFeature2Delete.end() ) continue;
-
-				if (ign::tools::StringManip::FindSubString(origin,"CONNECTINGLINE")) {
-					_logger->log(epg::log::WARN, "Edge has a cl as origin [cl id] "+origin);
-					continue;
-				}
-				
-				sFeature2Delete.insert(origin);
-            }
-
-			if (aborded)
-				return false;
-
-			for( std::set<std::string>::const_iterator sit = sFeature2Delete.begin(); sit != sFeature2Delete.end() ; ++sit) {
-				std::pair<bool, std::vector<oriented_edge_descriptor>> foundInducedEdges = graph.getInducedEdges(*sit);
-
-				for(std::vector<oriented_edge_descriptor>::const_iterator vit = foundInducedEdges.second.begin() ; vit != foundInducedEdges.second.end() ; ++vit) {
-					std::vector<std::string> const& vOrigins = graph.origins(vit->descriptor);
-					if (vOrigins.size() != 1) {
-						std::vector<std::string> vOriginsNew;
-						for (std::vector<std::string>::const_iterator vit2 = vOrigins.begin() ; vit2 != vOrigins.end() ; ++vit2) {
-							if(*vit2 != *sit) vOriginsNew.push_back(*vit2);
-						}
-						graph.setOrigins(vit->descriptor, vOriginsNew);
-						continue;
-					}
-					sEdge2Remove.insert(vit->descriptor);
-				}
-
-				ign::feature::Feature dFeat;
-				_fsEdge->getFeatureById(*sit, dFeat);
-				if (!dFeat.getId().empty())
-					_shapeLogger->writeFeature("ecl_deleted_edges", dFeat);
-
-				_fsEdge->deleteFeature(*sit);
-			}
-
-			return true;
-        }
+		) const;
 
 		//--
 		bool _removePathAndGraphEdges(
@@ -225,21 +184,10 @@ namespace calcul{
         ) const;
 
 		//--
-		template < typename ContainerType >
         bool _removeEdgesAndGraphEdges(
 			GraphType & graph,
-			ContainerType const& container
-		) const {
-			std::set<edge_descriptor> sEdge2Remove;
-			bool changeOccured = _removeEdges(graph, container, sEdge2Remove);
-
-			if(changeOccured) {
-				for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
-					graph.removeEdge(*sit);
-			}
-
-			return changeOccured;
-		}
+			std::list<edge_descriptor> const& lEdges
+		) const;
 
 		//--
 		std::pair<double, double> _addLengths(

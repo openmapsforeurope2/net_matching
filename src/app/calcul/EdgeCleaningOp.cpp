@@ -837,10 +837,13 @@ namespace app
 
                 // DEBUG
                 //_logger->log(epg::log::DEBUG, faceGeom.toString());
-                // if (faceGeom.intersects(ign::geometry::Point(3912460.34,2999560.83))) {
+                // if (faceGeom.intersects(ign::geometry::Point(4015167.1,2976871.5))) {
                 //     bool test = true;
                 // }
-                // if (faceGeom.intersects(ign::geometry::Point(3989455.72,3143506.25))) {
+                // if (faceGeom.intersects(ign::geometry::Point(4082807.661,2555185.849))) {
+                //     bool test = true;
+                // }
+                // if (faceGeom.intersects(ign::geometry::Point(4082827.72,2555193.84))) {
                 //     bool test = true;
                 // }
                 // if (faceGeom.distance(ign::geometry::Point(3912602.72,2999661.13)) < 5) {
@@ -868,6 +871,15 @@ namespace app
                     feat.setGeometry(faceGeom);
                     _shapeLogger->writeFeature("ecl_slim_surface", feat);
 
+                    // verifier si contour entierement composé d'un seul pays
+                    // si oui regarder si faceGeom intersect le pays
+                    // si oui --> continue
+                    std::pair<bool, std::string> isAllInCountry = _isAllInCountry(graphManager, *fit);
+                    if(isAllInCountry.first) {
+                        if(_intersectsCountry(faceGeom, isAllInCountry.second))
+                            continue;
+                    }
+
                     std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
                     if (!_getFacePaths(graphManager, *fit, vpCountryEdges))
                         continue;
@@ -877,10 +889,11 @@ namespace app
                         feat.setGeometry(faceGeom);
                         _shapeLogger->writeFeature("ecl_slim_face_1_path", feat);
 
-                        bChangeOccured = _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
+                        // double ratio = _getRatio(faceGeom, vpCountryEdges.front().first);
 
-                        // DEBUG
-                        //_logger->log(epg::log::DEBUG, "bChangeOccured1");
+                        // if (ratio == 0) {
+                            bChangeOccured = _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
+                        // }
 
                         continue;
                     }
@@ -895,7 +908,10 @@ namespace app
                     std::set<std::string> hasConnection;
                     if ( sFaceCountries.size() != 1 ) {
                         hasConnection = _mergeFacePaths(vpCountryEdges);
-                    }
+                    } /*else {
+                        double ratio = _getRatio(faceGeom, *sFaceCountries.begin());
+                        if(ratio > 0) continue;
+                    }*/
 
                     bool bUse1stMethode = vpCountryEdges.size() == 2;
 
@@ -1061,6 +1077,151 @@ namespace app
 
             return bChangeOccured;
         }
+
+        ///
+        ///
+        ///
+        std::pair<bool, std::string> EdgeCleaningOp::_isAllInCountry(
+            detail::EdgeCleaningGraphManager & graphManager,
+            face_descriptor fd
+        ) const {
+            GraphType const& graph = graphManager.getGraph();
+
+            oriented_edge_descriptor startEdge = graph.getIncidentEdge( fd );
+            oriented_edge_descriptor currentEdge = startEdge;
+
+            std::set<std::string> sStartCountry = graphManager.getSingleCountries(startEdge.descriptor);
+
+            do{
+                std::set<std::string> sCountry = graphManager.getSingleCountries(currentEdge.descriptor);
+
+                for(std::set<std::string>::const_iterator sit = sStartCountry.begin() ; sit != sStartCountry.end() ; ) {
+                    if(sCountry.find(*sit) == sCountry.end()) {
+                        sit = sStartCountry.erase(sit);
+                    } else {
+                        ++sit;
+                    }
+                }
+
+                oriented_edge_descriptor nextEdge = ign::geometry::graph::detail::nextEdge( currentEdge, graph );
+
+                currentEdge = nextEdge;
+            }while( currentEdge != startEdge );
+
+            std::string country = sStartCountry.empty() ? "" : *sStartCountry.begin();
+
+            return std::make_pair(!sStartCountry.empty(), country);
+        }
+
+        ///
+        ///
+        ///
+        bool EdgeCleaningOp::_intersectsCountry(
+            ign::geometry::Geometry const& geom,
+            std::string const& country
+        ) const {
+            std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomPtr.find(country);
+            if (mit == _mCountryGeomPtr.end()) {
+                _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
+                return false;
+            }
+
+            return mit->second->intersects(geom);
+        }
+
+        ///
+        ///
+        ///
+        bool EdgeCleaningOp::_removeEdges(
+			GraphType & graph,
+			std::list<edge_descriptor> const& lEdges,
+			std::set<edge_descriptor>& sEdge2Remove
+		) const {
+			std::set<std::string> sFeature2Delete;
+			bool aborded = false;
+
+            std::list<edge_descriptor>::const_iterator lit = lEdges.begin();
+            for ( ; lit != lEdges.end() ; ++lit) {
+                if (graph.origins(*lit).size() != 1) {
+                    _logger->log(epg::log::ERROR, "Edge with multiple origins [edge id] "+tools::StringTools::toString(graph.origins(*lit)));
+					aborded = true;
+					break;
+                }
+
+				std::string origin = graph.origins(*lit)[0];
+
+				if( sFeature2Delete.find(origin) != sFeature2Delete.end() ) continue;
+
+				if (ign::tools::StringManip::FindSubString(origin,"CONNECTINGLINE")) {
+					_logger->log(epg::log::WARN, "Edge has a cl as origin [cl id] "+origin);
+					continue;
+				}
+				
+				sFeature2Delete.insert(origin);
+            }
+
+			if (aborded)
+				return false;
+
+			//on vérifie que tous les inducedEges des features a supprimer sont bien dans le chemin (lEdges) : sinon c est certainement que le graph source est non planaire
+			for( std::set<std::string>::const_iterator sit = sFeature2Delete.begin(); sit != sFeature2Delete.end() ; ++sit) {
+				std::pair<bool, std::vector<oriented_edge_descriptor>> foundInducedEdges = graph.getInducedEdges(*sit);
+				for(std::vector<oriented_edge_descriptor>::const_iterator vit = foundInducedEdges.second.begin() ; vit != foundInducedEdges.second.end() ; ++vit) {
+					bool found = false;
+            		for ( std::list<edge_descriptor>::const_iterator lit = lEdges.begin() ; lit != lEdges.end() ; ++lit) {
+						if( *lit == vit->descriptor ) {
+							found = true;
+							break;
+						}
+					}
+					if (!found) return false;
+				}
+			}
+
+			for( std::set<std::string>::const_iterator sit = sFeature2Delete.begin(); sit != sFeature2Delete.end() ; ++sit) {
+				std::pair<bool, std::vector<oriented_edge_descriptor>> foundInducedEdges = graph.getInducedEdges(*sit);
+
+				for(std::vector<oriented_edge_descriptor>::const_iterator vit = foundInducedEdges.second.begin() ; vit != foundInducedEdges.second.end() ; ++vit) {
+					std::vector<std::string> const& vOrigins = graph.origins(vit->descriptor);
+					if (vOrigins.size() != 1) {
+						std::vector<std::string> vOriginsNew;
+						for (std::vector<std::string>::const_iterator vit2 = vOrigins.begin() ; vit2 != vOrigins.end() ; ++vit2) {
+							if(*vit2 != *sit) vOriginsNew.push_back(*vit2);
+						}
+						graph.setOrigins(vit->descriptor, vOriginsNew);
+						continue;
+					}
+					sEdge2Remove.insert(vit->descriptor);
+				}
+
+				ign::feature::Feature dFeat;
+				_fsEdge->getFeatureById(*sit, dFeat);
+				if (!dFeat.getId().empty())
+					_shapeLogger->writeFeature("ecl_deleted_edges", dFeat);
+
+				_fsEdge->deleteFeature(*sit);
+			}
+
+			return true;
+        }
+
+        ///
+        ///
+        ///
+        bool EdgeCleaningOp::_removeEdgesAndGraphEdges(
+			GraphType & graph,
+			std::list<edge_descriptor> const& lEdges
+		) const {
+			std::set<edge_descriptor> sEdge2Remove;
+			bool changeOccured = _removeEdges(graph, lEdges, sEdge2Remove);
+
+			if(changeOccured) {
+				for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
+					graph.removeEdge(*sit);
+			}
+
+			return changeOccured;
+		}
 
         ///
         ///
@@ -1343,7 +1504,7 @@ namespace app
             }
         }
 
-        //
+        ///
         ///
         ///
         bool EdgeCleaningOp::cleanAntennas() const

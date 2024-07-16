@@ -36,7 +36,7 @@
 //#include <epg/tools/geometry/LineStringSplitter.h>
 #include<epg/graph/tools/merge.h>
 #include<epg/graph/tools/createPath.h>
-//#include <epg/calcul/merging/MergingByLength.h>
+#include <epg/calcul/merging/MergingByAttributes.h>
 #include <epg/graph/EpgFeatureGraph.h>
 
 //OME2
@@ -1558,6 +1558,9 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 	}
 	planarizerCl.planarize();
 
+	//fusion des edges si le même adjacent avec les mêmes edges d'origines
+	_mergingEdgesByOrigin(graphCl);
+
 	GraphType::edge_iterator eit, eitEnd;
 	graphCl.edges(eit, eitEnd);
 	boost::progress_display display(graphCl.numEdges(), std::cout, "[ FUSION CONNECTING LINES ]\n");
@@ -2913,24 +2916,157 @@ GraphType::edge_descriptor app::calcul::CFeatGenerationOp::_switchEdge(
 
 }*/
 
-void app::calcul::CFeatGenerationOp::_mergingClUnderThreshold(
-	double threshold
+void app::calcul::CFeatGenerationOp::_mergingEdgesByOrigin(
+	GraphType& graph
 )
 {
-	_logger->log(epg::log::TITLE, "[ BEGIN SNAP CONNECTING LINES 2 CONNECTING LINES ] : " + epg::tools::TimeTools::getTime());
-	epg::Context* context = epg::ContextS::getInstance();
-	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
-	ign::feature::FeatureFilter filterCL(countryCodeName + " = '" + _countryCodeDouble + "'");
+	std::map< typename GraphType::edge_descriptor, std::set< typename GraphType::edge_descriptor >  > mGatheredEdges;
 
-	ign::feature::FeatureIteratorPtr itCL = _fsCL->getFeatures(filterCL);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCL);
-	boost::progress_display displayLoad(numFeatures, std::cout, "[ MERGING CL UNDER THRESHOLD ]\n");
+	boost::progress_display display(graph.numEdges(), std::cout, "[ gathergByOrigin % complete ]\n");
 
-	std::map<std::string, ign::feature::Feature> mFClModified;
-	while (itCL->hasNext()) {
-		++displayLoad;
-		ign::feature::Feature fCL = itCL->next();
-		ign::geometry::LineString lsCl = fCL.getGeometry().asLineString();
+	std::set< GraphType::edge_descriptor > sVisitedEdges;
+
+	GraphType::edge_iterator eit, eend;
+	for (graph.edges(eit, eend); eit != eend; ++eit) {
+		++display;
+		if (graph.target(*eit) == graph.source(*eit)) continue;
+		if (sVisitedEdges.find(*eit) != sVisitedEdges.end()) continue;
+
+		double lengthPivot = graph.getGeometry(*eit).length();
+
+		GraphType::edge_descriptor edgePivot = *eit;
+
+		sVisitedEdges.insert(*eit);
+
+		GraphType::oriented_edge_descriptor tPivot[] = {
+			GraphType::oriented_edge_descriptor(*eit, ign::graph::DIRECT),
+			GraphType::oriented_edge_descriptor(*eit, ign::graph::REVERSE)
+		};
+
+		//liste des arcs a fusionner
+		std::set< GraphType::edge_descriptor > sEdges;
+
+		bool isLoop = false;
+		for (size_t i = 0; i < 2; ++i)
+		{
+			GraphType::oriented_edge_descriptor nextEdge = tPivot[i];
+
+			GraphType::vertex_descriptor vTarget = graph.target(nextEdge);
+			GraphType::vertex_descriptor vStart = graph.source(nextEdge);
+
+			if (graph.degree(vTarget) != 2) continue;
+
+			while (true) {
+
+				if (vTarget == vStart) {
+					isLoop = true;
+					break;
+				}
+
+				std::vector< GraphType::oriented_edge_descriptor > vIncidentEdges;
+
+				graph.incidentEdges(vTarget, vIncidentEdges);
+				nextEdge = (vIncidentEdges.front().descriptor == nextEdge.descriptor) ? vIncidentEdges.back() : vIncidentEdges.front();
+
+				double lengthNextEdge = graph.getGeometry(nextEdge.descriptor).length();
+
+				if (graph.origins(edgePivot)!= graph.origins(nextEdge.descriptor)) break;
+
+				IGN_ASSERT(sVisitedEdges.find(nextEdge.descriptor) == sVisitedEdges.end());
+
+				sVisitedEdges.insert(nextEdge.descriptor);
+
+				if (lengthNextEdge > lengthPivot) {
+					sEdges.insert(edgePivot);
+					//on change le pivot
+					edgePivot = nextEdge.descriptor;
+					lengthPivot = lengthNextEdge;
+				}
+				else
+					sEdges.insert(nextEdge.descriptor);
+
+				vTarget = graph.target(nextEdge);
+
+				if (graph.degree(vTarget) != 2) break;
+
+			}
+			if (isLoop) break;
+		}
+
+		if (!sEdges.empty() && !isLoop)
+		{
+			mGatheredEdges.insert(std::make_pair(edgePivot, sEdges));
+		}
+	}
+
+	//patience
+	boost::progress_display display2(mGatheredEdges.size(), std::cout, "[ mergingByOrigin % complete ]\n");
+
+	typename std::map< GraphType::edge_descriptor, std::set<GraphType::edge_descriptor> >::iterator mit;
+	for (mit = mGatheredEdges.begin(); mit != mGatheredEdges.end(); ++mit, ++display2)
+	{
+		//on ordonne les arcs a fusionner
+		GraphType::edges_path path = epg::graph::tools::createPath(graph, mit->first, mit->second);
+
+		if (graph.source(path.begin()->descriptor) == graph.target(path.rbegin()->descriptor)) 
+			continue;
+		
+		//on fusionne
+		//ign::geometry::LineString lsResult;
+		std::vector<ign::geometry::Point> vGeomNewE;
+		for (GraphType::edges_path_iterator it = path.begin(); it != path.end(); ++it) {
+
+			ign::geometry::LineString lsTemp = graph.getGeometry(it->descriptor);
+			if (it == path.begin()) vGeomNewE.push_back((it->direction == ign::graph::DIRECT) ? lsTemp.startPoint() : lsTemp.endPoint());
+			if (it->direction == ign::graph::DIRECT)
+			{
+				ign::geometry::LineString::iterator itLs = lsTemp.begin();
+				for (++itLs; itLs != lsTemp.end(); ++itLs) {
+					vGeomNewE.push_back(*itLs);
+				}
+			}
+			else {
+				ign::geometry::LineString::reverse_iterator itLs = lsTemp.rbegin();
+				for (++itLs; itLs != lsTemp.rend(); ++itLs) {
+					vGeomNewE.push_back(*itLs);
+				}
+			}
+		}
+
+		GraphType::vertex_descriptor vSource = graph.source(*path.begin());
+		GraphType::vertex_descriptor vTarget = graph.target(*path.rbegin());
+
+		GraphType::oriented_edge_descriptor newD = graph.addEdge(vSource, vTarget, vGeomNewE, graph[mit->first]);
+
+		for (GraphType::edges_path_iterator it = path.begin(); it != path.end(); ++it)
+			if (it->descriptor == mit->first)
+			{
+				it->descriptor = newD.descriptor;
+				break;
+			}
+
+		std::set< GraphType::vertex_descriptor > vVerticesToRemove;
+		for (GraphType::edges_path_iterator it = path.begin(); it != path.end(); ) {
+			typename GraphType::edges_path_iterator itTemp = it++;
+
+			GraphType::vertex_descriptor vS = graph.source(*itTemp);
+			GraphType::vertex_descriptor vT = graph.target(*itTemp);
+
+			if (itTemp->descriptor == newD.descriptor) continue;
+
+			graph.removeEdge(itTemp->descriptor);//persistent by default for Feature Graph
+
+			if (itTemp != path.begin())
+				vVerticesToRemove.insert(vS);
+			if (itTemp->descriptor != path.rbegin()->descriptor)
+				vVerticesToRemove.insert(vT);
+		}
+
+		typename std::set< GraphType::vertex_descriptor >::iterator sit;
+		for (sit = vVerticesToRemove.begin(); sit != vVerticesToRemove.end(); ++sit)
+			graph.removeVertex(*sit);//persistent by default for Feature Graph
+		
+
 	}
 
 }

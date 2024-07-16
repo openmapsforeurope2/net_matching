@@ -137,7 +137,7 @@ namespace calcul{
 
 		void _getGeomCountry(std::string countryCodeSimple, ign::geometry::MultiPolygon& geomCountry);
  
-		void _mergingClUnderThreshold(double threshold);
+		void _mergingEdgesByOrigin(GraphType& graph);
 		//void _mergingClByLength(GraphType& graph, int threshold);
 
 		//GraphType::edge_descriptor _mergeEdgesCl(GraphType & graph, GraphType::edge_descriptor d, GraphType::edges_path & path);

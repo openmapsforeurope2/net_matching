@@ -6,6 +6,8 @@
 #include <epg/step/factoryNew.h>
 
 //APP
+#include <app/step/202_JunctionMatching.h>
+#include <app/step/204_GenerateCLinSimpleSurface.h>
 #include <app/step/210_GenerateConnectingLinesByCountry.h>
 #include <app/step/211_MergeConnectingLinesOnBorder.h>
 #include <app/step/212_SnapConnectingLines.h>
@@ -28,6 +30,8 @@ namespace tools{
 	template<  typename StepSuiteType >
 	void initSteps( StepSuiteType& stepSuite )
 	{
+		stepSuite.addStep(epg::step::factoryNew< JunctionMatching >());
+		stepSuite.addStep(epg::step::factoryNew< GenerateCLinSimpleSurface >());
 		stepSuite.addStep( epg::step::factoryNew< GenerateConnectingLinesByCountry >() );
 		stepSuite.addStep( epg::step::factoryNew< MergeConnectingLinesOnBorder >() );
 		stepSuite.addStep( epg::step::factoryNew< SnapConnectingLines >() );

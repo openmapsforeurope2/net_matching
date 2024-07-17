@@ -12,7 +12,7 @@ namespace app {
 		public:
 
 			/// \brief
-			int getCode() { return 201; };
+			int getCode() { return 204; };
 
 			/// \brief
 			std::string getName() { return "GenerateCLinSimpleSurface"; };

@@ -61,6 +61,7 @@ namespace app
             _shapeLogger->closeShape("ecl_big_face_removed");
             _shapeLogger->closeShape("ecl_slim_face_1_path");
             _shapeLogger->closeShape("ecl_slim_face_2_path_same_country");
+            _shapeLogger->closeShape("ecl_raw_medial_axis");
         }
 
         ///
@@ -82,6 +83,7 @@ namespace app
             _shapeLogger->addShape("ecl_big_face_removed", epg::log::ShapeLogger::POLYGON);
             _shapeLogger->addShape("ecl_slim_face_1_path", epg::log::ShapeLogger::POLYGON);
             _shapeLogger->addShape("ecl_slim_face_2_path_same_country", epg::log::ShapeLogger::POLYGON);
+            _shapeLogger->addShape("ecl_raw_medial_axis", epg::log::ShapeLogger::LINESTRING);
 
             //--
             epg::Context *context = epg::ContextS::getInstance();
@@ -522,6 +524,12 @@ namespace app
 		) const {
             ign::geometry::LineString const& extRing = poly.exteriorRing();
 
+            //DEBUG
+            // ign::geometry::MultiLineString mlsDebug = ome2::geometry::tools::GetEndingPointsOp::computeRawMedialAxis(extRing);
+            // ign::feature::Feature feat;
+            // feat.setGeometry(mlsDebug);
+            // _shapeLogger->writeFeature("ecl_raw_medial_axis", feat);
+
             std::pair<bool, std::pair<size_t, size_t>> foundIndexes = ome2::geometry::tools::GetEndingPointsOp::computeIndex(extRing);
 
             if (!foundIndexes.first) {
@@ -837,7 +845,7 @@ namespace app
 
                 // DEBUG
                 //_logger->log(epg::log::DEBUG, faceGeom.toString());
-                // if (faceGeom.intersects(ign::geometry::Point(4015167.1,2976871.5))) {
+                // if (faceGeom.intersects(ign::geometry::Point(4085046.591,2552650.495))) {
                 //     bool test = true;
                 // }
                 // if (faceGeom.intersects(ign::geometry::Point(4082807.661,2555185.849))) {
@@ -889,11 +897,7 @@ namespace app
                         feat.setGeometry(faceGeom);
                         _shapeLogger->writeFeature("ecl_slim_face_1_path", feat);
 
-                        // double ratio = _getRatio(faceGeom, vpCountryEdges.front().first);
-
-                        // if (ratio == 0) {
-                            bChangeOccured = _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
-                        // }
+                        bChangeOccured = _removePath(graph, vpCountryEdges.front().second, sEdge2Remove);
 
                         continue;
                     }
@@ -908,11 +912,8 @@ namespace app
                     std::set<std::string> hasConnection;
                     if ( sFaceCountries.size() != 1 ) {
                         hasConnection = _mergeFacePaths(vpCountryEdges);
-                    } /*else {
-                        double ratio = _getRatio(faceGeom, *sFaceCountries.begin());
-                        if(ratio > 0) continue;
-                    }*/
-
+                    }
+                    
                     bool bUse1stMethode = vpCountryEdges.size() == 2;
 
                     if (bUse1stMethode) {
@@ -1246,7 +1247,6 @@ namespace app
             std::set<vertex_descriptor> const& sVertices
         ) const {
             GraphType & graph = graphManager.getGraph();
-            boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning faces antennas % complete ]\n");
 
             std::set<std::string> sTreatedFeatures;
 

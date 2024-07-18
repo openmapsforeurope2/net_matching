@@ -845,7 +845,7 @@ namespace app
 
                 // DEBUG
                 //_logger->log(epg::log::DEBUG, faceGeom.toString());
-                // if (faceGeom.intersects(ign::geometry::Point(4085046.591,2552650.495))) {
+                // if (faceGeom.intersects(ign::geometry::Point(4039807.9011,3012129.3749))) {
                 //     bool test = true;
                 // }
                 // if (faceGeom.intersects(ign::geometry::Point(4082807.661,2555185.849))) {
@@ -1590,18 +1590,25 @@ namespace app
                 ++display2;
                 // _logger->log(epg::log::DEBUG, "pouet1");
                 // _logger->log(epg::log::DEBUG, graph.getGeometry(mit->first).toString());
+                //DEBUG
+                // ign::geometry::Point ptDebug = graph.getGeometry(mit->first);
+
                 bool bConnected2CF = sVerticesConnected2CF.find(mit->first) != sVerticesConnected2CF.end() || _vertexIsConnected2Cl(graphManager, mit->first);
                 // _logger->log(epg::log::DEBUG, "pouet2");
 
                 std::vector<std::list<oriented_edge_descriptor>>::const_iterator minVit;
                 bool isRemoved = false;
+                std::set<std::string> sNotTreated;
                 do {
                     // _logger->log(epg::log::DEBUG, "pouet3");
                     std::vector<std::list<oriented_edge_descriptor>>::const_iterator vit;
                     if ( mit->second.size() > 1) {
                         // _logger->log(epg::log::DEBUG, "pouet4");
                         double minLength = std::numeric_limits<double>::max();
+                        std::string minEdge = "";
                         for (vit = mit->second.begin() ; vit != mit->second.end() ; ++vit) {
+                            std::string edgeFeatId = graph.origins(vit->begin()->descriptor)[0];
+                            sNotTreated.insert(edgeFeatId);
                             // _logger->log(epg::log::DEBUG, "pouet5");
                             // _logger->log(epg::log::DEBUG, graph.getGeometry(graph.target(vit->back())).toString());
                             // _logger->log(epg::log::DEBUG, graph.getGeometry(vit->front()).toString());
@@ -1610,8 +1617,10 @@ namespace app
                             if (length < minLength) {
                                 minLength = length;
                                 minVit = vit;
-                            }
+                                minEdge = edgeFeatId;
+                            } 
                         }
+                        sNotTreated.erase(minEdge);
                     } else {
                         // _logger->log(epg::log::DEBUG, "pouet7");
                         minVit = mit->second.begin();
@@ -1626,6 +1635,12 @@ namespace app
                     // _logger->log(epg::log::DEBUG, "pouet9");
                     
                     isRemoved = _cleanAntenna(graph, country, *minVit, bConnected2CF);
+
+                    if( isRemoved ) {
+                        for( std::set<std::string>::const_iterator sit = sNotTreated.begin() ; sit != sNotTreated.end() ; ++sit ) {
+                            sTreatedFeatures.erase(*sit);
+                        }
+                    } 
 
                     // _logger->log(epg::log::DEBUG, "pouet10");
                     if (isRemoved) {

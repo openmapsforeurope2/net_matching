@@ -394,7 +394,15 @@ namespace app
                     continue;
                 }
 
-                if( foundInducedEdges.second.size() < 2 ) continue;
+                if( foundInducedEdges.second.size() == 0 ) continue;
+
+                bool sourceIsCuttingPoint = _isCuttingPoint(graphManager, graph.source(foundInducedEdges.second.front()));
+                bool targetIsCuttingPoint = _isCuttingPoint(graphManager, graph.target(foundInducedEdges.second.back()));
+                if( foundInducedEdges.second.size() == 1 ) {
+                    // pour la robustesse : si l'extrémité est un point de coupure il faut mettre la geometrie en cohérence avec la coupure
+                    // dont on traite l edge si l une de ses extremites est un point de coumure
+                    if( !sourceIsCuttingPoint && !targetIsCuttingPoint ) continue;
+                }
 
                 ign::feature::Feature featOrigin;
                 _fsEdge->getFeatureById(*oit, featOrigin);
@@ -417,15 +425,25 @@ namespace app
                 }
                 vpSourceTarget.push_back(std::make_pair(currentSource, graph.target(foundInducedEdges.second.back())));
 
-                if (vpSourceTarget.size() == 1) continue;
+                if (vpSourceTarget.size() == 1 && !sourceIsCuttingPoint && !targetIsCuttingPoint) continue;
 
                 std::vector< ign::geometry::LineString > vLs;
-                ign::geometry::Point startPoint = graph.getGeometry(vpSourceTarget.front().first);
-                double startAbs = originLengthIndexedGeom.project(startPoint);
+                
+                double startAbs = 0;
                 for ( std::vector< std::pair<vertex_descriptor, vertex_descriptor >>::const_iterator vpit = vpSourceTarget.begin() ; vpit != vpSourceTarget.end() ; ++vpit ) {
                     ign::geometry::Point endPoint = graph.getGeometry(vpit->second);
                     double endAbs = originLengthIndexedGeom.project(endPoint);
                     vLs.push_back(originLengthIndexedGeom.getSubLineString(startAbs, endAbs));
+
+                    if( vpit == vpSourceTarget.begin() ) {
+                        ign::geometry::Point startPoint = graph.getGeometry(vpSourceTarget.front().first);
+
+                        double z = vLs.back().startPoint().z();
+                        vLs.back().startPoint() = startPoint;
+                        vLs.back().startPoint().z() = z;
+                    } else {
+                        vLs.back().startPoint() = vLs[vLs.size()-2].endPoint();
+                    }
 
                     double z = vLs.back().endPoint().z();
                     vLs.back().endPoint() = endPoint;
@@ -445,15 +463,12 @@ namespace app
                     }
 
                     startAbs = endAbs;
-
-                    // pour la robustesse
-                    if (vpit != vpSourceTarget.begin() ) {
-                        vLs.back().startPoint() = vLs[vLs.size()-2].endPoint();
-                    }
                 }
-                // pour le robustesse
-                vLs.front().startPoint() = originGeom.startPoint();
-                vLs.back().endPoint() = originGeom.endPoint();
+                // pour la robustesse
+                if (!sourceIsCuttingPoint)
+                    vLs.front().startPoint() = originGeom.startPoint();
+                if (!targetIsCuttingPoint)
+                    vLs.back().endPoint() = originGeom.endPoint();
 
                 _fsEdge->deleteFeature(*oit);
 

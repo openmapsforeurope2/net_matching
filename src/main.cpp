@@ -29,12 +29,18 @@ int main(int argc, char *argv[])
     bool            verbose = true;
 
 
-    epg::step::StepSuite< app::params::ThemeParametersS > stepSuite;
-    app::step::tools::initSteps(stepSuite);
+    epg::step::StepSuite< app::params::ThemeParametersS > stepSuiteTn, stepSuiteHy;
+	app::step::tools::initStepsHy(stepSuiteHy);
+	app::step::tools::initStepsTn(stepSuiteTn);
+
+
 
 	std::ostringstream OperatorDetail;
 	OperatorDetail << "set step :" << std::endl
-		<< stepSuite.toString();
+		<< "TN:" << std::endl
+		<< stepSuiteTn.toString() 
+		<< "HY:" << std::endl
+		<< stepSuiteHy.toString();
 
 
     po::options_description desc("Allowed options");
@@ -113,7 +119,11 @@ int main(int argc, char *argv[])
         logger->log(epg::log::INFO, "[START EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 
         //lancement du traitement
-		stepSuite.run(stepCode, verbose);
+		if (theme == "hy")
+			stepSuiteHy.run(stepCode, verbose);
+		else if (theme == "tn")
+			stepSuiteTn.run(stepCode, verbose);
+		//stepSuite.run(stepCode, verbose);
 
 		logger->log(epg::log::INFO, "[END EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 

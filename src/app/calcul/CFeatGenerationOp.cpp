@@ -389,6 +389,14 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	_attrMergerOnBorder.setLists(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
 	
 
+	std::string listValueFormwayBigDist2merge = themeParameters->getValue(CP_VALUE_FORMWAY_BIGDIST2MERGE).toString();
+	std::vector<std::string> vValueFormwayBigDist2merge;
+	epg::tools::StringTools::Split(listValueFormwayBigDist2merge, "/", vValueFormwayBigDist2merge);
+	for (size_t i = 0; i < vValueFormwayBigDist2merge.size(); ++i) {
+		_sFormwayValues4BigDist2Merge.insert(vValueFormwayBigDist2merge[i]);
+	}
+
+
 	///recuperation des features
 	std::string const boundaryTableName = epg::utils::replaceTableName(context->getEpgParameters().getValue(TARGET_BOUNDARY_TABLE).toString());
 	_fsBoundary = context->getDataBaseManager().getFeatureStore(boundaryTableName, idName, geomName);
@@ -1126,10 +1134,10 @@ bool app::calcul::CFeatGenerationOp::_areDistanceTypeCompatible(
 	std::string const& type1 = feat1.getAttribute(typeName).toString();
 	std::string const& type2 = feat2.getAttribute(typeName).toString();
 
-	bool isWalkwayOrTractor1 = type1 == "tractor" || type1 == "walkway";
-	bool isWalkwayOrTractor2 = type2 == "tractor" || type2 == "walkway";
+	bool isWalkwayOrTractor1 = _sFormwayValues4BigDist2Merge.find(type1) != _sFormwayValues4BigDist2Merge.end();
+	bool isWalkwayOrTractor2 = _sFormwayValues4BigDist2Merge.find(type2) != _sFormwayValues4BigDist2Merge.end();
 
-	return isWalkwayOrTractor1 && isWalkwayOrTractor2 ? distance < distMergeTractorCP : distance < distMergeCP;
+	return isWalkwayOrTractor1 || isWalkwayOrTractor2 ? distance < distMergeTractorCP : distance < distMergeCP;
 }
 
 bool app::calcul::CFeatGenerationOp::_areCollinear(

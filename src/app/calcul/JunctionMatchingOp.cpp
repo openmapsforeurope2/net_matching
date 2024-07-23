@@ -82,6 +82,8 @@ void app::calcul::JunctionMatchingOp::_matchJunctions()
 
 	//--
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+	double const distMaxJunctions = themeParameters->getValue(DIST_MAX_JUNCTIONS).toDouble();
+	double const angleMaxOrientEdgJunctions = themeParameters->getValue(ANGLE_MAX_ORIENTATION_EDGES).toDouble();
 
 	GraphType graphEdgCountry1, graphEdgCountry2;
 	_loadGraphEdges(_vCountriesCodeName[0],graphEdgCountry1);
@@ -91,7 +93,7 @@ void app::calcul::JunctionMatchingOp::_matchJunctions()
 	graphEdgCountry1.vertices(vit1, vitEnd1);
 
 	boost::progress_display display1(graphEdgCountry1.numVertices(), std::cout, "[ MATCH JUNCTIONS ]\n");
-	std::map<std::string, std::string> mMatchedJunctionsVertexId;
+	std::multimap<std::string, std::string> mMatchedJunctionsVertexId;
 
 	while (vit1 != vitEnd1) {
 		++display1;
@@ -100,7 +102,12 @@ void app::calcul::JunctionMatchingOp::_matchJunctions()
 			continue;
 		}
 
-		//recuperation des noeuds du pays 2 proche
+		//recuperation des noeuds proches du country2 
+		std::map <double, std::string> mDistVertexId2;
+
+
+		//verification que pas de "meilleur noeuds" dans country1 pour le meilleur 2
+
 
 
 		++vit1;

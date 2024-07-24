@@ -1142,7 +1142,7 @@ bool app::calcul::CFeatGenerationOp::_areDistanceTypeCompatible(
 	bool isWalkwayOrTractor1 = _sFormwayValues4BigDist2Merge.find(type1) != _sFormwayValues4BigDist2Merge.end();
 	bool isWalkwayOrTractor2 = _sFormwayValues4BigDist2Merge.find(type2) != _sFormwayValues4BigDist2Merge.end();
 
-	return isWalkwayOrTractor1 || isWalkwayOrTractor2 ? distance < distMergeTractorCP : distance < distMergeCP;
+	return isWalkwayOrTractor1 && isWalkwayOrTractor2 ? distance < distMergeTractorCP : distance < distMergeCP;
 }
 
 bool app::calcul::CFeatGenerationOp::_areCollinear(

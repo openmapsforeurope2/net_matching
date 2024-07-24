@@ -28,7 +28,7 @@ namespace step{
 namespace tools{
 
 	template<  typename StepSuiteType >
-	void initSteps( StepSuiteType& stepSuite )
+	void initStepsHy( StepSuiteType& stepSuite )
 	{
 		// stepSuite.addStep( epg::step::factoryNew< JunctionMatching >() );
 		stepSuite.addStep( epg::step::factoryNew< GenerateCLinArea >() );
@@ -45,6 +45,24 @@ namespace tools{
 		stepSuite.addStep( epg::step::factoryNew< EdgeCleaning1 >() );
 		stepSuite.addStep( epg::step::factoryNew< EdgeConnection >() );
 		stepSuite.addStep( epg::step::factoryNew< EdgeCleaning2 >() );
+	}
+
+	template<  typename StepSuiteType >
+	void initStepsTn(StepSuiteType& stepSuite)
+	{
+		stepSuite.addStep(epg::step::factoryNew< GenerateConnectingLinesByCountry >());
+		stepSuite.addStep(epg::step::factoryNew< MergeConnectingLinesOnBorder >());
+		stepSuite.addStep(epg::step::factoryNew< SnapConnectingLines >());
+		stepSuite.addStep(epg::step::factoryNew< DeleteConnectingLines >());
+		stepSuite.addStep(epg::step::factoryNew< UpdateGeomConnectingLines >());
+		stepSuite.addStep(epg::step::factoryNew< UpdateGeomByContinuity >());
+		stepSuite.addStep(epg::step::factoryNew< ConnectionConnectingLines >());
+		stepSuite.addStep(epg::step::factoryNew< ImportConnectingLines >());
+		stepSuite.addStep(epg::step::factoryNew< GenerateConnectingPoint >());
+		stepSuite.addStep(epg::step::factoryNew< ConnectionConnectingPoint >());
+		stepSuite.addStep(epg::step::factoryNew< EdgeCleaning1 >());
+		stepSuite.addStep(epg::step::factoryNew< EdgeConnection >());
+		stepSuite.addStep(epg::step::factoryNew< EdgeCleaning2 >());
 	}
 
 }

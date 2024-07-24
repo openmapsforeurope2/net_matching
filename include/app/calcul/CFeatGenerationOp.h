@@ -171,6 +171,8 @@ namespace calcul{
 
 		epg::tools::MultiLineStringTool*					_mlsBorderSmoothed;
 
+
+		std::set<std::string>							    _sFormwayValues4BigDist2Merge;
 		/*std::set<std::string> _sAttrNameToConcat;
 		std::set<std::string> _sAttrNameW;
 		std::set<std::string> _sAttrNameJson;*/

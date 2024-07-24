@@ -1672,7 +1672,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 
 			//_logger->log(epg::log::DEBUG, *_attrMergerOnBorder.getAttrNameW().begin());
 
-			_attrMergerOnBorder.addFeatAttributeMerger(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
+			_attrMergerOnBorder.mergeFeatAttribute(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 			//_addFeatAttributeMergingOnBorder(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 
 			std::string idCLNew = _idGeneratorCL->next();
@@ -1867,12 +1867,12 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 
 			if (countryCodeCLArround < countryCodeCLCurr) {
 				fCLNew = fCLArround;
-				_attrMergerOnBorder.addFeatAttributeMerger(fCLNew, fCLCurr, separator);
+				_attrMergerOnBorder.mergeFeatAttribute(fCLNew, fCLCurr, separator);
 				//_addFeatAttributeMergingOnBorder(fCLNew, fCLCurr, separator);
 			}
 			else {
 				fCLNew = fCLCurr;
-				_attrMergerOnBorder.addFeatAttributeMerger(fCLNew, fCLArround, separator);
+				_attrMergerOnBorder.mergeFeatAttribute(fCLNew, fCLArround, separator);
 				//_addFeatAttributeMergingOnBorder(fCLNew, fCLArround, separator);
 			}
 

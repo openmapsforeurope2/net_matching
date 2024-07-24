@@ -1,5 +1,5 @@
-#ifndef _APP_STEP_GENERATECLINSIMPLESURFACE_H_
-#define _APP_STEP_GENERATECLINSIMPLESURFACE_H_
+#ifndef _APP_STEP_GENERATECLINSINAREA_H_
+#define _APP_STEP_GENERATECLINSINAREA_H_
 
 #include <epg/step/StepBase.h>
 #include <app/params/ThemeParameters.h>
@@ -7,7 +7,7 @@
 namespace app {
 	namespace step {
 
-		class GenerateCLinSimpleSurface : public epg::step::StepBase< app::params::ThemeParametersS > {
+		class GenerateCLinArea : public epg::step::StepBase< app::params::ThemeParametersS > {
 
 		public:
 
@@ -15,7 +15,7 @@ namespace app {
 			int getCode() { return 204; };
 
 			/// \brief
-			std::string getName() { return "GenerateCLinSimpleSurface"; };
+			std::string getName() { return "GenerateCLinArea"; };
 
 			/// \brief
 			void onCompute(bool);

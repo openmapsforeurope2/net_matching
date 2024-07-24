@@ -134,7 +134,7 @@ namespace app
 
                 //on calcul la geometry de travail
                 _mCountryGeomPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(boundBuffPtr->Intersection(mpLandmask)) ));
-                _mCountryGeomWithBuffPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(_mCountryGeomPtr[*vit]->buffer(-1*landmaskBuffer))));
+                // _mCountryGeomWithBuffPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(_mCountryGeomPtr[*vit]->buffer(-1*landmaskBuffer))));
             }
 
             //--
@@ -244,16 +244,17 @@ namespace app
                 ign::geometry::Point dangleEndPoint = vpit->second.begin()->direction == ign::graph::DIRECT? antennaGeom.startPoint() : antennaGeom.endPoint();
                 ign::geometry::Point dangleNextPoint = vpit->second.begin()->direction == ign::graph::DIRECT? antennaGeom.pointN(1) : antennaGeom.pointN(antennaGeom.numPoints()-2);
 
+
                 //DEBUG
-                // if( dangleEndPoint.distance(ign::geometry::Point(4003414.895,2942423.287)) < 1e-1 ) {
+                // if( dangleEndPoint.distance(ign::geometry::Point(4022088.800,2993797.870)) < 1e-1 ) {
                 //     bool test =true;
                 // }
 
-                std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomWithBuffPtr.find(vpit->first);
-                if (mit == _mCountryGeomWithBuffPtr.end()) {
-                    _logger->log(epg::log::ERROR, "Unknown country [country code] " + vpit->first);
-                    continue;
-                }
+                // std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomWithBuffPtr.find(vpit->first);
+                // if (mit == _mCountryGeomWithBuffPtr.end()) {
+                //     _logger->log(epg::log::ERROR, "Unknown country [country code] " + vpit->first);
+                //     continue;
+                // }
 
                 // On ne snap que les edges "étrangers" vers les edges "locaux"
                 // if( mit->second->intersects(dangleEndPoint)) continue;
@@ -394,14 +395,40 @@ namespace app
                     continue;
                 }
 
+                //DEBUG
+                // if( *oit == "5449fd61-cfcb-4fb1-930a-d9c518f6fbd2") {
+                //     bool testt = true;
+                // }
+
                 if( foundInducedEdges.second.size() == 0 ) continue;
 
+                //TODO a revoir _isCuttingPoint si les edges de pays differents se touchent à leur extremité
                 bool sourceIsCuttingPoint = _isCuttingPoint(graphManager, graph.source(foundInducedEdges.second.front()));
                 bool targetIsCuttingPoint = _isCuttingPoint(graphManager, graph.target(foundInducedEdges.second.back()));
                 if( foundInducedEdges.second.size() == 1 ) {
                     // pour la robustesse : si l'extrémité est un point de coupure il faut mettre la geometrie en cohérence avec la coupure
-                    // dont on traite l edge si l une de ses extremites est un point de coumure
-                    if( !sourceIsCuttingPoint && !targetIsCuttingPoint ) continue;
+                    // dont on traite l edge si l une de ses extremites est un point de coupure
+                    if( sourceIsCuttingPoint || targetIsCuttingPoint ) {
+                        ign::feature::Feature featOrigin;
+                        _fsEdge->getFeatureById(*oit, featOrigin);
+                        ign::geometry::LineString originGeom = featOrigin.getGeometry().asLineString();
+
+                        if( sourceIsCuttingPoint ){
+                            double z = originGeom.startPoint().z();
+                            originGeom.startPoint() = graph.getGeometry(graph.source(foundInducedEdges.second.front()));
+                            originGeom.startPoint().z() = z;
+                        }
+                            
+                        if( targetIsCuttingPoint ) {
+                            double z = originGeom.endPoint().z();
+                            originGeom.endPoint() = graph.getGeometry(graph.target(foundInducedEdges.second.back()));
+                            originGeom.endPoint().z() = z;
+                        }
+                            
+                        featOrigin.setGeometry(originGeom);
+                        _fsEdge->modifyFeature(featOrigin);
+                    }
+                    continue;
                 }
 
                 ign::feature::Feature featOrigin;
@@ -500,16 +527,6 @@ namespace app
 
                         // on recupere les edges voisins appartenant à l'autre pays
                         ign::geometry::MultiLineString mlsOtherCountryEdgesAround;
-                        // ign::feature::FeatureFilter filter(countryCodeName +" = '"+otherCountry+"'");
-                        // ign::geometry::Polygon bbox = inducedEdgeGeom.getEnvelope().expandBy(2*threshold).toPolygon();
-                        // epg::tools::FilterTools::addAndConditions(filter, "ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + bbox.toString() + "'),3035))");
-                        // ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
-                        // while (itEdge->hasNext())
-                        // {
-                        //     ign::feature::Feature const& fEdge = itEdge->next();
-                        //     ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
-                        //     mlsOtherCountryEdgesAround.addGeometry(edgeGeom);
-                        // }
                         ign::geometry::Envelope bbox = vLs[i].getEnvelope().expandBy(2*antennaMinDist2Neighbor);
                         std::set< edge_descriptor > sEdgesAround;
                         graph.getEdges(bbox, sEdgesAround);
@@ -519,7 +536,8 @@ namespace app
                             }
                         }
 
-                        if (ign::geometry::algorithm::HausdorffDistanceOp::distance(vLs[i], mlsOtherCountryEdgesAround) < antennaMinDist2Neighbor)
+                        double hDist = ign::geometry::algorithm::HausdorffDistanceOp::distance(vLs[i], mlsOtherCountryEdgesAround);
+                        if (hDist >= 0 && hDist < antennaMinDist2Neighbor)
                             continue;
                     }
 
@@ -553,14 +571,23 @@ namespace app
             app::calcul::detail::EdgeCleaningGraphManager & graphManager,
             vertex_descriptor v
         ) const {
+            std::set<std::string> sCountry;
+            std::set<std::string> sOrigin;
+            bool hasTwiceSameOrigin = false;
+
             std::vector< oriented_edge_descriptor > vEdges;
             graphManager.getGraph().incidentEdges( v, vEdges );
-            std::string country = graphManager.getCountry(vEdges.front().descriptor);
-            for (size_t i = 1 ; i < vEdges.size() ; ++i) {
-                if (graphManager.getCountry(vEdges[i].descriptor) != country)
-                    return true;
+
+            for (size_t i = 0 ; i < vEdges.size() ; ++i) {
+                sCountry.insert(graphManager.getCountry(vEdges[i].descriptor));
+                std::string origin = graphManager.getGraph().origins(vEdges[i].descriptor)[0];
+
+                if(!hasTwiceSameOrigin) {
+                    hasTwiceSameOrigin = sOrigin.find(origin) != sOrigin.end();
+                    if(!hasTwiceSameOrigin) sOrigin.insert(origin);
+                }
             }
-            return false;
+            return hasTwiceSameOrigin && sCountry.size() > 1;
         }
 
         ///

@@ -54,7 +54,7 @@ namespace calcul{
 		//--
 		std::map<std::string, ign::geometry::GeometryPtr>    _mCountryGeomPtr;
 		//--
-		std::map<std::string, ign::geometry::GeometryPtr>    _mCountryGeomWithBuffPtr;
+		// std::map<std::string, ign::geometry::GeometryPtr>    _mCountryGeomWithBuffPtr;
 		//--
 		epg::log::EpgLogger*                               _logger;
 		//--

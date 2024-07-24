@@ -8,7 +8,7 @@
 #include <epg/sql/tools/IdGeneratorFactory.h>
 #include <epg/tools/MultiLineStringTool.h>
 
-#include <ome2/calcul/utils/attributeMerger.h>
+#include <ome2/calcul/utils/AttributeMerger.h>
 
 namespace app{
 namespace calcul{

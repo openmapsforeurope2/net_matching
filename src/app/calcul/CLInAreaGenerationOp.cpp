@@ -114,7 +114,7 @@ namespace app
             _loadGraph(graphManager);
             GraphType const& graph = graphManager.getGraph();
 
-            boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning graph faces  % complete ]\n");
+            boost::progress_display display(graph.numFaces(), std::cout, "[ generating CL in area  % complete ]\n");
 
             //--
             std::map<std::string, std::set<edge_descriptor>> mFeatMergedEdges;

@@ -188,14 +188,21 @@ namespace app
                         }
 						ign::geometry::LineString lsNew = lsIndexMean.getSubLineString(sStart*meanLength, sTarget*meanLength);
 
-						_attrMerger.mergeFeatAttribute( featFront, featBack, "#" );
+                        // pour merger les attributs dans le bon sens
+                        ign::feature::Feature* fRef;
+                        ign::feature::Feature* f2Merge;
+                        fRef = featFront.getAttribute(countryCodeName).toString() < featBack.getAttribute(countryCodeName).toString() ? &featFront : &featBack;
+                        f2Merge = featFront.getAttribute(countryCodeName).toString() < featBack.getAttribute(countryCodeName).toString() ? &featBack : &featFront;
+
+                        //--
+						_attrMerger.mergeFeatAttribute( *fRef, *f2Merge, "#" );
 
                         //PATCH
                         // lsNew.setFillZ(0);
 
-						featFront.setGeometry(lsNew);
+						fRef->setGeometry(lsNew);
 
-						_fsEdge->createFeature(featFront);
+						_fsEdge->createFeature(*fRef);
 						sStart = sTarget;
 					} while(sAbsEdgeFront.size() > 0 && sAbsEdgeBack.size() > 0);
 				}

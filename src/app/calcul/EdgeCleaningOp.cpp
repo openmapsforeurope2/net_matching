@@ -828,6 +828,7 @@ namespace app
             // app parameters
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
             double const slimSurfaceWidth = themeParameters->getValue( ECL_SLIM_SURFACE_WIDTH ).toDouble();
+            double const artifactWidth = themeParameters->getValue( ECL_ARTIFACT_WIDTH ).toDouble();
             double const slimSurfaceMaxArea = themeParameters->getValue( ECL_SLIM_SURFACE_MAX_AREA ).toDouble();
             double const slimSurfaceMaxNbPoints = themeParameters->getValue( ECL_SLIM_SURFACE_MAX_NB_POINTS ).toDouble();
 
@@ -845,7 +846,7 @@ namespace app
 
                 // DEBUG
                 //_logger->log(epg::log::DEBUG, faceGeom.toString());
-                // if (faceGeom.intersects(ign::geometry::Point(4039807.9011,3012129.3749))) {
+                // if (faceGeom.intersects(ign::geometry::Point(4014776.143,2984940.233))) {
                 //     bool test = true;
                 // }
                 // if (faceGeom.intersects(ign::geometry::Point(4082807.661,2555185.849))) {
@@ -885,7 +886,8 @@ namespace app
                     std::pair<bool, std::string> isAllFromCountry = _isAllFromCountry(graphManager, *fit);
                     if(isAllFromCountry.first) {
                         if(_intersectsCountry(faceGeom, isAllFromCountry.second))
-                            continue;
+                            if (!_isSlimSurface(faceGeom, artifactWidth))
+                                continue;
                     }
 
                     std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;

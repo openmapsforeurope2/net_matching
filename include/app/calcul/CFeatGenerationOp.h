@@ -32,7 +32,6 @@ namespace calcul{
 		static void SnapConnectingLines(std::string countryCodeDouble, bool verbose = false);
 		static void DeleteConnectingLines(std::string countryCodeDouble, bool verbose = false);
 		static void UpdateGeomConnectingLines(std::string countryCodeDouble, bool verbose = false);
-		static void UpdateGeomByContinuity(std::string countryCodeDouble, bool verbose = false);
 		
 	private:
 
@@ -43,7 +42,6 @@ namespace calcul{
 		void _snapConnectingLines();
 		void _deleteConnectingLines();
 		void _updateGeomConnectingLines();
-		void _updateGeomByContinuity();
 
 		void _init(std::string countryCodeDouble, bool verbose);
 

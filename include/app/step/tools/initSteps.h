@@ -13,7 +13,6 @@
 #include <app/step/212_SnapConnectingLines.h>
 #include <app/step/213_DeleteConnectingLines.h>
 #include <app/step/214_UpdateGeomConnectingLines.h>
-#include <app/step/215_UpdateGeomByContinuity.h>
 #include <app/step/220_ConnectionConnectingLines.h>
 #include <app/step/230_ImportConnectingLines.h>
 #include <app/step/240_GenerateConnectingPoint.h>
@@ -37,7 +36,6 @@ namespace tools{
 		stepSuite.addStep( epg::step::factoryNew< SnapConnectingLines >() );
 		stepSuite.addStep( epg::step::factoryNew< DeleteConnectingLines >() );
 		stepSuite.addStep( epg::step::factoryNew< UpdateGeomConnectingLines >() );
-		stepSuite.addStep( epg::step::factoryNew< UpdateGeomByContinuity >() );
 		stepSuite.addStep( epg::step::factoryNew< ConnectionConnectingLines >() );
 		stepSuite.addStep( epg::step::factoryNew< ImportConnectingLines >() );
 		stepSuite.addStep( epg::step::factoryNew< GenerateConnectingPoint >() );
@@ -55,7 +53,6 @@ namespace tools{
 		stepSuite.addStep(epg::step::factoryNew< SnapConnectingLines >());
 		stepSuite.addStep(epg::step::factoryNew< DeleteConnectingLines >());
 		stepSuite.addStep(epg::step::factoryNew< UpdateGeomConnectingLines >());
-		stepSuite.addStep(epg::step::factoryNew< UpdateGeomByContinuity >());
 		stepSuite.addStep(epg::step::factoryNew< ConnectionConnectingLines >());
 		stepSuite.addStep(epg::step::factoryNew< ImportConnectingLines >());
 		stepSuite.addStep(epg::step::factoryNew< GenerateConnectingPoint >());

@@ -240,39 +240,46 @@ void app::calcul::CFeatGenerationOp::UpdateGeomConnectingLines(std::string count
 ///
 void app::calcul::CFeatGenerationOp::_updateGeomConnectingLines()
 {
-	_logger->log(epg::log::TITLE, "[ BEGIN CL UPDATE GEOMETRY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
-
-	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-	double const snapProjCl2edge = themeParameters->getValue(CL_SNAP_PROJ_CL_2_EDGE_DIST).toDouble();
-
-	_updateGeomCL( snapProjCl2edge);
-
-	_logger->log(epg::log::TITLE, "[ END CL UPDATE GEOMETRY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
-}
-
-///
-///
-///
-void app::calcul::CFeatGenerationOp::UpdateGeomByContinuity(std::string countryCodeDouble, bool verbose)
-{
-	CFeatGenerationOp op(countryCodeDouble, verbose);
-    op._updateGeomByContinuity();
-}
-
-///
-///
-///
-void app::calcul::CFeatGenerationOp::_updateGeomByContinuity()
-{
-	_logger->log(epg::log::TITLE, "[ BEGIN CL UPDATE CONTINUITY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+	_logger->log(epg::log::TITLE, "[ BEGIN LOAD GRAPH CL FOR CONTINUITY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
 	GraphType graphCL;
 	_loadGraphCL(graphCL);
 
+	_logger->log(epg::log::TITLE, "[ END LOAD GRAPH CL FOR CONTINUITY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
+
+	_logger->log(epg::log::TITLE, "[ BEGIN CL UPDATE GEOMETRY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
+	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+	double const snapProjCl2edge = themeParameters->getValue(CL_SNAP_PROJ_CL_2_EDGE_DIST).toDouble();
+	epg::Context* context = epg::ContextS::getInstance();
+	std::string idName = context->getEpgParameters().getValue(ID).toString();
+	std::string geomName = context->getEpgParameters().getValue(GEOM).toString();
+
+	_updateGeomCL( snapProjCl2edge);
+
+	_logger->log(epg::log::TITLE, "[ END CL UPDATE GEOMETRY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
+	//-- copie intermediaire pour debug
+	epg::utils::CopyTableUtils::copyTable(
+		themeParameters->getValue(CL_TABLE).toString(),
+		idName,
+		geomName,
+		ign::geometry::Geometry::GeometryTypeLineString,
+		themeParameters->getValue(CL_TABLE).toString()+"_without_continuity",
+		"", false, true
+	);
+
+	_logger->log(epg::log::TITLE, "[ BEGIN CL UPDATE CONTINUITY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
 	_setContinuityCl(graphCL);
 
 	_logger->log(epg::log::TITLE, "[ END CL UPDATE CONTINUITY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
+
 }
+
+
 
 ///
 ///
@@ -295,8 +302,6 @@ void app::calcul::CFeatGenerationOp::_computeCL()
     _snapConnectingLines();
 	_deleteConnectingLines();
 	_updateGeomConnectingLines();
-	_updateGeomByContinuity();
-
 	_logger->log(epg::log::TITLE, "[ END CL GENERATION FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
 }
@@ -1137,7 +1142,7 @@ bool app::calcul::CFeatGenerationOp::_areDistanceTypeCompatible(
 	bool isWalkwayOrTractor1 = _sFormwayValues4BigDist2Merge.find(type1) != _sFormwayValues4BigDist2Merge.end();
 	bool isWalkwayOrTractor2 = _sFormwayValues4BigDist2Merge.find(type2) != _sFormwayValues4BigDist2Merge.end();
 
-	return isWalkwayOrTractor1 || isWalkwayOrTractor2 ? distance < distMergeTractorCP : distance < distMergeCP;
+	return isWalkwayOrTractor1 && isWalkwayOrTractor2 ? distance < distMergeTractorCP : distance < distMergeCP;
 }
 
 bool app::calcul::CFeatGenerationOp::_areCollinear(

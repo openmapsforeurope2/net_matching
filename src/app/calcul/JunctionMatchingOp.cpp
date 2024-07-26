@@ -101,6 +101,8 @@ void app::calcul::JunctionMatchingOp::_matchJunctions()
 
 	for (std::map< vertex_descriptor, vertex_descriptor>::iterator mitJ1 = mMatchedJ1WithBestJ2.begin();
 		mitJ1 != mMatchedJ1WithBestJ2.end(); ++mitJ1) {
+		++display;
+
 		vertex_descriptor vJ1MatchedWithJ2 = mitJ1->first;
 		vertex_descriptor vJ2BestCandidateFromJ1 = mitJ1->second;
 

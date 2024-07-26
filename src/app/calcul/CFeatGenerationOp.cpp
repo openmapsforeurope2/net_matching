@@ -489,10 +489,12 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 	std::string const idName = context->getEpgParameters().getValue(ID).toString();
 	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
 	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
+	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 
 	std::vector<ign::feature::FeatureAttributeType> listAttrEdge = _fsEdge->getFeatureType().attributes();
 
 	ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + buffBorder->toString() + "'),3035))");
+	epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" NOT LIKE '%#%'");
 	//ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_GeomFromText('" + buffBorder->toString() + "'))");
 	if (_reqFilterEdges2generateCF != "")
 		epg::tools::FilterTools::addAndConditions(filter, _reqFilterEdges2generateCF);

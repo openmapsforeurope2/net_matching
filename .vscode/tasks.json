@@ -41,7 +41,7 @@
         {
             "label": "run the code",
             // "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./bin/ome2_tn_matching --c /usr/local/src/tn_matching/data/config/epg_parameters.ini --t tn --cc be#lu --sp 204-280",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./bin/ome2_tn_matching --c /usr/local/src/tn_matching/data/config/epg_parameters.ini --t tn --cc be#lu --sp 210-280",
             "group": "build",
             "problemMatcher": []
         },

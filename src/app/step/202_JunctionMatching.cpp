@@ -7,7 +7,7 @@
 
 
 //APP
-// #include <app/calcul/JunctionMatchingOp.h>
+ #include <app/calcul/JunctionMatchingOp.h>
 
 namespace app {
 	namespace step {
@@ -33,7 +33,7 @@ namespace app {
 			_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));
 			ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true, true);
 
-			// app::calcul::JunctionMatchingOp::MatchJunctions(countryCodeW, verbose);
+			app::calcul::JunctionMatchingOp::MatchJunctions(countryCodeW, verbose);
 
 		}
 

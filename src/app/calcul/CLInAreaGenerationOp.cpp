@@ -387,6 +387,8 @@ namespace app
             //DEBUG
             _logger->log(epg::log::DEBUG, "ouha1");
             _logger->log(epg::log::DEBUG, originId);
+            _logger->log(epg::log::DEBUG, featOrigin.getId());
+            _logger->log(epg::log::DEBUG, "ouha11");
             _logger->log(epg::log::DEBUG, featOrigin.getGeometry().toString());
 
             ign::geometry::LineString const * refGeom = &featOrigin.getGeometry().asLineString();

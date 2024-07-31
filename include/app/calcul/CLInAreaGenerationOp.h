@@ -13,6 +13,38 @@
 //EPG
 #include <ome2/calcul/utils/AttributeMerger.h>
 
+
+namespace app{
+namespace calcul{
+namespace detail{
+
+	enum ENDING{
+		START,
+		END
+	};
+
+    struct IncidentFeature {
+        /// \brief
+        IncidentFeature(
+			std::string originId_,
+			ENDING ending_
+		):
+			originId(originId_),
+			ending(ending_)
+		{};
+
+        /// \brief
+        ~IncidentFeature(){};
+
+        //--
+        ENDING		          ending;
+        std::string           originId;
+		ign::geometry::Point  ptTarget;
+    };
+}
+}
+}
+
 namespace app{
 namespace calcul{
 
@@ -92,7 +124,8 @@ namespace calcul{
 		std::map<double, std::string> _getOriginEdges(
 			GraphType const& graph,
 			std::list<oriented_edge_descriptor> const& path,
-			std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges
+			std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
+			std::map<double, std::vector<detail::IncidentFeature>> & mIncidentFeatures
 		) const;
 
 		//--

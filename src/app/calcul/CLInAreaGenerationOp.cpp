@@ -118,12 +118,24 @@ namespace app
 
             //--
             std::map<std::string, std::set<edge_descriptor>> mFeatMergedEdges;
+            std::multimap<std::string, detail::IncidentFeature> mmIncidentFeatures;
+            typedef std::multimap<std::string, detail::IncidentFeature>::const_iterator  m_iterator;
+
             face_iterator fit, fend;
             for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
 			{
                 ++display;
 
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
+
+                //DEBUG
+                // if( faceGeom.intersects(ign::geometry::Point(4032840.73,3014651.08))) {
+                //     bool test = true;
+                // } else if( faceGeom.intersects(ign::geometry::Point(4032843.16,3014649.58))) {
+                //     bool test = true;
+                // } else {
+                //     continue;
+                // }
 
 				std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
 				if (!_getFacePaths(graphManager, *fit, vpCountryEdges))
@@ -141,8 +153,8 @@ namespace app
 
 				std::set<std::string> hasConnection = _mergeFacePaths(vpCountryEdges);
 
-				if (!hasConnection.empty())
-					continue;
+				// if (!hasConnection.empty())
+				// 	continue;
 				
 				if (vpCountryEdges.size() != 2)
 					continue;
@@ -160,8 +172,9 @@ namespace app
                     double meanLength = meanGeom.length();
 
 					//todo recupérer tous les edges des chemins
-					std::map<double, std::string> sAbsEdgeFront = _getOriginEdges(graph, vpCountryEdges.front().second, mFeatMergedEdges); 
-					std::map<double, std::string> sAbsEdgeBack = _getOriginEdges(graph, vpCountryEdges.back().second, mFeatMergedEdges);
+                    std::map<double, std::vector<detail::IncidentFeature>> mAbsIncidentFeatures;
+					std::map<double, std::string> sAbsEdgeFront = _getOriginEdges(graph, vpCountryEdges.front().second, mFeatMergedEdges, mAbsIncidentFeatures); 
+					std::map<double, std::string> sAbsEdgeBack = _getOriginEdges(graph, vpCountryEdges.back().second, mFeatMergedEdges, mAbsIncidentFeatures);
 
 					double sStart = 0;
 					do {
@@ -177,7 +190,6 @@ namespace app
 						if( absFront < absBack ) {
 							sAbsEdgeFront.erase(sAbsEdgeFront.begin());
 							sTarget = absFront;
-							
 						} else if ( absFront > absBack ) {
 							sAbsEdgeBack.erase(sAbsEdgeBack.begin());
 							sTarget = absBack;
@@ -187,6 +199,17 @@ namespace app
                             sTarget = absFront;
                         }
 						ign::geometry::LineString lsNew = lsIndexMean.getSubLineString(sStart*meanLength, sTarget*meanLength);
+
+                        //--
+                        if (sStart != 0) {
+                            std::map<double, std::vector<detail::IncidentFeature>>::iterator mit = mAbsIncidentFeatures.find(sStart);
+                            if ( mit != mAbsIncidentFeatures.end() ) {
+                                for( std::vector<detail::IncidentFeature>::iterator vit = mit->second.begin() ; vit != mit->second.end() ; ++vit ) {
+                                    vit->ptTarget = lsNew.startPoint();
+                                    mmIncidentFeatures.insert(std::make_pair(vit->originId, *vit));
+                                }
+                            }
+                        }
 
                         // pour merger les attributs dans le bon sens
                         ign::feature::Feature* fRef;
@@ -209,6 +232,8 @@ namespace app
 			}
 
             // on parcours tous les features qui ont des edges induits mergés : on les split si nécessaire
+            std::set<std::string> sIncident2delete;
+            std::vector<detail::IncidentFeature> vIncident2Create;
             for( std::map<std::string, std::set<edge_descriptor>>::const_iterator mit = mFeatMergedEdges.begin() ; mit != mFeatMergedEdges.end() ; ++mit ) {
                 ign::feature::Feature featOrigin;
                 _fsEdge->getFeatureById(mit->first, featOrigin);
@@ -228,24 +253,66 @@ namespace app
                 }
                 if (!path.empty()) vPaths.push_back(path);
 
-                for( std::vector<std::list<oriented_edge_descriptor>>::const_iterator vit = vPaths.begin() ; vit != vPaths.end() ; ++vit ) {
-                    ign::geometry::LineString newGeom = _convertPathToLineString(graph, *vit);
+                //gestion incident edges
+                if (mmIncidentFeatures.find(mit->first) != mmIncidentFeatures.end())
+                    sIncident2delete.insert(mit->first);
+
+                for( size_t i = 0 ; i < vPaths.size() ; ++i ) {
+                    ign::geometry::LineString newGeom = _convertPathToLineString(graph, vPaths[i]);
 
                     // assurer la cohérence avec les données sources aux extrémités
-                    if ( graph.source(*vit->begin()) ==  graph.source(*foundInducedEdges.second.begin()) ) {
+                    bool isStartingPath = graph.source(*vPaths[i].begin()) ==  graph.source(*foundInducedEdges.second.begin());
+                    bool isEndingPath = graph.target(*vPaths[i].rbegin()) ==  graph.target(*foundInducedEdges.second.rbegin());
+                    if (isStartingPath)
                         newGeom.startPoint() = geomOrigin.startPoint();
-                    }
-                    if ( graph.target(*vit->rbegin()) ==  graph.target(*foundInducedEdges.second.rbegin()) ) {
+                    if (isEndingPath)
                         newGeom.endPoint() = geomOrigin.endPoint();
-                    }
                     
                     //PATCH
                     // newGeom.setFillZ(0);
 
                     featOrigin.setGeometry(newGeom);
                     _fsEdge->createFeature(featOrigin);
+
+                    //gestion incident edges
+                    if ( i == 0 || i == vPaths.size()-1 ) {
+                        std::pair < m_iterator, m_iterator > bounds = mmIncidentFeatures.equal_range( mit->first );
+                        for ( m_iterator it = bounds.first ; it != bounds.second ; ++it )
+                        {
+                            if( (isStartingPath && it->second.ending == detail::START)
+                                ||
+                                (isEndingPath && it->second.ending == detail::END)
+                            ) {
+                                vIncident2Create.push_back(it->second);
+                                vIncident2Create.back().originId = featOrigin.getId();
+                            }
+                        }
+                    }
                 }
-                 _fsEdge->deleteFeature(mit->first);
+                _fsEdge->deleteFeature(mit->first);
+            }
+
+            //maj incident edges
+            for( std::set<std::string>::const_iterator sit = sIncident2delete.begin() ; sit != sIncident2delete.end() ; ++sit ) {
+                mmIncidentFeatures.erase(*sit);
+            }
+            for( std::vector<detail::IncidentFeature>::const_iterator vit = vIncident2Create.begin() ; vit != vIncident2Create.end() ; ++vit ) {
+                mmIncidentFeatures.insert(std::make_pair(vit->originId, *vit));
+            }
+
+            //deplacement incident edges
+            for( std::multimap<std::string, detail::IncidentFeature>::const_iterator mit = mmIncidentFeatures.begin() ; mit != mmIncidentFeatures.end() ; ++mit ) {
+                ign::feature::Feature feat;
+                _fsEdge->getFeatureById(mit->first, feat);
+                ign::geometry::LineString featGeom = feat.getGeometry().asLineString();
+
+                if( mit->second.ending == detail::START )
+                    featGeom.startPoint() = mit->second.ptTarget;
+                else
+                    featGeom.endPoint() = mit->second.ptTarget;
+
+                feat.setGeometry(featGeom);
+                _fsEdge->modifyFeature(feat);
             }
 		}
 
@@ -307,7 +374,8 @@ namespace app
 		std::map<double, std::string> CLInAreaGenerationOp::_getOriginEdges(
 			GraphType const& graph,
 			std::list<oriented_edge_descriptor> const& path,
-			std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges
+			std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
+            std::map<double, std::vector<detail::IncidentFeature>> & mIncidentFeatures
 		) const {
             std::map<double, std::string> sAbsEdge;
 
@@ -316,27 +384,59 @@ namespace app
             geometry::tools::LengthIndexedLineString lsIndex(ls);
 
             std::list<oriented_edge_descriptor>::const_iterator lit = path.begin();
-            std::string previousEdge = graph.origins(lit->descriptor)[0];
+            std::string previousFeat = graph.origins(lit->descriptor)[0];
 			for ( ; lit != path.end() ; ++lit) {
-				std::string currentEdge = graph.origins(lit->descriptor)[0];
+				std::string currentFeat = graph.origins(lit->descriptor)[0];
 
-                std::map<std::string, std::set<edge_descriptor>>::iterator mit = mFeatMergedEdges.find(currentEdge);
+                std::map<std::string, std::set<edge_descriptor>>::iterator mit = mFeatMergedEdges.find(currentFeat);
                 if( mit == mFeatMergedEdges.end() )
-                    mit = mFeatMergedEdges.insert(std::make_pair(currentEdge, std::set<edge_descriptor>())).first;
+                    mit = mFeatMergedEdges.insert(std::make_pair(currentFeat, std::set<edge_descriptor>())).first;
                 mit->second.insert(lit->descriptor);
                     
-                if ( currentEdge != previousEdge ) {
+                if ( currentFeat != previousFeat ) {
 
                     ign::geometry::Point ptStart = graph.getGeometry(graph.source(*lit));
                     int i = _getIndex(ls, ptStart);
                     double abs = lsIndex.getPointLocation(i)/length;
 
-                    sAbsEdge.insert(std::make_pair(abs, previousEdge));
+                    sAbsEdge.insert(std::make_pair(abs, previousFeat));
+
+                    //on recupere les edges incidents
+                    if( graph.degree(graph.source(*lit)) > 2 ) {
+                        ign::geometry::Point vertexGeom = graph.getGeometry(graph.source(*lit));
+                        std::vector< edge_descriptor > vEdges = graph.incidentEdges(graph.source(*lit));
+
+                        for ( std::vector<edge_descriptor>::const_iterator vit = vEdges.begin() ; vit != vEdges.end() ; ++vit ) {
+
+                            std::string incidentFeatId = graph.origins(*vit)[0];
+                            if (incidentFeatId == currentFeat || incidentFeatId == previousFeat) continue;
+
+                            std::map<double, std::vector<detail::IncidentFeature>>::iterator mit = mIncidentFeatures.find(abs);
+                            if( mit == mIncidentFeatures.end() )
+                                mit = mIncidentFeatures.insert(std::make_pair(abs, std::vector<detail::IncidentFeature>())).first;
+
+                            ign::feature::Feature incidentFeat;
+                            _fsEdge->getFeatureById(incidentFeatId, incidentFeat);
+                            ign::geometry::LineString const& incidentFeatGeom = incidentFeat.getGeometry().asLineString();
+
+                            bool touchStart = incidentFeatGeom.startPoint().distance(vertexGeom) < 1e-5;
+                            bool touchEnd = incidentFeatGeom.endPoint().distance(vertexGeom) < 1e-5;
+
+                            if (touchStart)
+                                mit->second.push_back(detail::IncidentFeature(incidentFeatId, detail::START));
+                            if (touchEnd)
+                                mit->second.push_back(detail::IncidentFeature(incidentFeatId, detail::END));
+
+                            if (!touchStart && !touchEnd) {
+                                _logger->log(epg::log::ERROR, "Error in incident feature computation : "+vertexGeom.toString());
+                            }
+                        }
+                    }
                 }
                 
-                previousEdge = currentEdge;
+                previousFeat = currentFeat;
 			}
-            sAbsEdge.insert(std::make_pair(1., previousEdge));
+            sAbsEdge.insert(std::make_pair(1., previousFeat));
 
 			return sAbsEdge;
 		}

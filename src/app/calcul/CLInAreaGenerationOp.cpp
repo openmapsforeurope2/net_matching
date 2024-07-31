@@ -222,6 +222,10 @@ namespace app
 
                         //PATCH
                         // lsNew.setFillZ(0);
+                        if( lsNew.isEmpty() || lsNew.isNull() || !lsNew.isValid()) {
+                            _logger->log(epg::log::ERROR, "Resulting inconsistent geometry [face geom]: "+faceGeom.toString());
+                            continue;
+                        }
 
 						fRef->setGeometry(lsNew);
 
@@ -230,6 +234,9 @@ namespace app
 					} while(sAbsEdgeFront.size() > 0 && sAbsEdgeBack.size() > 0);
 				}
 			}
+
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "yeap1");
 
             // on parcours tous les features qui ont des edges induits mergés : on les split si nécessaire
             std::set<std::string> sIncident2delete;
@@ -297,13 +304,21 @@ namespace app
                 _fsEdge->deleteFeature(mit->first);
             }
 
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "yeap2");
+
             //maj incident edges
             for( std::set<std::string>::const_iterator sit = sIncident2delete.begin() ; sit != sIncident2delete.end() ; ++sit ) {
                 mmIncidentFeatures.erase(*sit);
             }
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "yeap3");
             for( std::vector<detail::IncidentFeature>::const_iterator vit = vIncident2Create.begin() ; vit != vIncident2Create.end() ; ++vit ) {
                 mmIncidentFeatures.insert(std::make_pair(vit->originId, *vit));
             }
+
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "yeap4");
 
             //deplacement incident edges
             for( std::multimap<std::string, detail::IncidentFeature>::const_iterator mit = mmIncidentFeatures.begin() ; mit != mmIncidentFeatures.end() ; ++mit ) {
@@ -324,6 +339,9 @@ namespace app
                 feat.setGeometry(featGeom);
                 _fsEdge->modifyFeature(feat);
             }
+
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "yeap5");
 		}
 
         ///

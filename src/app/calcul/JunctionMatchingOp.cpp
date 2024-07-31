@@ -17,6 +17,7 @@
 
 //APP
 #include <app/params/ThemeParameters.h>
+#include <app/geometry/tools/LineStringSplitter.h>
 
 ///
 ///
@@ -341,11 +342,26 @@ void app::calcul::JunctionMatchingOp::_setNewGeomJunction(
 		
 		//modification de la nouvelle geometrie de l'edge
 		ign::geometry::LineString lsEdge2modify = featEdge2modify.getGeometry().asLineString();
+
+		//projection de l'edge, et recupération de l'abs curviligne
+		//suppression des points de la ls entre la proj du nouveau point et le nouveau point (start ou end selon l'orientation) 
+		app::geometry::tools::LineStringSplitter lsSplitter2modify(lsEdge2modify);
+		lsSplitter2modify.addCuttingGeometry(ptNewGeomJunction);
+		std::vector< ign::geometry::LineString > vLs2modify = lsSplitter2modify.getSubLineStringsZ();
+		if (vLs2modify.size() > 1) {
+			if (oeit->direction == ign::graph::DIRECT)
+				lsEdge2modify = vLs2modify[1];
+			else
+				lsEdge2modify = vLs2modify[0];
+		}
+
+
 		//ign::geometry::LineString lsEdge2modify = graph.getGeometry(oeit->descriptor);
 		if (oeit->direction == ign::graph::DIRECT)
 			lsEdge2modify.setPointN(ptNewGeomJunction, 0);
 		else
 			lsEdge2modify.setPointN(ptNewGeomJunction, lsEdge2modify.numPoints() - 1);
+
 
 		featEdge2modify.setGeometry(lsEdge2modify);
 		mEdgesModifiedGeom[idEdge2modify] = featEdge2modify;

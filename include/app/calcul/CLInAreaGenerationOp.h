@@ -123,6 +123,7 @@ namespace calcul{
 		//--
 		std::map<double, std::string> _getOriginEdges(
 			GraphType const& graph,
+			std::string const& country,
 			std::list<oriented_edge_descriptor> const& path,
 			std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
 			std::map<double, std::vector<detail::IncidentFeature>> & mIncidentFeatures
@@ -143,7 +144,15 @@ namespace calcul{
 		//--
 		ign::geometry::LineString _convertPathToLineString(
             GraphType const& graph,
+			std::string const& country,
             std::list<oriented_edge_descriptor> const& path
+        ) const;
+
+		//--
+		std::string _getOrigin(
+            GraphType const& graph,
+            std::string const& country,
+            edge_descriptor e
         ) const;
 
 		//--

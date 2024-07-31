@@ -163,8 +163,8 @@ namespace app
                 if (graph.source(*vpCountryEdges.front().second.begin()) != graph.source(*vpCountryEdges.back().second.begin()))
                     vpCountryEdges.back().second = _getReversePath(vpCountryEdges.back().second);
 
-				ign::geometry::LineString lsFront = _convertPathToLineString(graph, vpCountryEdges.front().second);
-                ign::geometry::LineString lsBack = _convertPathToLineString(graph, vpCountryEdges.back().second);
+				ign::geometry::LineString lsFront = _convertPathToLineString(graph, vpCountryEdges.front().first, vpCountryEdges.front().second);
+                ign::geometry::LineString lsBack = _convertPathToLineString(graph, vpCountryEdges.back().first, vpCountryEdges.back().second);
 
                 if( _pathsGeomAreEqual(faceGeom, lsFront, lsBack, slimSurfaceWidth) ) {
 					ign::geometry::LineString meanGeom = _computeMeanPath(lsFront, lsBack);
@@ -173,8 +173,8 @@ namespace app
 
 					//todo recupérer tous les edges des chemins
                     std::map<double, std::vector<detail::IncidentFeature>> mAbsIncidentFeatures;
-					std::map<double, std::string> sAbsEdgeFront = _getOriginEdges(graph, vpCountryEdges.front().second, mFeatMergedEdges, mAbsIncidentFeatures); 
-					std::map<double, std::string> sAbsEdgeBack = _getOriginEdges(graph, vpCountryEdges.back().second, mFeatMergedEdges, mAbsIncidentFeatures);
+					std::map<double, std::string> sAbsEdgeFront = _getOriginEdges(graph, vpCountryEdges.front().first, vpCountryEdges.front().second, mFeatMergedEdges, mAbsIncidentFeatures); 
+					std::map<double, std::string> sAbsEdgeBack = _getOriginEdges(graph, vpCountryEdges.back().first,vpCountryEdges.back().second, mFeatMergedEdges, mAbsIncidentFeatures);
 
 					double sStart = 0;
 					do {
@@ -245,10 +245,17 @@ namespace app
                 //DEBUG
                 _logger->log(epg::log::DEBUG, "youp1");
                 _logger->log(epg::log::DEBUG, mit->first);
+                // if (mit->first == "c1e3d360-13e4-4ba5-a59f-c15a919fb883") {
+                //     bool test = true;
+                // }
+                // if (mit->first == "03e700dc-77ed-4569-a74c-506641f8a07c") {
+                //     bool test = true;
+                // }
 
                 ign::feature::Feature featOrigin;
                 _fsEdge->getFeatureById(mit->first, featOrigin);
                 ign::geometry::LineString geomOrigin = featOrigin.getGeometry().asLineString();
+                std::string originCountry = featOrigin.getAttribute(countryCodeName).toString();
                 std::pair<bool, std::vector<oriented_edge_descriptor>> foundInducedEdges = graph.getInducedEdges(mit->first);
                 std::vector<std::list<oriented_edge_descriptor>> vPaths;
                 std::list<oriented_edge_descriptor> path;
@@ -272,7 +279,7 @@ namespace app
                     sIncident2delete.insert(mit->first);
 
                 for( size_t i = 0 ; i < vPaths.size() ; ++i ) {
-                    ign::geometry::LineString newGeom = _convertPathToLineString(graph, vPaths[i]);
+                    ign::geometry::LineString newGeom = _convertPathToLineString(graph, originCountry, vPaths[i]);
 
                     // assurer la cohérence avec les données sources aux extrémités
                     bool isStartingPath = graph.source(*vPaths[i].begin()) ==  graph.source(*foundInducedEdges.second.begin());
@@ -374,13 +381,15 @@ namespace app
         ///
         ign::geometry::LineString CLInAreaGenerationOp::_convertPathToLineString(
             GraphType const& graph,
+            std::string const& country,
             std::list<oriented_edge_descriptor> const& path
         ) const {
             ign::geometry::LineString pathGeom;
 
             ign::geometry::Point firstPoint = graph.getGeometry( graph.source( *path.begin() ) );
 
-            std::string originId = graph.origins(path.begin()->descriptor)[0];
+            std::string originId = _getOrigin(graph, country, path.begin()->descriptor);
+
             ign::feature::Feature featOrigin;
             _fsEdge->getFeatureById(originId, featOrigin);
 
@@ -402,7 +411,7 @@ namespace app
                 ign::geometry::LineString ls = graph.getGeometry( *pit );
                 for( size_t i = 1 ; i < ls.numPoints() ; ++i ) {
                     if ( i == ls.numPoints()-1 ) {
-                        std::string currentOriginId = graph.origins(pit->descriptor)[0];
+                        std::string currentOriginId = _getOrigin(graph, country, pit->descriptor);
                         if( currentOriginId != originId ) {
                             originId = currentOriginId;
                             _fsEdge->getFeatureById(originId, featOrigin);
@@ -426,6 +435,31 @@ namespace app
         ///
         ///
         ///
+        std::string CLInAreaGenerationOp::_getOrigin(
+            GraphType const& graph,
+            std::string const& country_,
+            edge_descriptor e
+        ) const {
+            std::vector<std::string> vOrigins = graph.origins(e);
+            if( vOrigins.size() == 1 ) return vOrigins.front();
+
+            epg::Context *context = epg::ContextS::getInstance();
+            epg::params::EpgParameters const& epgParams = context->getEpgParameters();
+            std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
+            
+            ign::feature::Feature featOrigin;
+            _fsEdge->getFeatureById(vOrigins.front(), featOrigin);
+
+            std::string country = featOrigin.getAttribute(countryCodeName).toString();
+            if( country == country_ )
+                return vOrigins.front();
+
+            return vOrigins.back();  
+        }
+
+        ///
+        ///
+        ///
         void CLInAreaGenerationOp::_setZ(
             ign::geometry::Point & pt,
             ign::geometry::LineString const& refGeom
@@ -440,13 +474,14 @@ namespace app
 		///
 		std::map<double, std::string> CLInAreaGenerationOp::_getOriginEdges(
 			GraphType const& graph,
+            std::string const& country,
 			std::list<oriented_edge_descriptor> const& path,
 			std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
             std::map<double, std::vector<detail::IncidentFeature>> & mIncidentFeatures
 		) const {
             std::map<double, std::string> sAbsEdge;
 
-            ign::geometry::LineString ls = _convertPathToLineString(graph, path);
+            ign::geometry::LineString ls = _convertPathToLineString(graph, country, path);
             double length = ls.length();
             geometry::tools::LengthIndexedLineString lsIndex(ls);
 

@@ -383,6 +383,12 @@ namespace app
             std::string originId = graph.origins(path.begin()->descriptor)[0];
             ign::feature::Feature featOrigin;
             _fsEdge->getFeatureById(originId, featOrigin);
+
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "ouha1");
+            _logger->log(epg::log::DEBUG, originId);
+            _logger->log(epg::log::DEBUG, featOrigin.getGeometry().toString());
+
             ign::geometry::LineString const * refGeom = &featOrigin.getGeometry().asLineString();
 
             _setZ(firstPoint, *refGeom),
@@ -398,6 +404,12 @@ namespace app
                         if( currentOriginId != originId ) {
                             originId = currentOriginId;
                             _fsEdge->getFeatureById(originId, featOrigin);
+
+                            //DEBUG
+                            _logger->log(epg::log::DEBUG, "ouha1");
+                            _logger->log(epg::log::DEBUG, originId);
+                            _logger->log(epg::log::DEBUG, featOrigin.getGeometry().toString());
+
                             refGeom = &featOrigin.getGeometry().asLineString();
                         }
                         _setZ(ls.pointN( i ), *refGeom);

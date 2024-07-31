@@ -271,6 +271,11 @@ namespace app
                     //PATCH
                     // newGeom.setFillZ(0);
 
+                    if( newGeom.isEmpty() || newGeom.isNull() || !newGeom.isValid()) {
+                        _logger->log(epg::log::ERROR, "Resulting inconsistent geometry [orign feature id]: "+mit->first);
+                        continue;
+                    }
+
                     featOrigin.setGeometry(newGeom);
                     _fsEdge->createFeature(featOrigin);
 
@@ -310,6 +315,11 @@ namespace app
                     featGeom.startPoint() = mit->second.ptTarget;
                 else
                     featGeom.endPoint() = mit->second.ptTarget;
+
+                if( featGeom.isEmpty() || featGeom.isNull() || !featGeom.isValid()) {
+                    _logger->log(epg::log::ERROR, "Incident feature inconsistent geometry [id]: "+mit->first);
+                    continue;
+                }
 
                 feat.setGeometry(featGeom);
                 _fsEdge->modifyFeature(feat);

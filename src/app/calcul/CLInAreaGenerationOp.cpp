@@ -242,6 +242,10 @@ namespace app
             std::set<std::string> sIncident2delete;
             std::vector<detail::IncidentFeature> vIncident2Create;
             for( std::map<std::string, std::set<edge_descriptor>>::const_iterator mit = mFeatMergedEdges.begin() ; mit != mFeatMergedEdges.end() ; ++mit ) {
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "youp1");
+                _logger->log(epg::log::DEBUG, mit->first);
+
                 ign::feature::Feature featOrigin;
                 _fsEdge->getFeatureById(mit->first, featOrigin);
                 ign::geometry::LineString geomOrigin = featOrigin.getGeometry().asLineString();
@@ -259,6 +263,9 @@ namespace app
                     }
                 }
                 if (!path.empty()) vPaths.push_back(path);
+
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "youp2");
 
                 //gestion incident edges
                 if (mmIncidentFeatures.find(mit->first) != mmIncidentFeatures.end())
@@ -278,13 +285,22 @@ namespace app
                     //PATCH
                     // newGeom.setFillZ(0);
 
+                    //DEBUG
+                    _logger->log(epg::log::DEBUG, "youp3");
+
                     if( newGeom.isEmpty() || newGeom.isNull() || !newGeom.isValid()) {
                         _logger->log(epg::log::ERROR, "Resulting inconsistent geometry [orign feature id]: "+mit->first);
                         continue;
                     }
 
+                    //DEBUG
+                    _logger->log(epg::log::DEBUG, "youp4");
+
                     featOrigin.setGeometry(newGeom);
                     _fsEdge->createFeature(featOrigin);
+
+                    //DEBUG
+                    _logger->log(epg::log::DEBUG, "youp5");
 
                     //gestion incident edges
                     if ( i == 0 || i == vPaths.size()-1 ) {
@@ -300,8 +316,17 @@ namespace app
                             }
                         }
                     }
+
+                    //DEBUG
+                    _logger->log(epg::log::DEBUG, "youp6");
                 }
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "youp7");
+
                 _fsEdge->deleteFeature(mit->first);
+
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "youp8");
             }
 
             //DEBUG

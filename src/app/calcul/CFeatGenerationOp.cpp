@@ -266,7 +266,7 @@ void app::calcul::CFeatGenerationOp::_updateGeomConnectingLines()
 		idName,
 		geomName,
 		ign::geometry::Geometry::GeometryTypeLineString,
-		themeParameters->getValue(CL_TABLE).toString()+"_without_continuity",
+		themeParameters->getValue(CL_TABLE).toString()+"_no_cont",
 		"", false, true
 	);
 

@@ -13,6 +13,7 @@
 #include <epg/tools/TimeTools.h>
 #include <epg/sql/tools/numFeatures.h>
 #include <epg/tools/geometry/project.h>
+#include <ome2/calcul/detail/ClMerger.h>
 
 //SOCLE
 #include <ign/geometry/algorithm/HausdorffDistanceOp.h>
@@ -89,6 +90,155 @@ namespace app
             _logger->log(epg::log::INFO, "[END] initialization: " + epg::tools::TimeTools::getTime());
 		}
 
+        ///
+        ///
+        ///
+        void CLInAreaGenerationOp::_createCLOnOverlappingEdges(
+            GraphType const& graph,
+            std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
+            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
+        ) const {
+            //--
+			epg::Context *context = epg::ContextS::getInstance();
+
+			//--
+            epg::params::EpgParameters const& epgParams = context->getEpgParameters();
+            std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
+
+            //--
+            app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
+			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+
+            boost::progress_display display(graph.numFaces(), std::cout, "[ generating CL on overlapping edges % complete ]\n");
+
+            edge_iterator eit, eend;
+            for (graph.edges(eit, eend); eit != eend; ++eit)
+            {
+                ++display;
+
+                std::vector<std::string> vOrigins = graph.origins(*eit);
+                if( vOrigins.size() != 2 ) continue;
+
+                //--
+                ign::geometry::LineString edgeGeom = graph.getGeometry( *eit );
+
+                //--
+                ign::feature::Feature featFront;
+                _fsEdge->getFeatureById(vOrigins.front(), featFront);
+                ign::feature::Feature featBack;
+                _fsEdge->getFeatureById(vOrigins.back(), featBack);
+
+                //--
+                std::map<std::string, std::set<edge_descriptor>>::iterator mit;
+                mit = mFeatMergedEdges.find(featFront.getId());
+                if( mit == mFeatMergedEdges.end() )
+                    mit = mFeatMergedEdges.insert(std::make_pair(featFront.getId(), std::set<edge_descriptor>())).first;
+                mit->second.insert(*eit);
+
+                mit = mFeatMergedEdges.find(featBack.getId());
+                if( mit == mFeatMergedEdges.end() )
+                    mit = mFeatMergedEdges.insert(std::make_pair(featBack.getId(), std::set<edge_descriptor>())).first;
+                mit->second.insert(*eit);
+
+
+                // pour merger les attributs dans le bon sens
+                ign::feature::Feature* fRef;
+                ign::feature::Feature* f2Merge;
+                fRef = featFront.getAttribute(countryCodeName).toString() < featBack.getAttribute(countryCodeName).toString() ? &featFront : &featBack;
+                f2Merge = featFront.getAttribute(countryCodeName).toString() < featBack.getAttribute(countryCodeName).toString() ? &featBack : &featFront;
+
+
+                //--
+                _attrMerger.mergeFeatAttribute( *fRef, *f2Merge, "#" );
+                fRef->setAttribute(wTagName, ign::data::String(fRef->getId()+"#"+f2Merge->getId()));
+ 
+
+                // assurer la cohérence avec les données sources aux extrémités et features incidents
+                std::pair<bool, std::vector<oriented_edge_descriptor>> foundInducedEdgesFront = graph.getInducedEdges(vOrigins.front());
+                std::pair<bool, std::vector<oriented_edge_descriptor>> foundInducedEdgesBack = graph.getInducedEdges(vOrigins.back());
+                bool isStartingPathFront = *eit == foundInducedEdgesFront.second.begin()->descriptor;
+                bool isEndingPathFront = *eit == foundInducedEdgesFront.second.rbegin()->descriptor;
+                bool isStartingPathBack = *eit == foundInducedEdgesBack.second.begin()->descriptor;
+                bool isEndingPathBack = *eit == foundInducedEdgesBack.second.rbegin()->descriptor;
+                if( (isStartingPathFront || isEndingPathFront) ) {
+                    if (isStartingPathBack || isEndingPathBack) {
+                        ign::geometry::LineString const& featFrontGeom = featFront.getGeometry().asLineString();
+                        if (isStartingPathFront)
+                            if( foundInducedEdgesFront.second.begin()->direction == ign::graph::DIRECT)
+                                edgeGeom.startPoint() = featFrontGeom.startPoint();
+                            else
+                                edgeGeom.endPoint() = featFrontGeom.startPoint();
+                        if (isEndingPathFront)
+                            if( foundInducedEdgesFront.second.rbegin()->direction == ign::graph::DIRECT)
+                                edgeGeom.endPoint() = featFrontGeom.endPoint();
+                            else
+                                edgeGeom.startPoint() = featFrontGeom.endPoint();
+                    } else {
+                        std::set<edge_descriptor> sEdgesBack;
+                        for( std::vector<oriented_edge_descriptor>::const_iterator vit = foundInducedEdgesBack.second.begin() ; vit != foundInducedEdgesBack.second.end() ; ++vit )
+                            sEdgesBack.insert(vit->descriptor);
+
+                        if( isStartingPathFront )
+                            _addIncidentFeatures(graph, graph.source(*foundInducedEdgesFront.second.begin()), sEdgesBack, mmIncidentFeatures);
+                        if( isEndingPathFront )
+                            _addIncidentFeatures(graph, graph.target(*foundInducedEdgesFront.second.rbegin()), sEdgesBack, mmIncidentFeatures);
+                    }
+                } else if (isStartingPathBack || isEndingPathBack) {
+                    std::set<edge_descriptor> sEdgesFront;
+                    for( std::vector<oriented_edge_descriptor>::const_iterator vit = foundInducedEdgesFront.second.begin() ; vit != foundInducedEdgesFront.second.end() ; ++vit )
+                            sEdgesFront.insert(vit->descriptor);
+
+                    if( isStartingPathBack )
+                        _addIncidentFeatures(graph, graph.source(*foundInducedEdgesBack.second.begin()), sEdgesFront, mmIncidentFeatures);
+                    if( isEndingPathBack )
+                        _addIncidentFeatures(graph, graph.target(*foundInducedEdgesBack.second.rbegin()), sEdgesFront, mmIncidentFeatures);
+                }
+
+                fRef->setGeometry(edgeGeom);
+                
+				_fsEdge->createFeature(*fRef);
+            }
+        }
+
+        ///
+        ///
+        ///
+        void CLInAreaGenerationOp::_addIncidentFeatures(
+            GraphType const& graph,
+            vertex_descriptor v,
+            std::set<edge_descriptor> const& sEdges,
+            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
+        ) const {
+            if( graph.degree(v) > 2 ) {
+                ign::geometry::Point vertexGeom = graph.getGeometry(v);
+                std::vector< edge_descriptor > vEdges = graph.incidentEdges(v);
+
+                for (size_t i = 0 ; i < vEdges.size() ; ++i) {
+                    if (sEdges.find(vEdges[i]) != sEdges.end()) continue;
+
+                    std::string incidentFeatId = graph.origins(vEdges[i])[0];
+
+                    ign::feature::Feature incidentFeat;
+                    _fsEdge->getFeatureById(incidentFeatId, incidentFeat);
+                    ign::geometry::LineString const& incidentFeatGeom = incidentFeat.getGeometry().asLineString();
+
+                    bool touchStart = incidentFeatGeom.startPoint().distance(vertexGeom) < 1e-5;
+                    bool touchEnd = incidentFeatGeom.endPoint().distance(vertexGeom) < 1e-5;
+
+                    if (touchStart)
+                        mmIncidentFeatures.insert(std::make_pair(incidentFeatId, detail::IncidentFeature(incidentFeatId, detail::START)));
+                    if (touchEnd)
+                        mmIncidentFeatures.insert(std::make_pair(incidentFeatId, detail::IncidentFeature(incidentFeatId, detail::END)));
+
+                    if (!touchStart && !touchEnd) {
+                        _logger->log(epg::log::ERROR, "Error in incident feature computation : "+vertexGeom.toString());
+                    }
+
+                }
+            }
+        }
+        
+
 		///
         ///
         ///
@@ -104,22 +254,31 @@ namespace app
 
 			//--
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-            // double const slimSurfaceWidth = themeParameters->getValue( ECL_SLIM_SURFACE_WIDTH ).toDouble();
-            double const slimSurfaceWidth = 50;
+			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+            double const slimSurfaceWidth = themeParameters->getValue( CLA_SURFACE_WIDTH ).toDouble();
 
-            // std::vector<std::string> vCountry;
-		    // epg::tools::StringTools::Split(_borderCode, "#", vCountry);
-
+            //--
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager);
             GraphType const& graph = graphManager.getGraph();
 
-            boost::progress_display display(graph.numFaces(), std::cout, "[ generating CL in area  % complete ]\n");
+            //--
+            std::multimap<std::string, detail::IncidentFeature> mmIncidentFeatures;
+            std::map<std::string, std::set<edge_descriptor>> mFeatMergedEdges;
 
             //--
-            std::map<std::string, std::set<edge_descriptor>> mFeatMergedEdges;
-            std::multimap<std::string, detail::IncidentFeature> mmIncidentFeatures;
-            typedef std::multimap<std::string, detail::IncidentFeature>::const_iterator  m_iterator;
+            _createCLOnOverlappingEdges(graph, mFeatMergedEdges, mmIncidentFeatures);
+
+            //TODO :
+            // créer les CL pour les edges superposés
+            // ajouter les patiences manquantes
+            // fusionner les cl (EDGE_LINK=w_national_identifier)
+
+            //WARNING: on casse l'unicité des liens w_national_identifier  !!!!
+
+            boost::progress_display display(graph.numFaces(), std::cout, "[ generating CL in area  % complete ]\n");
+
+            
 
             face_iterator fit, fend;
             for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
@@ -219,6 +378,7 @@ namespace app
 
                         //--
 						_attrMerger.mergeFeatAttribute( *fRef, *f2Merge, "#" );
+                        fRef->setAttribute(wTagName, ign::data::String(fRef->getId()+"#"+f2Merge->getId()));
 
                         //PATCH
                         // lsNew.setFillZ(0);
@@ -239,9 +399,12 @@ namespace app
             _logger->log(epg::log::DEBUG, "yeap1");
 
             // on parcours tous les features qui ont des edges induits mergés : on les split si nécessaire
+            boost::progress_display display2(mFeatMergedEdges.size(), std::cout, "[ splitting features  % complete ]\n");
+
             std::set<std::string> sIncident2delete;
             std::vector<detail::IncidentFeature> vIncident2Create;
             for( std::map<std::string, std::set<edge_descriptor>>::const_iterator mit = mFeatMergedEdges.begin() ; mit != mFeatMergedEdges.end() ; ++mit ) {
+                ++display2;
                 //DEBUG
                 _logger->log(epg::log::DEBUG, "youp1");
                 _logger->log(epg::log::DEBUG, mit->first);
@@ -353,7 +516,10 @@ namespace app
             _logger->log(epg::log::DEBUG, "yeap4");
 
             //deplacement incident edges
+            boost::progress_display display3(mmIncidentFeatures.size(), std::cout, "[ incident edges displacement  % complete ]\n");
             for( std::multimap<std::string, detail::IncidentFeature>::const_iterator mit = mmIncidentFeatures.begin() ; mit != mmIncidentFeatures.end() ; ++mit ) {
+                ++display3;
+
                 ign::feature::Feature feat;
                 _fsEdge->getFeatureById(mit->first, feat);
                 ign::geometry::LineString featGeom = feat.getGeometry().asLineString();
@@ -374,6 +540,9 @@ namespace app
 
             //DEBUG
             _logger->log(epg::log::DEBUG, "yeap5");
+
+            ign::feature::FeatureFilter mergeFilter(countryCodeName+" LIKE '%#%'");
+	        ome2::calcul::detail::ClMerger::mergeAll(_fsEdge, mergeFilter, wTagName);
 		}
 
         ///

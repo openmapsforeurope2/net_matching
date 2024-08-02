@@ -54,6 +54,7 @@ namespace calcul{
 
 		typedef app::calcul::detail::EdgeCleaningGraphManager::GraphType   GraphType;
 		typedef typename GraphType::edge_descriptor                        edge_descriptor;
+		typedef typename GraphType::edge_iterator                          edge_iterator;
 		typedef typename GraphType::oriented_edge_descriptor               oriented_edge_descriptor;
 		typedef typename GraphType::face_descriptor                        face_descriptor;
 		typedef typename GraphType::face_iterator                          face_iterator;
@@ -61,6 +62,8 @@ namespace calcul{
 		typedef typename GraphType::vertex_iterator                        vertex_iterator;
 		typedef app::calcul::detail::OriginEdgeProperties                  OriginEdgeProperties;
 		typedef typename GraphType::edges_path_const_iterator              edges_path_const_iterator;
+
+		typedef std::multimap<std::string, detail::IncidentFeature>::const_iterator  m_iterator;
 
 		/// \brief
 		static void compute(
@@ -92,6 +95,21 @@ namespace calcul{
 
 		//--
 		void _compute() const;
+
+		//--
+		void _createCLOnOverlappingEdges(
+            GraphType const& graph,
+            std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
+            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
+        ) const;
+
+		//--
+		void _addIncidentFeatures(
+            GraphType const& graph,
+            vertex_descriptor v,
+            std::set<edge_descriptor> const& sEdges,
+            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
+        ) const;
 
 		//--
 		int _getIndex(

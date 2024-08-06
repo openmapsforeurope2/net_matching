@@ -109,7 +109,7 @@ namespace app
             app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
 			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
 
-            boost::progress_display display(graph.numFaces(), std::cout, "[ generating CL on overlapping edges % complete ]\n");
+            boost::progress_display display(graph.numEdges(), std::cout, "[ generating CL on overlapping edges % complete ]\n");
 
             edge_iterator eit, eend;
             for (graph.edges(eit, eend); eit != eend; ++eit)
@@ -288,12 +288,11 @@ namespace app
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
                 //DEBUG
-                // if( faceGeom.intersects(ign::geometry::Point(4032840.73,3014651.08))) {
+                // if( faceGeom.intersects(ign::geometry::Point(3986993.71,2956179.96))) {
                 //     bool test = true;
-                // } else if( faceGeom.intersects(ign::geometry::Point(4032843.16,3014649.58))) {
+                // } 
+                // if( faceGeom.intersects(ign::geometry::Point(3986976.57,2956178.37))) {
                 //     bool test = true;
-                // } else {
-                //     continue;
                 // }
 
 				std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;

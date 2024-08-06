@@ -241,16 +241,17 @@ namespace app
             {
                 ++display;
                 ign::feature::Feature const& fCl = itCl->next();
-                ign::geometry::LineString const& clGeom = fCl.getGeometry().asLineString();
+                // ign::geometry::LineString const& clGeom = fCl.getGeometry().asLineString();
                 std::string const linkedFeatureId = fCl.getAttribute(linkedFeatureIdName).toString();
                 std::string const countryCode = fCl.getAttribute(countryCodeName).toString();
 
                 //DEBUG
-                std::string clId = fCl.getId();
+                // std::string clId = fCl.getId();
 
                 // if (_verbose) _logger->log(epg::log::DEBUG, fCl.getId());
 
                 if ( sTreatedCl.find(fCl.getId()) != sTreatedCl.end() ) continue;
+                sTreatedCl.insert(fCl.getId());
 
                 //DEBUG
                 // std::string idDebug = fCl.getId();
@@ -280,9 +281,10 @@ namespace app
                 // }
 
                 //fusionner les cl adjacentes avec le même edgeLink, récuperer le géométrie fusionnée et lister les cl traitées pour ne pas les traiter de nouveau
-                ign::geometry::LineString mergedClGeom = ome2::calcul::detail::ClMerger::merge(_fsCl, fCl, foundFeatureId.second, sTreatedCl);
-                
-                std::pair<bool, ign::feature::Feature> foundEdge = _getNearestChild(mergedClGeom, foundFeatureId.second, mParentChilds);
+                std::pair<bool, ign::geometry::LineString> foundMergedClGeom = ome2::calcul::detail::ClMerger::merge(_fsCl, fCl, foundFeatureId.second, sTreatedCl);
+                ign::geometry::LineString const * mergedClGeom = foundMergedClGeom.first ? &foundMergedClGeom.second : &fCl.getGeometry().asLineString();
+
+                std::pair<bool, ign::feature::Feature> foundEdge = _getNearestChild(*mergedClGeom, foundFeatureId.second, mParentChilds);
                 std::string edgeId = foundEdge.second.getId();
                 if (!foundEdge.first)
                 {
@@ -296,10 +298,10 @@ namespace app
 
                 // peut-on connecter l'edge aux extremités du connecting edge ?
                 std::vector<double> vDist;
-                vDist.push_back(mergedClGeom.startPoint().distance(edgeGeom.startPoint()));
-                vDist.push_back(mergedClGeom.startPoint().distance(edgeGeom.endPoint()));
-                vDist.push_back(mergedClGeom.endPoint().distance(edgeGeom.startPoint()));
-                vDist.push_back(mergedClGeom.endPoint().distance(edgeGeom.endPoint()));
+                vDist.push_back(mergedClGeom->startPoint().distance(edgeGeom.startPoint()));
+                vDist.push_back(mergedClGeom->startPoint().distance(edgeGeom.endPoint()));
+                vDist.push_back(mergedClGeom->endPoint().distance(edgeGeom.startPoint()));
+                vDist.push_back(mergedClGeom->endPoint().distance(edgeGeom.endPoint()));
 
                 size_t minId = 0;
                 for (size_t i = 1; i < vDist.size(); ++i)
@@ -320,7 +322,7 @@ namespace app
                     }
                     else
                     {
-                        epg::tools::geometry::projectZ(edgeGeom, mergedClGeom.startPoint(), startPoint);
+                        epg::tools::geometry::projectZ(edgeGeom, mergedClGeom->startPoint(), startPoint);
                         if (startPoint.distance((minId == 0) ? edgeGeom.startPoint() : edgeGeom.endPoint()) <= snapDistance) {
                             startPoint = (minId == 0) ? edgeGeom.startPoint() : edgeGeom.endPoint();
                             endingPoint = startPoint;
@@ -328,7 +330,7 @@ namespace app
                             mpCuttingPoints.addGeometry(startPoint);
                         }
                     }
-                    _addDisplacement(startPoint, mergedClGeom.startPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
+                    _addDisplacement(startPoint, mergedClGeom->startPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
 
                     // size_t minId2 = vDist[2] < vDist[3] ? 2 : 3;
                     size_t minId2 = minId == 0  ? 3 : 2;
@@ -339,7 +341,7 @@ namespace app
                     }
                     else
                     {
-                        epg::tools::geometry::projectZ(edgeGeom, mergedClGeom.endPoint(), startPoint);
+                        epg::tools::geometry::projectZ(edgeGeom, mergedClGeom->endPoint(), startPoint);
                         if (startPoint.distance((minId2 == 2) ? edgeGeom.startPoint() : edgeGeom.endPoint()) <= snapDistance) {
                             startPoint = (minId2 == 2) ? edgeGeom.startPoint() : edgeGeom.endPoint();
                             endingPoint = startPoint;
@@ -347,7 +349,7 @@ namespace app
                             mpCuttingPoints.addGeometry(startPoint);
                         }
                     }
-                    _addDisplacement(startPoint, mergedClGeom.endPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
+                    _addDisplacement(startPoint, mergedClGeom->endPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
                 }
                 else
                 {
@@ -359,7 +361,7 @@ namespace app
                     }
                     else
                     {
-                        epg::tools::geometry::projectZ(edgeGeom, mergedClGeom.endPoint(), startPoint);
+                        epg::tools::geometry::projectZ(edgeGeom, mergedClGeom->endPoint(), startPoint);
                         if (startPoint.distance((minId == 2) ? edgeGeom.startPoint() : edgeGeom.endPoint()) <= snapDistance) {
                             startPoint = (minId == 2) ? edgeGeom.startPoint() : edgeGeom.endPoint();
                             endingPoint = startPoint;
@@ -367,7 +369,7 @@ namespace app
                             mpCuttingPoints.addGeometry(startPoint);
                         }
                     }
-                    _addDisplacement(startPoint, mergedClGeom.endPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
+                    _addDisplacement(startPoint, mergedClGeom->endPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
 
                     // size_t minId2 = vDist[0] < vDist[1] ? 0 : 1;
                     size_t minId2 = minId == 2  ? 1 : 0;
@@ -378,7 +380,7 @@ namespace app
                     }
                     else
                     {
-                        epg::tools::geometry::projectZ(edgeGeom, mergedClGeom.startPoint(), startPoint);
+                        epg::tools::geometry::projectZ(edgeGeom, mergedClGeom->startPoint(), startPoint);
                         if (startPoint.distance((minId2 == 0) ? edgeGeom.startPoint() : edgeGeom.endPoint()) <= snapDistance) {
                             startPoint = (minId2 == 0) ? edgeGeom.startPoint() : edgeGeom.endPoint();
                             endingPoint = startPoint;
@@ -386,7 +388,7 @@ namespace app
                             mpCuttingPoints.addGeometry(startPoint);
                         }
                     }
-                    _addDisplacement(startPoint, mergedClGeom.startPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
+                    _addDisplacement(startPoint, mergedClGeom->startPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
                 }
 
                 std::vector< ign::geometry::LineString > vNewGeom;

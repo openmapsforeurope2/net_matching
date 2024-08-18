@@ -14,7 +14,6 @@
 #include <epg/tools/TimeTools.h>
 #include <epg/sql/tools/numFeatures.h>
 #include <epg/tools/geometry/project.h>
-#include <epg/graph/tools/convertPathToLineString.h>
 #include <epg/graph/tools/reverse.h>
 
 //SOCLE
@@ -617,7 +616,7 @@ namespace app
                 }
 
                 if (path.size() > 1) {
-                    ign::geometry::LineString pathGeom = epg::graph::tools::convertPathToLineString(graph, path);
+                    ign::geometry::LineString pathGeom = _convertPathToLineString(graph, "", path);
 
                     ign::feature::Feature featRef;
                     _fsEdge->getFeatureById(graph.origins(path.begin()->descriptor)[0], featRef);
@@ -698,7 +697,7 @@ namespace app
             edge_descriptor e
         ) const {
             std::vector<std::string> vOrigins = graph.origins(e);
-            if( vOrigins.size() == 1 ) return vOrigins.front();
+            if( vOrigins.size() == 1 || country_ == "" ) return vOrigins.front();
 
             epg::Context *context = epg::ContextS::getInstance();
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();

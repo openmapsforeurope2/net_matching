@@ -557,8 +557,7 @@ namespace app
             //patience
             boost::progress_display display( graph.numEdges() , std::cout, "[ merging CL % complete ]\n") ;
 
-            std::set< edge_descriptor > sVisitedEdges;
-            std::set< edge_descriptor > sEdges2delete;
+            std::set< edge_descriptor > sMergedEdges;
 
             edge_iterator eit, eend ;
             for( graph.edges( eit, eend ) ; eit != eend ; ++eit )
@@ -566,11 +565,9 @@ namespace app
                 ++display;
                 if( !graphManager.isCl(*eit)) continue;
                 if( graph.target(*eit) == graph.source(*eit) ) continue;
-                if( sVisitedEdges.find(*eit) != sVisitedEdges.end() ) continue ;
+                if( sMergedEdges.find(*eit) != sMergedEdges.end() ) continue ;
 
                 edge_descriptor edgePivot = *eit ;
-
-                sVisitedEdges.insert( *eit );
 
                 oriented_edge_descriptor tPivot[] = { 
                     oriented_edge_descriptor( *eit, ign::graph::DIRECT ), 
@@ -624,10 +621,11 @@ namespace app
                     _fsEdge->createFeature(featRef);
 
                     for (edges_path_const_iterator pit = path.begin() ; pit != path.end() ; ++pit)
-                        sEdges2delete.insert(pit->descriptor);
+                        sMergedEdges.insert(pit->descriptor);
+                        
                 }
             }
-            for( std::set<edge_descriptor>::const_iterator sit = sEdges2delete.begin() ; sit != sEdges2delete.end() ; ++sit ) {
+            for( std::set<edge_descriptor>::const_iterator sit = sMergedEdges.begin() ; sit != sMergedEdges.end() ; ++sit ) {
                 _fsEdge->deleteFeature(graph.origins(*sit)[0]);
             }
         }

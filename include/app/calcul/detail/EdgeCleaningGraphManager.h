@@ -17,7 +17,10 @@ namespace detail{
 
     	struct OriginEdgeProperties {
         /// \brief
-        OriginEdgeProperties(std::string country_, bool isCl_ = false):isCl(isCl_), country(country_){};
+        OriginEdgeProperties(std::string country_, bool isCl_ = false):isCl(isCl_), country(country_), wTag(""){};
+
+        /// \brief
+        OriginEdgeProperties(std::string country_, std::string wTag_, bool isCl_ = false):isCl(isCl_), country(country_), wTag(wTag_){};
 
         /// \brief
         ~OriginEdgeProperties(){};
@@ -25,6 +28,7 @@ namespace detail{
         //--
         bool		  isCl;
         std::string   country;
+        std::string   wTag;
     };
 
     class EdgeCleaningGraphManager {

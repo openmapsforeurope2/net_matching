@@ -13,7 +13,8 @@
 #include <epg/tools/TimeTools.h>
 #include <epg/sql/tools/numFeatures.h>
 #include <epg/tools/geometry/project.h>
-#include <ome2/calcul/detail/ClMerger.h>
+#include <epg/graph/tools/convertPathToLineString.h>
+#include <epg/graph/tools/reverse.h>
 
 //SOCLE
 #include <ign/geometry/algorithm/HausdorffDistanceOp.h>
@@ -540,9 +541,96 @@ namespace app
             //DEBUG
             _logger->log(epg::log::DEBUG, "yeap5");
 
-            ign::feature::FeatureFilter mergeFilter(countryCodeName+" LIKE '%#%'");
-	        ome2::calcul::detail::ClMerger::mergeAll(_fsEdge, mergeFilter, wTagName);
+            _mergeByWTag();
 		}
+
+        ///
+        ///
+        ///
+        void CLInAreaGenerationOp::_mergeByWTag() const {
+            //--
+            detail::EdgeCleaningGraphManager graphManager;
+            ign::feature::FeatureFilter filter;
+            _loadGraph(graphManager, filter, false);
+            GraphType const& graph = graphManager.getGraph();
+
+            //patience
+            boost::progress_display display( graph.numEdges() , std::cout, "[ merging CL % complete ]\n") ;
+
+            std::set< edge_descriptor > sVisitedEdges;
+            std::set< edge_descriptor > sEdges2delete;
+
+            edge_iterator eit, eend ;
+            for( graph.edges( eit, eend ) ; eit != eend ; ++eit )
+            {
+                ++display;
+                if( !graphManager.isCl(*eit)) continue;
+                if( graph.target(*eit) == graph.source(*eit) ) continue;
+                if( sVisitedEdges.find(*eit) != sVisitedEdges.end() ) continue ;
+
+                edge_descriptor edgePivot = *eit ;
+
+                sVisitedEdges.insert( *eit );
+
+                oriented_edge_descriptor tPivot[] = { 
+                    oriented_edge_descriptor( *eit, ign::graph::DIRECT ), 
+                    oriented_edge_descriptor( *eit, ign::graph::REVERSE ) 
+                } ;
+
+                //liste des arcs a fusionner
+                edges_path path;
+                path.push_back(tPivot[0]);
+                
+                for( size_t  i = 0 ; i < 2 ; ++i)
+                {
+                    oriented_edge_descriptor nextEdge = tPivot[i] ;
+
+                    vertex_descriptor vTarget = graph.target( nextEdge );
+                    vertex_descriptor vStart = graph.source( nextEdge );
+
+                    if( graph.degree( vTarget ) != 2 ) continue ;
+
+                    bool isLoop = false;
+                            
+                    while( true ) {
+
+                        if( vTarget == vStart ) {
+                            isLoop = true;
+                            break;
+                        }
+
+                        std::vector< oriented_edge_descriptor > vIncidentEdges ;
+                        graph.incidentEdges( vTarget, vIncidentEdges);
+                        nextEdge = (vIncidentEdges.front().descriptor == nextEdge.descriptor )? vIncidentEdges.back() : vIncidentEdges.front() ;
+
+                        if( i == 0 )
+                            path.push_back( nextEdge );
+                        else
+                            path.push_front( epg::graph::tools::reverse( nextEdge ) );
+
+					    vTarget = graph.target( nextEdge );
+
+					    if( graph.degree( vTarget ) != 2 ) break;
+                    }
+                    if (isLoop) break;
+                }
+
+                if (path.size() > 1) {
+                    ign::geometry::LineString pathGeom = epg::graph::tools::convertPathToLineString(graph, path);
+
+                    ign::feature::Feature featRef;
+                    _fsEdge->getFeatureById(graph.origins(path.begin()->descriptor)[0], featRef);
+                    featRef.setGeometry(pathGeom);
+                    _fsEdge->createFeature(featRef);
+
+                    for (edges_path_const_iterator pit = path.begin() ; pit != path.end() ; ++pit)
+                        sEdges2delete.insert(pit->descriptor);
+                }
+            }
+            for( std::set<edge_descriptor>::const_iterator sit = sEdges2delete.begin() ; sit != sEdges2delete.end() ; ++sit ) {
+                _fsEdge->deleteFeature(graph.origins(*sit)[0]);
+            }
+        }
 
         ///
         ///
@@ -735,14 +823,20 @@ namespace app
         ///
         void CLInAreaGenerationOp::_loadGraph(
             app::calcul::detail::EdgeCleaningGraphManager & graphManager, 
-            ign::feature::FeatureFilter filter
+            ign::feature::FeatureFilter filter,
+            bool planarize
             ) const 
         {
             graphManager.clear();
 
+            //--
             epg::Context *context = epg::ContextS::getInstance();
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
             std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
+
+            //--
+            app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
+			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
 
             // chargement des edges
             int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, filter);
@@ -758,10 +852,17 @@ namespace app
                 std::string country = fEdge.getAttribute(countryCodeName).toString();
                 bool isCl = country.find("#") != std::string::npos;
 
-                graphManager.addEdge(ls, edgeId, OriginEdgeProperties(country, isCl));
+                if (planarize) {
+                    graphManager.addEdge(ls, edgeId, OriginEdgeProperties(country, isCl));
+                } else {
+                    std::string wTag = fEdge.getAttribute(wTagName).toString();
+                    graphManager.addEdgeSimple(ls, edgeId, OriginEdgeProperties(country, wTag, isCl));
+                }
             }
-			graphManager.planarize();
-			graphManager.createFaces();
+            if (planarize) {
+                graphManager.planarize();
+                graphManager.createFaces();
+            }
         }
 
 		///

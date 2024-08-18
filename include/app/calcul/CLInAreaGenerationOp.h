@@ -61,6 +61,7 @@ namespace calcul{
 		typedef typename GraphType::vertex_descriptor                      vertex_descriptor;
 		typedef typename GraphType::vertex_iterator                        vertex_iterator;
 		typedef app::calcul::detail::OriginEdgeProperties                  OriginEdgeProperties;
+		typedef typename GraphType::edges_path                             edges_path;
 		typedef typename GraphType::edges_path_const_iterator              edges_path_const_iterator;
 
 		typedef std::multimap<std::string, detail::IncidentFeature>::const_iterator  m_iterator;
@@ -120,8 +121,12 @@ namespace calcul{
 		//--
 		void _loadGraph(
 			app::calcul::detail::EdgeCleaningGraphManager & graphManager,
-			ign::feature::FeatureFilter filter = ign::feature::FeatureFilter()
+			ign::feature::FeatureFilter filter = ign::feature::FeatureFilter(),
+			bool planarize = true
 		) const;
+
+		//--
+		void _mergeByWTag() const;
 
 		//--
 		bool _pathsGeomAreEqual(

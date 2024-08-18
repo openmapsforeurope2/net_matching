@@ -3,6 +3,7 @@
 //APP
 #include <app/params/ThemeParameters.h>
 #include <app/geometry/tools/LengthIndexedLineString.h>
+#include <app/calcul/detail/graph/concept/EdgeCleaningGraphSpecializations.h>
 
 //BOOST
 #include <boost/timer.hpp>

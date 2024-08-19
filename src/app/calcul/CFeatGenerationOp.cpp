@@ -388,10 +388,9 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 	_verbose = verbose;
 
 	///recuperation de la liste des attributs à concatener, de w et json dans la fusion des attributs
-	std::string listAttr2concatName = themeParameters->getValue(LIST_ATTR_TO_CONCAT).toString();
 	std::string listAttrWName = themeParameters->getValue(LIST_ATTR_W).toString();
 	std::string listAttrJsonName = themeParameters->getValue(LIST_ATTR_JSON).toString();
-	_attrMergerOnBorder.setLists(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
+	_attrMergerOnBorder.setLists( listAttrWName, listAttrJsonName, "/");
 	
 
 	std::string listValueFormwayBigDist2merge = themeParameters->getValue(CP_VALUE_FORMWAY_BIGDIST2MERGE).toString();

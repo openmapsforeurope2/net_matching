@@ -82,10 +82,9 @@ namespace app
             // _shapeLogger->addShape("ec_projected_antennas", epg::log::ShapeLogger::LINESTRING);
 
             //--
-            std::string listAttr2concatName = themeParameters->getValue(LIST_ATTR_TO_CONCAT).toString();
             std::string listAttrWName = themeParameters->getValue(LIST_ATTR_W).toString();
             std::string listAttrJsonName = themeParameters->getValue(LIST_ATTR_JSON).toString();
-            _attrMerger.setLists(listAttr2concatName, listAttrWName, listAttrJsonName, "/");
+            _attrMerger.setLists( listAttrWName, listAttrJsonName, "/");
 
             //--
             _logger->log(epg::log::INFO, "[END] initialization: " + epg::tools::TimeTools::getTime());

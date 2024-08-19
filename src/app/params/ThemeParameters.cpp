@@ -56,7 +56,6 @@ namespace params{
 		_initParameter( CL_SNAP_PROJ_CL_2_EDGE_DIST, "CL_SNAP_PROJ_CL_2_EDGE_DIST");
 		_initParameter( CL_CL_2_MERGE_MIN_LENGTH, "CL_CL_2_MERGE_MIN_LENGTH");
 
-		_initParameter( LIST_ATTR_TO_CONCAT, "LIST_ATTR_TO_CONCAT"); 
 		_initParameter( LIST_ATTR_JSON, "LIST_ATTR_JSON");
 		_initParameter( LIST_ATTR_W, "LIST_ATTR_W");
 		_initParameter( SQL_FILTER_EDGES_2_GENERATE_CF, "SQL_FILTER_EDGES_2_GENERATE_CF");

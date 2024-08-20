@@ -64,6 +64,16 @@ namespace tools{
 		stepSuite.addStep( epg::step::factoryNew< EdgeCleaning2 >());
 	}
 
+	template<  typename StepSuiteType >
+	void initStepsRa(StepSuiteType& stepSuite)
+	{
+		stepSuite.addStep( epg::step::factoryNew< GenerateConnectingPoint >());
+		stepSuite.addStep( epg::step::factoryNew< ConnectionConnectingPoint >());
+		stepSuite.addStep( epg::step::factoryNew< EdgeCleaning1 >());
+		stepSuite.addStep( epg::step::factoryNew< EdgeConnection >());
+		stepSuite.addStep( epg::step::factoryNew< EdgeCleaning2 >());
+	}
+
 }
 }
 }

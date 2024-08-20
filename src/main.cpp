@@ -29,10 +29,10 @@ int main(int argc, char *argv[])
     bool            verbose = true;
 
 
-    epg::step::StepSuite< app::params::ThemeParametersS > stepSuiteTn, stepSuiteHy;
+    epg::step::StepSuite< app::params::ThemeParametersS > stepSuiteTn, stepSuiteHy, stepSuiteRa;
 	app::step::tools::initStepsHy(stepSuiteHy);
 	app::step::tools::initStepsTn(stepSuiteTn);
-
+	app::step::tools::initStepsRa(stepSuiteRa);
 
 
 	std::ostringstream OperatorDetail;
@@ -40,7 +40,9 @@ int main(int argc, char *argv[])
 		<< "TN:" << std::endl
 		<< stepSuiteTn.toString() 
 		<< "HY:" << std::endl
-		<< stepSuiteHy.toString();
+		<< stepSuiteHy.toString()
+        << "RA:" << std::endl
+		<< stepSuiteRa.toString();
 
 
     po::options_description desc("Allowed options");
@@ -123,6 +125,8 @@ int main(int argc, char *argv[])
 			stepSuiteHy.run(stepCode, verbose);
 		else if (theme == "tn")
 			stepSuiteTn.run(stepCode, verbose);
+        else if (theme == "ra")
+			stepSuiteRa.run(stepCode, verbose);
 		//stepSuite.run(stepCode, verbose);
 
 		logger->log(epg::log::INFO, "[END EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());

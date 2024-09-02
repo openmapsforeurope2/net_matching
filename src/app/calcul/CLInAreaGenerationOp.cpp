@@ -288,7 +288,7 @@ namespace app
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
                 //DEBUG
-                // if( faceGeom.intersects(ign::geometry::Point(3986993.71,2956179.96))) {
+                // if( faceGeom.intersects(ign::geometry::Point(4018216.9,2944734.1))) {
                 //     bool test = true;
                 // } 
                 // if( faceGeom.intersects(ign::geometry::Point(3986976.57,2956178.37))) {
@@ -957,6 +957,38 @@ namespace app
             return sHasConnection;
         }
 
+        ///
+        ///
+        ///
+        void CLInAreaGenerationOp::_getExteriorRingEdges(
+            GraphType const& graph, 
+            face_descriptor fd, 
+            std::vector<oriented_edge_descriptor> & vEdges
+        ) const {
+            oriented_edge_descriptor startEdge = graph.getIncidentEdge( fd );
+            oriented_edge_descriptor currentEdge = startEdge;
+            vertex_descriptor degeneratedPartStart = detail::EdgeCleaningGraphManager::GraphType::nullVertex();
+            do{
+                oriented_edge_descriptor nextEdge = ign::geometry::graph::detail::nextEdge( currentEdge, graph );
+
+                if ( degeneratedPartStart != detail::EdgeCleaningGraphManager::GraphType::nullVertex() ) {
+                    if ( graph.source(currentEdge) == degeneratedPartStart ) {
+                        degeneratedPartStart = detail::EdgeCleaningGraphManager::GraphType::nullVertex();
+                    } else {
+                        currentEdge = nextEdge;
+                        continue;
+                    }
+                }
+
+                if (  graph[ currentEdge.descriptor ].leftFace == graph[ currentEdge.descriptor ].rightFace ) {
+                    degeneratedPartStart = graph.source(currentEdge);
+                } else {
+                    vEdges.push_back(currentEdge);
+                }
+                currentEdge = nextEdge;
+            }while( currentEdge != startEdge );
+        }
+
 		///
         ///
         ///
@@ -967,35 +999,21 @@ namespace app
         ) const {
             GraphType const& graph = graphManager.getGraph();
 
-            oriented_edge_descriptor startEdge = graph.getIncidentEdge( fd );
-            oriented_edge_descriptor currentEdge = startEdge;
-            std::string currentCountry = graphManager.getCountry(currentEdge.descriptor);
+            std::vector<oriented_edge_descriptor> vEdges;
+            _getExteriorRingEdges(graph, fd, vEdges);
+
+            std::string currentCountry = graphManager.getCountry(vEdges.begin()->descriptor);
             vpCountryEdges.push_back(std::make_pair(currentCountry, std::list<oriented_edge_descriptor>()));
 
-            do{
-                // on ne doit pas avoir de cl dans la boucle
-                // if (graphManager.isCl(currentEdge.descriptor)) {
-                //     _logger->log(epg::log::WARN, "Loop contains a CL [cl id] "+graph.origins(currentEdge.descriptor)[0]);
-                //     return false;
-                // }
-
-                //DEBUG
-                // ign::geometry::LineString lsTemp = graph.getGeometry(currentEdge);
-
-                vpCountryEdges.back().second.push_back(currentEdge);
-
-                oriented_edge_descriptor nextEdge = ign::geometry::graph::detail::nextEdge( currentEdge, graph );
-                std::string nextCountry = graphManager.getCountry(nextEdge.descriptor);
-
-                if (graph.degree(graph.target(currentEdge)) > 2 || currentCountry != nextCountry ) {
-                    if (nextEdge != startEdge)
+            for ( size_t i = 0 ; i < vEdges.size() ; ++i ) {
+                vpCountryEdges.back().second.push_back(vEdges[i]);
+                if ( i < vEdges.size() - 1 ) {
+                    std::string nextCountry = graphManager.getCountry(vEdges[i+1].descriptor);
+                    if ( graph.degree(graph.target(vEdges[i])) > 2 || currentCountry != nextCountry ) {
                         vpCountryEdges.push_back(std::make_pair(nextCountry, std::list<oriented_edge_descriptor>()));
-                    if ( currentCountry != nextCountry ) //log a garder ?
-                        _logger->log(epg::log::WARN, "Mixed country on path [edge id] "+graph.origins( currentEdge.descriptor)[0]);
+                    }
                 }
-                currentCountry = nextCountry;
-                currentEdge = nextEdge;
-            }while( currentEdge != startEdge );
+            }
 
             if (vpCountryEdges.size() > 1 && vpCountryEdges.front().first == vpCountryEdges.back().first) {
                 vertex_descriptor v = graph.target(vpCountryEdges.back().second.back());
@@ -1008,7 +1026,7 @@ namespace app
             }
 
             if ( vpCountryEdges.size() == 0 ) {
-                _logger->log(epg::log::WARN, "No path found path [edge id] "+graph.origins(startEdge.descriptor)[0]);
+                _logger->log(epg::log::WARN, "No path found path [edge id] "+graph.origins(vEdges.begin()->descriptor)[0]);
                 return false;
             }
 

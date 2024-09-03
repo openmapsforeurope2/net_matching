@@ -157,10 +157,16 @@ namespace calcul{
             std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges
         ) const;
 
-		void _getExteriorRingEdges(
+		//--
+		std::list<app::calcul::detail::EdgeCleaningGraphManager::GraphType::oriented_edge_descriptor> _getExteriorRingEdges(
             GraphType const& graph, 
-            face_descriptor fd, 
-            std::vector<oriented_edge_descriptor> & vEdges
+            face_descriptor fd
+        ) const;
+
+		//--
+		std::vector<std::list<app::calcul::detail::EdgeCleaningGraphManager::GraphType::oriented_edge_descriptor>> _getRings(
+            GraphType const& graph, 
+            face_descriptor fd
         ) const;
 
 		//--

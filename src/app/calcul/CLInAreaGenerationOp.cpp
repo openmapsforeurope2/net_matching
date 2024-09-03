@@ -18,6 +18,7 @@
 
 //SOCLE
 #include <ign/geometry/algorithm/HausdorffDistanceOp.h>
+#include <ign/geometry/algorithm/AreaOp.h>
 
 
 namespace app
@@ -288,7 +289,7 @@ namespace app
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
                 //DEBUG
-                // if( faceGeom.intersects(ign::geometry::Point(4018216.9,2944734.1))) {
+                // if( faceGeom.intersects(ign::geometry::Point(4046057.8199200002,2939648.5710499999))) {
                 //     bool test = true;
                 // } 
                 // if( faceGeom.intersects(ign::geometry::Point(3986976.57,2956178.37))) {
@@ -960,33 +961,66 @@ namespace app
         ///
         ///
         ///
-        void CLInAreaGenerationOp::_getExteriorRingEdges(
+        std::list<app::calcul::detail::EdgeCleaningGraphManager::GraphType::oriented_edge_descriptor> CLInAreaGenerationOp::_getExteriorRingEdges(
             GraphType const& graph, 
-            face_descriptor fd, 
-            std::vector<oriented_edge_descriptor> & vEdges
+            face_descriptor fd
         ) const {
+            std::vector<std::list<oriented_edge_descriptor>> vvRings = _getRings(graph, fd);
+
+            if(vvRings.size() == 1) return vvRings.front();
+
+            double maxArea = 0;
+            size_t maxRing = -1;
+            for (size_t i = 0 ; i < vvRings.size() ; ++i) {
+
+                ign::geometry::LineString ringGeom = _convertPathToLineString(graph, "", vvRings[i]);
+                double area = ign::geometry::algorithm::AreaOp::ComputeAlgebraicArea2d( ringGeom );
+
+                if ( area < maxArea ) {
+                    maxArea = area;
+                    maxRing = i;
+                }
+            }
+            return vvRings[maxRing];
+        }
+
+        ///
+        ///
+        ///
+        std::vector<std::list<app::calcul::detail::EdgeCleaningGraphManager::GraphType::oriented_edge_descriptor>> CLInAreaGenerationOp::_getRings(
+            GraphType const& graph, 
+            face_descriptor fd
+        ) const {
+            std::vector<std::list<oriented_edge_descriptor>> vvRings;
+
             oriented_edge_descriptor startEdge = graph.getIncidentEdge( fd );
             oriented_edge_descriptor currentEdge = startEdge;
-            vertex_descriptor degeneratedPartStart = detail::EdgeCleaningGraphManager::GraphType::nullVertex();
+            bool startIsDegenerate = graph[ startEdge.descriptor ].leftFace == graph[ startEdge.descriptor ].rightFace;
+            bool previousIsDegenerated = true;
+
             do{
-                oriented_edge_descriptor nextEdge = ign::geometry::graph::detail::nextEdge( currentEdge, graph );
+                bool isDegenerate = graph[ currentEdge.descriptor ].leftFace == graph[ currentEdge.descriptor ].rightFace;
 
-                if ( degeneratedPartStart != detail::EdgeCleaningGraphManager::GraphType::nullVertex() ) {
-                    if ( graph.source(currentEdge) == degeneratedPartStart ) {
-                        degeneratedPartStart = detail::EdgeCleaningGraphManager::GraphType::nullVertex();
-                    } else {
-                        currentEdge = nextEdge;
-                        continue;
-                    }
-                }
-
-                if (  graph[ currentEdge.descriptor ].leftFace == graph[ currentEdge.descriptor ].rightFace ) {
-                    degeneratedPartStart = graph.source(currentEdge);
+                if ( isDegenerate ) {
+                    previousIsDegenerated = true;
                 } else {
-                    vEdges.push_back(currentEdge);
+                    if ( previousIsDegenerated )
+                        vvRings.push_back(std::list<oriented_edge_descriptor>());
+                    vvRings.back().push_back(currentEdge);
+                    previousIsDegenerated = false;
                 }
-                currentEdge = nextEdge;
+
+                 currentEdge = ign::geometry::graph::detail::nextEdge( currentEdge, graph );
             }while( currentEdge != startEdge );
+            if (!previousIsDegenerated && !startIsDegenerate && vvRings.size() > 1)  {
+                //fusion
+                for( std::list<oriented_edge_descriptor>::const_iterator lit = vvRings.front().begin() ; lit != vvRings.front().end() ; ++lit) {
+                    vvRings.back().push_back(*lit);
+                }
+                vvRings.erase(vvRings.begin());
+            }
+
+            return vvRings;
         }
 
 		///
@@ -999,20 +1033,29 @@ namespace app
         ) const {
             GraphType const& graph = graphManager.getGraph();
 
-            std::vector<oriented_edge_descriptor> vEdges;
-            _getExteriorRingEdges(graph, fd, vEdges);
+            std::list<oriented_edge_descriptor> lEdges = _getExteriorRingEdges(graph, fd);
 
-            std::string currentCountry = graphManager.getCountry(vEdges.begin()->descriptor);
+            //DEBUG
+            if (lEdges.size() == 0) {
+                return false;
+            }
+
+            std::string currentCountry = graphManager.getCountry(lEdges.begin()->descriptor);
             vpCountryEdges.push_back(std::make_pair(currentCountry, std::list<oriented_edge_descriptor>()));
 
-            for ( size_t i = 0 ; i < vEdges.size() ; ++i ) {
-                vpCountryEdges.back().second.push_back(vEdges[i]);
-                if ( i < vEdges.size() - 1 ) {
-                    std::string nextCountry = graphManager.getCountry(vEdges[i+1].descriptor);
-                    if ( graph.degree(graph.target(vEdges[i])) > 2 || currentCountry != nextCountry ) {
+            std::list<oriented_edge_descriptor>::const_iterator lit = lEdges.begin();
+            std::list<oriented_edge_descriptor>::const_iterator lit_previous = lit;
+            for ( ++lit ;  ; ++lit ) {
+                vpCountryEdges.back().second.push_back(*lit_previous);
+                if ( lit != lEdges.end() ) {
+                    std::string nextCountry = graphManager.getCountry(lit->descriptor);
+                    if ( graph.degree(graph.target(*lit_previous)) > 2 || currentCountry != nextCountry ) {
                         vpCountryEdges.push_back(std::make_pair(nextCountry, std::list<oriented_edge_descriptor>()));
                     }
+                } else {
+                    break;
                 }
+                lit_previous = lit;
             }
 
             if (vpCountryEdges.size() > 1 && vpCountryEdges.front().first == vpCountryEdges.back().first) {
@@ -1026,7 +1069,7 @@ namespace app
             }
 
             if ( vpCountryEdges.size() == 0 ) {
-                _logger->log(epg::log::WARN, "No path found path [edge id] "+graph.origins(vEdges.begin()->descriptor)[0]);
+                _logger->log(epg::log::WARN, "No path found path [edge id] "+graph.origins(lEdges.begin()->descriptor)[0]);
                 return false;
             }
 

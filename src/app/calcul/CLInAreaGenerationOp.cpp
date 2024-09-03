@@ -19,6 +19,7 @@
 //SOCLE
 #include <ign/geometry/algorithm/HausdorffDistanceOp.h>
 #include <ign/geometry/algorithm/AreaOp.h>
+#include <ign/geometry/graph/detail/NextEdge.h>
 
 
 namespace app
@@ -289,9 +290,9 @@ namespace app
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
                 //DEBUG
-                // if( faceGeom.intersects(ign::geometry::Point(4046057.8199200002,2939648.5710499999))) {
-                //     bool test = true;
-                // } 
+                if( faceGeom.intersects(ign::geometry::Point(4027250.2,2939728.9))) {
+                    bool test = true;
+                } 
                 // if( faceGeom.intersects(ign::geometry::Point(3986976.57,2956178.37))) {
                 //     bool test = true;
                 // }
@@ -965,62 +966,86 @@ namespace app
             GraphType const& graph, 
             face_descriptor fd
         ) const {
-            std::vector<std::list<oriented_edge_descriptor>> vvRings = _getRings(graph, fd);
-
-            if(vvRings.size() == 1) return vvRings.front();
-
+            std::list<oriented_edge_descriptor> maxRing;
             double maxArea = 0;
-            size_t maxRing = -1;
-            for (size_t i = 0 ; i < vvRings.size() ; ++i) {
 
-                ign::geometry::LineString ringGeom = _convertPathToLineString(graph, "", vvRings[i]);
-                double area = ign::geometry::algorithm::AreaOp::ComputeAlgebraicArea2d( ringGeom );
+            std::list< oriented_edge_descriptor > lEdges;
 
-                if ( area < maxArea ) {
+            oriented_edge_descriptor startEdge = graph.incidentEdge(fd);
+            oriented_edge_descriptor nextEd = startEdge;
+
+            do 
+            {
+                //arc degenere
+                if ( graph[ nextEd.descriptor ].leftFace == graph[ nextEd.descriptor ].rightFace )
+                {
+                    nextEd = ign::geometry::graph::detail::nextEdge( nextEd, graph );
+                    continue;
+                }
+
+                //on ajoute l arc
+                lEdges.push_back( nextEd );
+
+                //on cherche dans la pile si la cible de cet arc a deja ete ajoute
+                //si oui, on depile en extrayant la boucle trouvee
+                vertex_descriptor vTarget = graph.target( nextEd );
+                if( graph.degree( vTarget ) < 3 && vTarget != graph.source( startEdge ) ) //optimisation
+                {
+                    nextEd = ign::geometry::graph::detail::nextEdge( nextEd, graph );
+                    continue;
+                }
+                typename std::list< oriented_edge_descriptor >::iterator eit, eit_begin;
+                for( eit = lEdges.begin() ; eit != lEdges.end() ; ++eit )
+                {
+                    if( graph.source( *eit ) == vTarget ) 
+                    {
+                        eit_begin = eit;
+                        break;
+                    }
+                }
+                //on a pas boucle, on passe a l arc suivant
+                if( eit == lEdges.end() ) 
+                {
+                    nextEd = ign::geometry::graph::detail::nextEdge( nextEd, graph );
+                    continue;
+                }
+
+                //on a boucle, on recupere la geometrie du cycle
+                ign::geometry::LineString ls;
+                ls.addPoint( graph[ graph.source( *eit ) ].point );
+                for( ; eit != lEdges.end() ; ++eit )
+                {
+                    std::vector< ign::geometry::Point > const& vPoints = graph[ eit->descriptor ].intermediatePoints;
+                    if( eit->direction == ign::graph::DIRECT )
+                    {	
+                        std::vector< ign::geometry::Point >::const_iterator it = vPoints.begin();
+                        for( ; it != vPoints.end() ; ++it )
+                            ls.addPoint( *it );
+                    }
+                    else{
+                        std::vector< ign::geometry::Point >::const_reverse_iterator it = vPoints.rbegin();
+                        for( ; it != vPoints.rend() ; ++it )
+                            ls.addPoint( *it );
+                    }
+
+                    ls.addPoint( graph[ graph.target( *eit ) ].point );
+                }
+
+                double area = ign::geometry::algorithm::AreaOp::ComputeAlgebraicArea2d( ls );
+                if ( area < maxArea ) //contour ext
+                {
                     maxArea = area;
-                    maxRing = i;
+                    maxRing = lEdges;
                 }
-            }
-            return vvRings[maxRing];
-        }
-
-        ///
-        ///
-        ///
-        std::vector<std::list<app::calcul::detail::EdgeCleaningGraphManager::GraphType::oriented_edge_descriptor>> CLInAreaGenerationOp::_getRings(
-            GraphType const& graph, 
-            face_descriptor fd
-        ) const {
-            std::vector<std::list<oriented_edge_descriptor>> vvRings;
-
-            oriented_edge_descriptor startEdge = graph.getIncidentEdge( fd );
-            oriented_edge_descriptor currentEdge = startEdge;
-            bool startIsDegenerate = graph[ startEdge.descriptor ].leftFace == graph[ startEdge.descriptor ].rightFace;
-            bool previousIsDegenerated = true;
-
-            do{
-                bool isDegenerate = graph[ currentEdge.descriptor ].leftFace == graph[ currentEdge.descriptor ].rightFace;
-
-                if ( isDegenerate ) {
-                    previousIsDegenerated = true;
-                } else {
-                    if ( previousIsDegenerated )
-                        vvRings.push_back(std::list<oriented_edge_descriptor>());
-                    vvRings.back().push_back(currentEdge);
-                    previousIsDegenerated = false;
-                }
-
-                 currentEdge = ign::geometry::graph::detail::nextEdge( currentEdge, graph );
-            }while( currentEdge != startEdge );
-            if (!previousIsDegenerated && !startIsDegenerate && vvRings.size() > 1)  {
-                //fusion
-                for( std::list<oriented_edge_descriptor>::const_iterator lit = vvRings.front().begin() ; lit != vvRings.front().end() ; ++lit) {
-                    vvRings.back().push_back(*lit);
-                }
-                vvRings.erase(vvRings.begin());
-            }
-
-            return vvRings;
+                
+                //on depile
+                // lEdges.resize( eit_begin - lEdges.begin() );
+                // lEdges.resize( 5 );
+                lEdges = std::list<oriented_edge_descriptor>(lEdges.begin(), eit_begin);
+        
+                nextEd = ign::geometry::graph::detail::nextEdge( nextEd, graph );
+            } while ( nextEd != startEdge );
+            return maxRing;
         }
 
 		///

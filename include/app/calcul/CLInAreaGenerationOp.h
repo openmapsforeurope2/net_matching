@@ -164,12 +164,6 @@ namespace calcul{
         ) const;
 
 		//--
-		std::vector<std::list<app::calcul::detail::EdgeCleaningGraphManager::GraphType::oriented_edge_descriptor>> _getRings(
-            GraphType const& graph, 
-            face_descriptor fd
-        ) const;
-
-		//--
 		bool _getFacePaths(
             detail::EdgeCleaningGraphManager const& graphManager, 
             face_descriptor fd, 

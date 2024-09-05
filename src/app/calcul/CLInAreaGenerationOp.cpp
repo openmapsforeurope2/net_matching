@@ -290,9 +290,9 @@ namespace app
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
                 //DEBUG
-                if( faceGeom.intersects(ign::geometry::Point(4027250.2,2939728.9))) {
-                    bool test = true;
-                } 
+                // if( faceGeom.intersects(ign::geometry::Point(4031796.58,2934527.57))) {
+                //     bool test = true;
+                // } 
                 // if( faceGeom.intersects(ign::geometry::Point(3986976.57,2956178.37))) {
                 //     bool test = true;
                 // }
@@ -887,10 +887,16 @@ namespace app
             }
 
             //--
+            double lengthRation = 0.66666;
+            double length1 = path1geom.length();
+            double length2 = path2geom.length();
+            bool bLength = length1 > lengthRation*length2 && length2 > lengthRation*length1;
+
+            //--
             double meanWidth = 2 * ( poly.area() / poly.exteriorRing().length() );
             bool bHausdorff = hausdorffDist >= 0 && (hausdorffDist < 3*maxWidth);
 
-            return meanWidth < maxWidth && bHausdorff;
+            return meanWidth < maxWidth && bHausdorff && bLength;
         }
 
 		///

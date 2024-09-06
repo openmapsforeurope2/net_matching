@@ -81,7 +81,7 @@ void LineStringAbsDampedDeformer::deform(
 		double abs = 0. ;
 		double previousAbs = 0.;
 		ign::geometry::Point previousPoint = endPoint;
-		for( size_t i = ls.numPoints()-2 ; i >= 0 ; --i )
+		for( int i = ls.numPoints()-2 ; i >= 0 ; --i )
 		{
 			ign::geometry::Point& p = ls.pointN( i ) ;
 			double lengthSegment = p.distance2d( previousPoint );

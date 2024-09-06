@@ -629,13 +629,13 @@ namespace app
                 ++display;
                 ign::feature::Feature const& fCp = itCp->next();
 
-                if (_verbose) _logger->log(epg::log::DEBUG, fCp.getId());
+                // if (_verbose) _logger->log(epg::log::DEBUG, fCp.getId());
 
                 ign::geometry::Point const& cpGeom = fCp.getGeometry().asPoint();
                 std::string const linkedFeatureId = fCp.getAttribute(linkedFeatureIdName).toString();
                 std::string const countryCode = fCp.getAttribute(countryCodeName).toString();
 
-                // if (fCp.getId() == "CONNECTINGPOINT48" || fCp.getId() == "CONNECTINGPOINT49") {
+                // if (fCp.getId() == "427a15b5-8fef-44bc-b688-f348aab542d8") {
                 //     bool test = true;
                 // } else {
                 //     continue;
@@ -1067,6 +1067,16 @@ namespace app
                 ign::math::Vec2d vectTarget = (dit_target != mDisplacements.end()) ? _computeDisplacement(dit_target->second) : ign::math::Vec2d();
 
                 // deformation
+                //DEBUG
+                // _logger->log(epg::log::DEBUG, "pouet");
+                // _logger->log(epg::log::DEBUG, ls.toString());
+                // double distance = ls.distance(ign::geometry::Point(4028460.063,2571989.990));
+                // std::ostringstream sstream;
+                // sstream << distance;
+                // _logger->log(epg::log::DEBUG, sstream.str());
+                // if( distance < 0.8) {
+                //     bool test = true;
+                // }
                 lineStringDeformer.deform(vectSource, vectTarget, ls);
                 // DEBUG
                 // double distance = ls.startPoint().distance2d( ls.endPoint());
@@ -1179,11 +1189,11 @@ namespace app
             for ( vit = vDeformedEdges.begin() ; vit != vDeformedEdges.end() ; ++vit ) {
                 ign::geometry::LineString edgeGeom = graph.getGeometry(*vit);
 
-                _logger->log(epg::log::DEBUG, edgeGeom.toString());
+                // _logger->log(epg::log::DEBUG, edgeGeom.toString());
 
                 std::string edgeId = graph.origins(*vit)[0];
 
-                _logger->log(epg::log::DEBUG, edgeId);
+                // _logger->log(epg::log::DEBUG, edgeId);
                 
                 ign::feature::Feature fEdge;
                 _fsEdge->getFeatureById(edgeId, fEdge);

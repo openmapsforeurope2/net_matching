@@ -4,6 +4,7 @@
 #include <app/geometry/tools/LineStringSplitter.h>
 #include <app/tools/StringTools.h>
 #include <app/tools/translateVertex.h>
+#include <app/calcul/detail/LineStringAbsDampedDeformer.h>
 
 // BOOST
 #include <boost/progress.hpp>
@@ -940,7 +941,12 @@ namespace app
         ) const {
             double influenceDist = 0;
             // double mergingDist = 1e-5;
-            epg::calcul::matching::detail::LineStringSimpleDampedDeformer deformer;
+            // epg::calcul::matching::detail::LineStringSimpleDampedDeformer deformer;
+
+            double absThreshold = 30;
+            double influenceFactor = 5;
+            double snapDist = 1;
+            epg::calcul::matching::detail::LineStringAbsDampedDeformer deformer(absThreshold, influenceFactor, snapDist);
 
             _applyDisplacement(graph, mReferences, deformer, vDeformedEdges, sCollapsedEdges, influenceDist /*, mergingDist*/);
         }

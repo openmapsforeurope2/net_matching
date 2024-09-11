@@ -48,8 +48,8 @@ namespace tools{
 	template<  typename StepSuiteType >
 	void initStepsTn(StepSuiteType& stepSuite)
 	{
-		stepSuite.addStep( epg::step::factoryNew< JunctionMatching >() );
-		stepSuite.addStep( epg::step::factoryNew< GenerateCLinArea >() );
+		// stepSuite.addStep( epg::step::factoryNew< JunctionMatching >() );
+		// stepSuite.addStep( epg::step::factoryNew< GenerateCLinArea >() );
 		stepSuite.addStep( epg::step::factoryNew< GenerateConnectingLinesByCountry >());
 		stepSuite.addStep( epg::step::factoryNew< MergeConnectingLinesOnBorder >());
 		stepSuite.addStep( epg::step::factoryNew< SnapConnectingLines >());

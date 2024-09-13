@@ -82,6 +82,9 @@ namespace calcul{
 		void _compute();
 
 		//--
+		bool _inCountry(std::string const& country, ign::geometry::Point const& pt ) const;
+
+		//--
 		void _removeMcoordinate(ign::geometry::LineString & ls) const;
 
 		//--

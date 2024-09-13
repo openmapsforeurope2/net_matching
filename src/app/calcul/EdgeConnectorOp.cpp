@@ -251,6 +251,7 @@ namespace app
 
 
                 //DEBUG
+                _logger->log(epg::log::DEBUG, dangleEndPoint.toString());
                 // if( dangleEndPoint.distance(ign::geometry::Point(3845556.01,3072979.21)) < 0.5 ) {
                 //     bool test =true;
                 // }
@@ -362,6 +363,15 @@ namespace app
                 
                 ign::math::Vec2d vectSource = deformAtSource ? vectDeform : ign::math::Vec2d();
                 ign::math::Vec2d vectTarget = !deformAtSource ? vectDeform : ign::math::Vec2d();
+
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "coucou1");
+
+                deformer.deform(vectSource, vectTarget, antennaGeom);
+
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "coucou2");
+
                 deformer.deform(vectSource, vectTarget, antennaGeom);
 
                 // remplacement du point extremité
@@ -375,8 +385,16 @@ namespace app
                     antennaGeom.endPoint().setZ(z);
                 }
 
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "coucou3");
+
+                deformer.deform(vectSource, vectTarget, antennaGeom);
+
                 fEdge.setGeometry(antennaGeom);
                 _fsEdge->modifyFeature(fEdge);
+
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "coucou4");
 
                 _shapeLogger->writeFeature("ec_projected_antennas", fEdge);
             }
@@ -399,6 +417,7 @@ namespace app
                 }
 
                 //DEBUG
+                _logger->log(epg::log::DEBUG, *oit);
                 // if( *oit == "9b39ec5b-4f1a-4706-b07e-06249a4f105e") {
                 //     bool testt = true;
                 //     ign::geometry::LineString ls1 = graph.getGeometry(foundInducedEdges.second.front());

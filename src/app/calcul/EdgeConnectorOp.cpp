@@ -251,9 +251,9 @@ namespace app
 
 
                 //DEBUG
-                if( dangleEndPoint.distance(ign::geometry::Point(3845556.01,3072979.21)) < 0.5 ) {
-                    bool test =true;
-                }
+                // if( dangleEndPoint.distance(ign::geometry::Point(3845556.01,3072979.21)) < 0.5 ) {
+                //     bool test =true;
+                // }
 
                 // std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomWithBuffPtr.find(vpit->first);
                 // if (mit == _mCountryGeomWithBuffPtr.end()) {
@@ -399,11 +399,11 @@ namespace app
                 }
 
                 //DEBUG
-                if( *oit == "9b39ec5b-4f1a-4706-b07e-06249a4f105e") {
-                    bool testt = true;
-                    ign::geometry::LineString ls1 = graph.getGeometry(foundInducedEdges.second.front());
-                    ign::geometry::LineString ls2 = graph.getGeometry(foundInducedEdges.second.back());
-                }
+                // if( *oit == "9b39ec5b-4f1a-4706-b07e-06249a4f105e") {
+                //     bool testt = true;
+                //     ign::geometry::LineString ls1 = graph.getGeometry(foundInducedEdges.second.front());
+                //     ign::geometry::LineString ls2 = graph.getGeometry(foundInducedEdges.second.back());
+                // }
 
                 if( foundInducedEdges.second.size() == 0 ) continue;
 
@@ -660,9 +660,9 @@ namespace app
                 bool isCl = country.find("#") != std::string::npos;
 
                 //DEBUG
-                if( fEdge.getId() == "9b39ec5b-4f1a-4706-b07e-06249a4f105e") {
-                    bool test = true;
-                }
+                // if( fEdge.getId() == "9b39ec5b-4f1a-4706-b07e-06249a4f105e") {
+                //     bool test = true;
+                // }
 
                 graphManager.addEdge(edgeGeom, edgeId, OriginEdgeProperties(country, isCl));
 

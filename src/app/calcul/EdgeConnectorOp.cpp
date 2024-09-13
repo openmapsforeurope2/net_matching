@@ -81,6 +81,12 @@ namespace app
             //--
             epg::Context *context = epg::ContextS::getInstance();
 
+            //--
+            _shapeLogger = epg::log::ShapeLoggerS::getInstance();
+            _shapeLogger->addShape("ec_projected_antennas", epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("ec_split_edges", epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("ec_trimed_edges_parts", epg::log::ShapeLogger::LINESTRING);
+
             // epg parameters
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
 
@@ -139,12 +145,6 @@ namespace app
 
             //--
             _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTableName, idName, geomName);
-
-            //--
-            _shapeLogger = epg::log::ShapeLoggerS::getInstance();
-            _shapeLogger->addShape("ec_projected_antennas", epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("ec_split_edges", epg::log::ShapeLogger::LINESTRING);
-            _shapeLogger->addShape("ec_trimed_edges_parts", epg::log::ShapeLogger::LINESTRING);
 
             //--
             _logger->log(epg::log::INFO, "[END] initialization: " + epg::tools::TimeTools::getTime());
@@ -251,8 +251,8 @@ namespace app
 
 
                 //DEBUG
-                _logger->log(epg::log::DEBUG, dangleEndPoint.toString());
-                // if( dangleEndPoint.distance(ign::geometry::Point(3845556.01,3072979.21)) < 0.5 ) {
+                // _logger->log(epg::log::DEBUG, dangleEndPoint.toString());
+                // if( dangleEndPoint.distance(ign::geometry::Point(4020730.6,2967965.1)) < 1 ) {
                 //     bool test =true;
                 // }
 
@@ -364,14 +364,6 @@ namespace app
                 ign::math::Vec2d vectSource = deformAtSource ? vectDeform : ign::math::Vec2d();
                 ign::math::Vec2d vectTarget = !deformAtSource ? vectDeform : ign::math::Vec2d();
 
-                //DEBUG
-                _logger->log(epg::log::DEBUG, "coucou1");
-
-                deformer.deform(vectSource, vectTarget, antennaGeom);
-
-                //DEBUG
-                _logger->log(epg::log::DEBUG, "coucou2");
-
                 deformer.deform(vectSource, vectTarget, antennaGeom);
 
                 // remplacement du point extremité
@@ -385,16 +377,8 @@ namespace app
                     antennaGeom.endPoint().setZ(z);
                 }
 
-                //DEBUG
-                _logger->log(epg::log::DEBUG, "coucou3");
-
-                deformer.deform(vectSource, vectTarget, antennaGeom);
-
                 fEdge.setGeometry(antennaGeom);
                 _fsEdge->modifyFeature(fEdge);
-
-                //DEBUG
-                _logger->log(epg::log::DEBUG, "coucou4");
 
                 _shapeLogger->writeFeature("ec_projected_antennas", fEdge);
             }
@@ -417,7 +401,7 @@ namespace app
                 }
 
                 //DEBUG
-                _logger->log(epg::log::DEBUG, *oit);
+                // _logger->log(epg::log::DEBUG, *oit);
                 // if( *oit == "9b39ec5b-4f1a-4706-b07e-06249a4f105e") {
                 //     bool testt = true;
                 //     ign::geometry::LineString ls1 = graph.getGeometry(foundInducedEdges.second.front());
@@ -586,7 +570,7 @@ namespace app
             if (mit == _mCountryGeomPtr.end()) {
                 _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
             } else {
-                return mit->second->Intersection(pt);
+                return mit->second->intersects(pt);
             }
             return false;
         }

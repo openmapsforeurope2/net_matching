@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 
 	std::ostringstream OperatorDetail;
 	OperatorDetail << "set step :" << std::endl
-		<< "TN:" << std::endl
+        << "TN:" << std::endl
 		<< stepSuiteTn.toString() 
 		<< "HY:" << std::endl
 		<< stepSuiteHy.toString()

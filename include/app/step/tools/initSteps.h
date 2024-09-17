@@ -6,6 +6,7 @@
 #include <epg/step/factoryNew.h>
 
 //APP
+#include <app/step/201_FillFictitiousField.h>
 #include <app/step/202_JunctionMatching.h>
 #include <app/step/204_GenerateCLinArea.h>
 #include <app/step/210_GenerateConnectingLinesByCountry.h>
@@ -29,6 +30,7 @@ namespace tools{
 	template<  typename StepSuiteType >
 	void initStepsHy( StepSuiteType& stepSuite )
 	{
+		stepSuite.addStep( epg::step::factoryNew< FillFictitiousField >() );
 		stepSuite.addStep( epg::step::factoryNew< JunctionMatching >() );
 		stepSuite.addStep( epg::step::factoryNew< GenerateCLinArea >() );
 		stepSuite.addStep( epg::step::factoryNew< GenerateConnectingLinesByCountry >() );

@@ -18,7 +18,13 @@ namespace params{
 		_initParameter( DB_CONF_FILE, "DB_CONF_FILE" );
 		_initParameter( EDGE_TABLE_INIT, "EDGE_TABLE_INIT" );
 		_initParameter( COUNTRY_CODE_W, "COUNTRY_CODE_W" );
+		_initParameter( EDGE_FICTITIOUS, "EDGE_FICTITIOUS" );
 		_initParameter( W_TAG, "W_TAG" );
+
+		_initParameter( WATERCOURSE_AREA_TABLE, "WATERCOURSE_AREA_TABLE" );
+		_initParameter( STANDING_WATER_TABLE, "STANDING_WATER_TABLE" );
+
+		_initParameter( FFF_RATIO, "FFF_RATIO" );
 		
 		_initParameter( BOUNDARY_SMOOTHED_TABLE, "BOUNDARY_SMOOTHED_TABLE");
 		_initParameter( LANDMASK_TABLE, "LANDMASK_TABLE" );

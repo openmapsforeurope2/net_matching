@@ -1565,6 +1565,11 @@ namespace app
             {
                 ++display;
 
+                //DEBUG
+                // if( graph.getGeometry(*vit).distance(ign::geometry::Point(4018719.8032,2567756.6982)) < 1 ) {
+                //     bool test = true;
+                // }
+
                 if( graph.degree( *vit ) != 1 ) continue;
 
                 if( _vertexIsCp(graph, *vit) ) continue;
@@ -1594,6 +1599,9 @@ namespace app
                 // _logger->log(epg::log::DEBUG, graph.getGeometry(mit->first).toString());
                 //DEBUG
                 // ign::geometry::Point ptDebug = graph.getGeometry(mit->first);
+                // if(ptDebug.distance(ign::geometry::Point(4018719.8032,2567756.6982)) < 1) {
+                //     bool test = true;
+                // }
 
                 bool bConnected2CF = sVerticesConnected2CF.find(mit->first) != sVerticesConnected2CF.end() || _vertexIsConnected2Cl(graphManager, mit->first);
                 // _logger->log(epg::log::DEBUG, "pouet2");

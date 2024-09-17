@@ -46,19 +46,21 @@ namespace calcul{
 		void _setNewGeomJunction(GraphType& graph, vertex_descriptor& vJunction, ign::geometry::Point ptNewGeomJunction, std::map<std::string, ign::feature::Feature>& mEdgesModifiedGeom);
 
 	private:
-		ign::feature::sql::FeatureStorePostgis* _fsEdge;
-		ign::feature::sql::FeatureStorePostgis* _fsBoundary;
-		//ign::feature::sql::FeatureStorePostgis* _fsBoundarySmoothed;
-		ign::feature::sql::FeatureStorePostgis* _fsLandmask;
-
+		//--
+		ign::feature::sql::FeatureStorePostgis*            _fsEdge;
+		//--
+		ign::feature::sql::FeatureStorePostgis*            _fsBoundary;
+		//--
+		ign::feature::sql::FeatureStorePostgis*            _fsLandmask;
+		//--
 		epg::log::EpgLogger*                               _logger;
 		//--
 		epg::log::ShapeLogger*                             _shapeLogger;
 		//--
 		bool                                               _verbose;
-
+		//--
 		std::string                                        _countryCodeDouble;
-
+		//--
 		std::vector<std::string>						   _vCountriesCodeName;
 
 	};

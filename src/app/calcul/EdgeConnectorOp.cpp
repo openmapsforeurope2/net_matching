@@ -67,6 +67,7 @@ namespace app
             _shapeLogger->closeShape("ec_projected_antennas");
             _shapeLogger->closeShape("ec_split_edges");
             _shapeLogger->closeShape("ec_trimed_edges_parts");
+            // _shapeLogger->closeShape("test");
         }
 
         ///
@@ -86,6 +87,7 @@ namespace app
             _shapeLogger->addShape("ec_projected_antennas", epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("ec_split_edges", epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("ec_trimed_edges_parts", epg::log::ShapeLogger::LINESTRING);
+            // _shapeLogger->addShape("test", epg::log::ShapeLogger::POLYGON);
 
             // epg parameters
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
@@ -141,6 +143,10 @@ namespace app
                 //on calcul la geometry de travail
                 _mCountryGeomPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(boundBuffPtr->Intersection(mpLandmask)) ));
                 // _mCountryGeomWithBuffPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(_mCountryGeomPtr[*vit]->buffer(-1*landmaskBuffer))));
+
+                // ign::feature::Feature feat;
+                // feat.setGeometry(*_mCountryGeomPtr[*vit]);
+                // _shapeLogger->writeFeature("test", feat);
             }
 
             //--
@@ -252,7 +258,7 @@ namespace app
 
                 //DEBUG
                 // _logger->log(epg::log::DEBUG, dangleEndPoint.toString());
-                // if( dangleEndPoint.distance(ign::geometry::Point(4020730.6,2967965.1)) < 1 ) {
+                // if( dangleEndPoint.distance(ign::geometry::Point(4018719.791,2567756.697)) < 1 ) {
                 //     bool test =true;
                 // }
 
@@ -402,7 +408,7 @@ namespace app
 
                 //DEBUG
                 // _logger->log(epg::log::DEBUG, *oit);
-                // if( *oit == "9b39ec5b-4f1a-4706-b07e-06249a4f105e") {
+                // if( *oit == "ddcdc9d7-01c1-4033-9990-9b5d4d528ef4") {
                 //     bool testt = true;
                 //     ign::geometry::LineString ls1 = graph.getGeometry(foundInducedEdges.second.front());
                 //     ign::geometry::LineString ls2 = graph.getGeometry(foundInducedEdges.second.back());
@@ -522,7 +528,18 @@ namespace app
                         if (mit == _mCountryGeomPtr.end()) {
                             _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
                         } else {
-                            if( (mit->second->distance(dangleEndPoint) > landmaskBuffer) || vLs[i].length() < antennaMinLength) {
+                            bool inCountryBuf = true;
+                            double dist = mit->second->distance(dangleEndPoint);
+                            if( dist > landmaskBuffer ) { //le dangle est hors buffer de travail : on check s'il est côté int ou ext (dans ou hors pays)
+                                std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit2 = _mCountryGeomPtr.find(otherCountry);
+                                if (mit2 == _mCountryGeomPtr.end()) {
+                                    _logger->log(epg::log::ERROR, "Unknown country [country code] " + otherCountry);
+                                }
+                                double dist2 = mit2->second->distance(dangleEndPoint);
+                                inCountryBuf = dist < dist2;
+                            }
+
+                            if( !inCountryBuf || vLs[i].length() < antennaMinLength) {
 							//if (!mit->second->intersects(dangleEndPoint) || vLs[i].length() < antennaMinLength) {
                                 ign::feature::Feature feat;
                                 feat.setGeometry(vLs[i]);

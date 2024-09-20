@@ -11,6 +11,7 @@
 #include <epg/Context.h>
 #include <epg/tools/TimeTools.h>
 #include <epg/sql/tools/numFeatures.h>
+#include <epg/tools/FilterTools.h>
 
 
 namespace app
@@ -123,7 +124,7 @@ namespace app
                 std::string country = fEdge.getAttribute(countryCodeName).toString();
                 std::string fictitious = fEdge.getAttribute(fictitiousFieldName).toString();
 
-                double ratio = _getRatio(ls);
+                double ratio = _getRatio(ls, country);
 
                 if (ratio > minRatio && fictitious == "false") {
                     ign::feature::Feature fEdge_ = fEdge;
@@ -140,14 +141,16 @@ namespace app
         ///
         ///
         ///
-        double FillFictitiousFieldOp::_getRatio(ign::geometry::LineString const& ls) const {
+        double FillFictitiousFieldOp::_getRatio(ign::geometry::LineString const& ls, std::string const& country) const {
             epg::Context *context = epg::ContextS::getInstance();
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
             std::string const geomName = epgParams.getValue(GEOM).toString();
+            std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
 
             ign::geometry::GeometryPtr areaUnionPtr(new ign::geometry::Polygon());
 
             ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + ls.toString() + "'),3035))");
+            epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" = '"+country+"'");
             ign::feature::FeatureIteratorPtr itArea = _fsArea->getFeatures(filter);
             while (itArea->hasNext())
             {

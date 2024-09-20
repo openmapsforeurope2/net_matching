@@ -59,7 +59,7 @@ namespace calcul{
             void _compute() const;
 
             //--
-            double _getRatio(ign::geometry::LineString const& ls) const;
+            double _getRatio(ign::geometry::LineString const& ls, std::string const& country) const;
 
             //--
             double _getLength(ign::geometry::Geometry const& geom) const;

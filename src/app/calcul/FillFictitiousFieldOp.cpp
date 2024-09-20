@@ -105,6 +105,9 @@ namespace app
             double const minRatio = themeParameters->getValue(FFF_RATIO).toDouble();
             std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS).toString();
 
+            //DEBUG
+            std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+
             //--
             ign::feature::FeatureFilter filter;
             int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, filter);
@@ -125,6 +128,10 @@ namespace app
                 if (ratio > minRatio && fictitious == "false") {
                     ign::feature::Feature fEdge_ = fEdge;
                     fEdge_.setAttribute(fictitiousFieldName, ign::data::String("true"));
+
+                    //DEBUG
+                    fEdge_.setAttribute(wTagName, ign::data::String("debug_201"));
+                    
                     _fsEdge->modifyFeature(fEdge_);
                 }
             }

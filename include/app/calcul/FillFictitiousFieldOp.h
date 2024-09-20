@@ -61,19 +61,8 @@ namespace calcul{
             //--
             double _getRatio(ign::geometry::LineString const& ls) const;
 
-            //--  
-            std::pair<double, double> _addLengths(
-                std::string country, 
-                ign::geometry::LineString const& ls,
-                double & lengthInCountry,
-                double & length
-            ) const;
-
             //--
-            std::pair<double, double> _getLengths(
-                ign::geometry::Geometry const& geom,
-                ign::geometry::Point const* startPoint
-            ) const;
+            double _getLength(ign::geometry::Geometry const& geom) const;
 
     };
 

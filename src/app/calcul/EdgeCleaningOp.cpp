@@ -233,7 +233,9 @@ namespace app
                         ign::geometry::LineString const& ls = geom.asLineString();
                         if (ls.isEmpty()) return std::make_pair(0, 0);
                         double length = ls.length();
-                        return std::make_pair(length, length);
+                        if ( startPoint != 0 && (startPoint->distance(ls.startPoint()) < 1e-5 || startPoint->distance(ls.endPoint()) < 1e-5))
+                            lengthFirstPart = length;
+                        return std::make_pair(length, lengthFirstPart);
                     }
                     
                 case ign::geometry::Geometry::GeometryTypeMultiLineString : 
@@ -846,7 +848,7 @@ namespace app
 
                 // DEBUG
                 //_logger->log(epg::log::DEBUG, faceGeom.toString());
-                // if (faceGeom.intersects(ign::geometry::Point(4014776.143,2984940.233))) {
+                // if (faceGeom.intersects(ign::geometry::Point(4136868.67,2719791.66))) {
                 //     bool test = true;
                 // }
                 // if (faceGeom.intersects(ign::geometry::Point(4082807.661,2555185.849))) {
@@ -1566,7 +1568,10 @@ namespace app
                 ++display;
 
                 //DEBUG
-                // if( graph.getGeometry(*vit).distance(ign::geometry::Point(4018719.8032,2567756.6982)) < 1 ) {
+                // if( graph.getGeometry(*vit).distance(ign::geometry::Point(4040126.798,2936352.301)) < 1 ) {
+                //     bool test = true;
+                // }
+                // if( graph.getGeometry(*vit).distance(ign::geometry::Point(4040006.999,2936118.795)) < 1 ) {
                 //     bool test = true;
                 // }
 
@@ -1771,6 +1776,12 @@ namespace app
             std::list<oriented_edge_descriptor> reverseAntenna = _getReversePath(lAntennaEdges);
 
             std::pair<double, double> pRatioLengthFirstPart = _getRatioAndLengthFirstPart(graph, country, reverseAntenna);
+            //gestion arc isolé
+            if(graph.degree(graph.target(lAntennaEdges.back())) == 1) {
+                std::pair<double, double> pRatioLengthFirstPart_reverse = _getRatioAndLengthFirstPart(graph, country, lAntennaEdges);
+                pRatioLengthFirstPart.second = std::max(pRatioLengthFirstPart.second, pRatioLengthFirstPart_reverse.second);
+            }
+
             // //DEBUG
             // _logger->log(epg::log::DEBUG, std::to_string(pRatioLengthFirstPart.first));
 

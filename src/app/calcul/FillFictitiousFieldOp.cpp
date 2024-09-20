@@ -134,39 +134,44 @@ namespace app
         ///
         ///
         double FillFictitiousFieldOp::_getRatio(ign::geometry::LineString const& ls) const {
+            epg::Context *context = epg::ContextS::getInstance();
+            epg::params::EpgParameters const& epgParams = context->getEpgParameters();
+            std::string const geomName = epgParams.getValue(GEOM).toString();
+
+            ign::geometry::GeometryPtr areaUnionPtr(new ign::geometry::Polygon());
+
+            ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + ls.toString() + "'),3035))");
+            ign::feature::FeatureIteratorPtr itArea = _fsArea->getFeatures(filter);
+            while (itArea->hasNext())
+            {
+                ign::feature::Feature const& fArea = itArea->next();
+                ign::geometry::MultiPolygon const& areaGeom = fArea.getGeometry().asMultiPolygon();
+
+                areaUnionPtr.reset(areaUnionPtr->Union(areaGeom));
+            }
+            ign::feature::FeatureIteratorPtr itStand = _fsStanding->getFeatures(filter);
+            while (itStand->hasNext())
+            {
+                ign::feature::Feature const& fStand = itStand->next();
+                ign::geometry::MultiPolygon const& standGeom = fStand.getGeometry().asMultiPolygon();
+                
+                areaUnionPtr.reset(areaUnionPtr->Union(standGeom));
+            }
+
+            if(areaUnionPtr->isEmpty() || areaUnionPtr->isNull()) return 0;
+
+            ign::geometry::GeometryPtr resultPtr(areaUnionPtr->Intersection(ls));
+
+            double lengthInter = _getLength(*resultPtr);
+
+            return lengthInter / ls.length();
 
         }
 
         ///
-        ///
-        ///
-        std::pair<double, double> FillFictitiousFieldOp::_addLengths(
-            std::string country, 
-            ign::geometry::LineString const& ls,
-            double & lengthInCountry,
-            double & length
-        ) const {
-            // std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomPtr.find(country);
-            // if (mit == _mCountryGeomPtr.end()) {
-            //     _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
-            //     return std::make_pair(0, 0);
-            // }
-
-            // ign::geometry::GeometryPtr resultPtr(mit->second->Intersection(ls));
-
-            // std::pair<double, double> lengths = _getLengths(*resultPtr, &ls.startPoint());
-
-            // lengthInCountry += lengths.first;
-            // length += ls.length();
-
-            // return std::make_pair(lengths.second, lengths.second/ls.length());
-        }
-
-        ///
-        std::pair<double, double> FillFictitiousFieldOp::_getLengths( ign::geometry::Geometry const& geom, ign::geometry::Point const* startPoint ) const
+        double FillFictitiousFieldOp::_getLength( ign::geometry::Geometry const& geom ) const
         {
             double length = 0;
-            double lengthFirstPart = 0;
 
             ign::geometry::Geometry::GeometryType geomType = geom.getGeometryType();
             switch( geomType )
@@ -179,13 +184,10 @@ namespace app
                 case ign::geometry::Geometry::GeometryTypePolyhedralSurface :
                 case ign::geometry::Geometry::GeometryTypePolygon :
                 case ign::geometry::Geometry::GeometryTypeMultiPolygon :
-                    return std::make_pair(0, 0);
+                    return 0;
                 case ign::geometry::Geometry::GeometryTypeLineString :
                     {
-                        ign::geometry::LineString const& ls = geom.asLineString();
-                        if (ls.isEmpty()) return std::make_pair(0, 0);
-                        double length = ls.length();
-                        return std::make_pair(length, length);
+                        return geom.asLineString().length();
                     }
                     
                 case ign::geometry::Geometry::GeometryTypeMultiLineString : 
@@ -193,22 +195,17 @@ namespace app
                         ign::geometry::MultiLineString const& mls = geom.asMultiLineString();
                         for( size_t i = 0 ; i < mls.numGeometries() ; ++i ) {
                             length += mls.lineStringN(i).length();
-                            if ( startPoint != 0 && (startPoint->distance(mls.lineStringN(i).startPoint()) < 1e-5 || startPoint->distance(mls.lineStringN(i).endPoint()) < 1e-5))
-                                lengthFirstPart += length;
                         }
-                        return std::make_pair(length, lengthFirstPart);
+                        return length;
                     }
                 
                 case ign::geometry::Geometry::GeometryTypeGeometryCollection :
                     {
                         ign::geometry::GeometryCollection const& collection = geom.asGeometryCollection();
                         for( size_t i = 0 ; i < collection.numGeometries() ; ++i ) {
-                            std::pair<double, double> lengths = _getLengths( collection.geometryN(i), startPoint);
-                            length += lengths.first;
-                            lengthFirstPart += lengths.second;
+                            length += _getLength(collection.geometryN(i));
                         }
-                    
-                        return std::make_pair(length, lengthFirstPart);
+                        return length;
                     }
                 default :
                     IGN_THROW_EXCEPTION( "Geometry type not allowed" );

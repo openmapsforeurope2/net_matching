@@ -34,6 +34,8 @@ void LineStringAbsDampedDeformer::deform(
 	ign::geometry::LineString& ls
 	)const
 {
+	if(startDeformation.norm() == 0 && endDeformation.norm() == 0) return;
+	
 	bool hasZ = ls.is3D();
 	double length = ls.length();
 
@@ -115,8 +117,8 @@ void LineStringAbsDampedDeformer::deform(
 		abs += p.distance2d( previousPoint );
 		previousPoint = p;
 
-		double dampingFactorStart = abs > startAffectDist ? 0 : (startAffectDist - abs) / startAffectDist ;
-		double dampingFactorEnd = (length - abs) > endAffectDist ? 0 : (endAffectDist - (length - abs)) / endAffectDist ;
+		double dampingFactorStart = abs >= startAffectDist ? 0 : (startAffectDist - abs) / startAffectDist ;
+		double dampingFactorEnd = (length - abs) >= endAffectDist ? 0 : (endAffectDist - (length - abs)) / endAffectDist ;
 
 		if (dampingFactorStart == 0 && dampingFactorEnd == 0) continue;
 

@@ -98,11 +98,21 @@ namespace calcul{
 		void _compute() const;
 
 		//--
+		void _createCLOnFaces(
+            detail::EdgeCleaningGraphManager const& graphManager,
+            std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
+            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
+        ) const;
+
+		//--
 		void _createCLOnOverlappingEdges(
             GraphType const& graph,
             std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
             std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
         ) const;
+
+		//--
+		void _cleanOverLappingCl() const;
 
 		//--
 		void _addIncidentFeatures(
@@ -174,6 +184,13 @@ namespace calcul{
 		ign::geometry::LineString _convertPathToLineString(
             GraphType const& graph,
 			std::string const& country,
+            std::list<oriented_edge_descriptor> const& path
+        ) const;
+
+		//--
+		bool _isFictitious(
+            GraphType const& graph,
+            std::string const& country,
             std::list<oriented_edge_descriptor> const& path
         ) const;
 

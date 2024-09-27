@@ -126,9 +126,9 @@ namespace app
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
                 //DEBUG
-                // if( faceGeom.intersects(ign::geometry::Point(3906261.92,2999157.09))) {
-                //     bool test = true;
-                // } 
+                if( faceGeom.intersects(ign::geometry::Point(3801346.23,3124812.22))) {
+                    bool test = true;
+                } 
                 // if( faceGeom.intersects(ign::geometry::Point(3986976.57,2956178.37))) {
                 //     bool test = true;
                 // }

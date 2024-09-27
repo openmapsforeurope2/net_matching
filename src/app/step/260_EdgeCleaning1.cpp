@@ -43,7 +43,7 @@ namespace step {
         edgeCleaningOp.cleanFaces();
         // edgeCleaningOp.cleanPathsOutOfCountry();
         edgeCleaningOp.cleanParalelleEdges();
-        edgeCleaningOp.cleanFacesAndAntennaByCountry(eclSqlFilter);
+        edgeCleaningOp.cleanFacesAndAntennaByCountry(eclSqlFilter, false /*tagTreatedFeatures*/);
 
 		//--
 		_themeParams.setParameter(CP_TABLE, ign::data::String(cpRefTableName));

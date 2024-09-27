@@ -44,7 +44,7 @@ namespace step {
         edgeCleaningOp.cleanParalelleEdges();
         edgeCleaningOp.cleanFaces2(eclSqlFilter);
         // edgeCleaningOp.cleanFaces2(ign::feature::FeatureFilter("form_of_way <> 'bicycle_road'"));
-        edgeCleaningOp.cleanAntennas();
+        edgeCleaningOp.cleanAntennas(true /*withCl*/,false /*tagTreatedFeatures*/);
 
 		//--
 		_themeParams.setParameter(CP_TABLE, ign::data::String(cpRefTableName));

@@ -48,7 +48,7 @@ namespace calcul{
 		void cleanFaces2ByCountry() const;
 
 		/// \brief
-		void cleanFacesAndAntennaByCountry(std::string const& sqlFilter) const;
+		void cleanFacesAndAntennaByCountry(std::string const& sqlFilter, bool tagTreatedDangles = false) const;
 
 		/// \brief
 		bool cleanFaces2(std::string const& sqlFilter) const;
@@ -57,7 +57,7 @@ namespace calcul{
 		void cleanPathsOutOfCountry() const;
 
         /// \brief
-		bool cleanAntennas() const;
+		bool cleanAntennas(bool withCl = true, bool tagTreatedDangles = false) const;
 
 		/// \brief
 		void cleanParalelleEdges() const;
@@ -113,8 +113,7 @@ namespace calcul{
 
 		//--
 		std::pair<double, double> _getRatioAndLengthFirstPart(
-			GraphType const& graph,
-			std::string country,
+			detail::EdgeCleaningGraphManager & graphManager,
 			std::list<oriented_edge_descriptor> const& path
 		) const;
 
@@ -146,9 +145,8 @@ namespace calcul{
 
 		//--
 		double _getRatioWithBuff(
-			GraphType const& graph,
-			std::string country,
-			std::list<oriented_edge_descriptor> const& lEdges
+			detail::EdgeCleaningGraphManager & graphManager,
+            std::list<oriented_edge_descriptor> const& lEdges
 		) const;
 
 		//--
@@ -191,18 +189,18 @@ namespace calcul{
 
 		//--
 		std::pair<double, double> _addLengths(
-			std::string country,
-			ign::geometry::LineString const& ls,
-			double & lengthInCountry,
-			double & length
+			std::string const& country,
+            ign::geometry::LineString const& ls,
+            double & lengthInCountry,
+            double & length
 		) const;
 
 		//--
 		void _addLengthsWithBuff(
-			std::string country,
-			ign::geometry::LineString const& ls,
-			double & lengthInCountry,
-			double & length
+			std::string const& country,
+            ign::geometry::LineString const& ls,
+            double & lengthInCountry,
+            double & length
 		) const;
 
 		//--
@@ -216,8 +214,7 @@ namespace calcul{
 
 		//--
 		bool _cleanAntenna(
-            GraphType & graph,
-            std::string const& country,
+            detail::EdgeCleaningGraphManager & graphManager,
             std::list<oriented_edge_descriptor> const& lAntennas,
             bool bAntennaIsConnected2CF
         ) const;
@@ -297,7 +294,8 @@ namespace calcul{
             detail::EdgeCleaningGraphManager const& graphManager,
             vertex_descriptor v,
             std::set<std::string> & sTreatedFeatures,
-            bool isPlanarGraph
+            bool isPlanarGraph,
+			bool withCl
         ) const;
 
 		//--
@@ -305,7 +303,8 @@ namespace calcul{
 			detail::EdgeCleaningGraphManager & graphManager,
 			// std::set<vertex_descriptor> & sTreatedDangles,
 			std::set<std::string> & sTreatedFeatures,
-			bool isPlanarGraph = false
+			bool isPlanarGraph,
+			bool withCl
 		) const;
 
 		//--
@@ -313,7 +312,8 @@ namespace calcul{
             detail::EdgeCleaningGraphManager & graphManager,
 			// std::set<vertex_descriptor> & sTreatedDangles,
 			std::set<std::string> & sTreatedFeatures,
-			bool isPlanarGraph = false
+			bool isPlanarGraph,
+			bool withCl
         ) const;
 
 		//--

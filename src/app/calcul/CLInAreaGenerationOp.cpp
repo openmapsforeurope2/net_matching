@@ -126,10 +126,13 @@ namespace app
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
                 //DEBUG
-                if( faceGeom.intersects(ign::geometry::Point(3801346.23,3124812.22))) {
-                    bool test = true;
-                } 
-                // if( faceGeom.intersects(ign::geometry::Point(3986976.57,2956178.37))) {
+                // if( faceGeom.intersects(ign::geometry::Point(3984994.14,2957087.97))) {
+                //     bool test = true;
+                // } 
+                // if( faceGeom.intersects(ign::geometry::Point(3985008.38,2957082.03))) {
+                //     bool test = true;
+                // }
+                // if( faceGeom.intersects(ign::geometry::Point(3985011.55,2957061.70))) {
                 //     bool test = true;
                 // }
 

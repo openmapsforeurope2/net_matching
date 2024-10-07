@@ -1,12 +1,16 @@
 #ifndef _APP_CALCUL_JUNCTIONMATCHINGOP_H_
 #define _APP_CALCUL_JUNCTIONMATCHINGOP_H_
 
+//SOCLE
 #include <ign/geometry/graph/GeometryGraph.h>
 
+//EPG
 #include <epg/log/EpgLogger.h>
 #include <epg/log/ShapeLogger.h>
 #include <epg/tools/MultiLineStringTool.h>
-#include <ign/geometry/graph/GeometryGraph.h>
+
+//APP
+#include <app/calcul/detail/EdgeCleaningGraphManager.h>
 
 
 namespace app{
@@ -16,34 +20,73 @@ namespace calcul{
 
 	public:
 
-		JunctionMatchingOp(std::string countryCodeDouble, bool verbose = false);
+		typedef app::calcul::detail::EdgeCleaningGraphManager::GraphType   GraphType;
+		typedef typename GraphType::edge_descriptor                        edge_descriptor;
+		typedef typename GraphType::vertex_descriptor                      vertex_descriptor;
+		typedef typename GraphType::oriented_edge_descriptor               oriented_edge_descriptor;
+		typedef app::calcul::detail::OriginEdgeProperties                  OriginEdgeProperties;
+
+		/// \brief
+		JunctionMatchingOp(std::string const& countryCodeDouble, bool verbose = false);
+
+		/// \brief
 		~JunctionMatchingOp();
 
-		typedef ign::geometry::graph::GeometryGraph< ign::geometry::graph::PunctualVertexProperties, ign::geometry::graph::LinearEdgeProperties >  GraphType;
-		typedef typename GraphType::edge_descriptor edge_descriptor;
-		typedef typename GraphType::vertex_descriptor vertex_descriptor;
-		typedef typename GraphType::oriented_edge_descriptor oriented_edge_descriptor;
+		/// \brief
+		static void MatchJunctions(std::string const& countryCodeDouble, bool verbose = false);
 
-		static void MatchJunctions(std::string countryCodeDouble, bool verbose = false);
-		static void DisplaceJunctions(std::string countryCodeDouble, bool verbose = false);
+		/// \brief
+		static void DisplaceJunctions(std::string const& countryCodeDouble, bool verbose = false);
 
 		
 	private:
 
-		void _init(std::string countryCodeDouble, bool verbose);
+		//--
+		void _init(std::string const& countryCodeDouble, bool verbose);
 
-		void _matchJunctions();
-		void _displaceJunctions();
+		//--
+		void _matchJunctions() const;
 
-		void _loadGraphEdges(std::string countryCodeSimple, GraphType& graphEdges);
+		//--
+		void _displaceJunctions() const;
 
-		bool _IsSimilarIncidentsEdgesOnJunctions(std::set<double> sAnglEdgesJ1, std::set<double> sAnglEdgesJ2);
+		//--
+		void _loadGraph(
+			std::string const& countryCodeSimple,
+			app::calcul::detail::EdgeCleaningGraphManager & graphManager
+		) const;
 
-		double _getAngleEdgeIncident(GraphType& graphEdgCountry, oriented_edge_descriptor& oeit);
+		bool _isFictitious(
+			vertex_descriptor vJunction,
+			app::calcul::detail::EdgeCleaningGraphManager const& graphManager
+		) const;
 
-		void _getMatchedJunctBest(std::map< vertex_descriptor, vertex_descriptor>& mMatchedJuncRefWithBestJuncMatched, GraphType& graphRef, GraphType& graph2match);
+		//--
+		bool _IsSimilarIncidentsEdgesOnJunctions(
+			std::set<double> const& sAnglEdgesJ1,
+			std::set<double> const& sAnglEdgesJ2
+		) const;
 
-		void _setNewGeomJunction(GraphType& graph, vertex_descriptor& vJunction, ign::geometry::Point ptNewGeomJunction, std::map<std::string, ign::feature::Feature>& mEdgesModifiedGeom);
+		//--
+		// double _getAngleEdgeIncident(
+		// 	GraphType const& graphEdgCountry,
+		// 	oriented_edge_descriptor oeit
+		// ) const;
+
+		//--
+		void _getMatchedJunctBest(
+			std::map< vertex_descriptor, vertex_descriptor> & mMatchedJuncRefWithBestJuncMatched,
+			GraphType const& graphRef,
+			GraphType const& graph2match
+		) const;
+
+		//--
+		void _setNewGeomJunction(
+			GraphType const& graph,
+			vertex_descriptor vJunction,
+			ign::geometry::Point const& ptNewGeomJunction,
+			std::map<std::string, ign::feature::Feature> & mEdgesModifiedGeom
+		) const;
 
 	private:
 		//--

@@ -14,6 +14,7 @@
 #include <epg/tools/StringTools.h>
 #include <epg/utils/replaceTableName.h>
 #include <epg/tools/geometry/angle.h>
+#include <epg/sql/tools/numFeatures.h>
 
 //APP
 #include <app/params/ThemeParameters.h>
@@ -22,8 +23,10 @@
 ///
 ///
 ///
-app::calcul::JunctionMatchingOp::JunctionMatchingOp(std::string countryCodeDouble, bool verbose)
-{
+app::calcul::JunctionMatchingOp::JunctionMatchingOp(
+	std::string const& countryCodeDouble,
+	bool verbose
+){
 	_init(countryCodeDouble, verbose);
 }
 
@@ -35,19 +38,24 @@ app::calcul::JunctionMatchingOp::~JunctionMatchingOp()
 
 }
 
-
 ///
 ///
 ///
-void app::calcul::JunctionMatchingOp::MatchJunctions(std::string countryCodeDouble, bool verbose)
-{
+void app::calcul::JunctionMatchingOp::MatchJunctions(
+	std::string const& countryCodeDouble,
+	bool verbose
+){
 	JunctionMatchingOp op(countryCodeDouble, verbose);
 	op._matchJunctions();
 }
 
-
-void app::calcul::JunctionMatchingOp::_init(std::string countryCodeDouble, bool verbose)
-{
+///
+///
+///
+void app::calcul::JunctionMatchingOp::_init(
+	std::string const& countryCodeDouble,
+	bool verbose
+) {
 	_logger = epg::log::EpgLoggerS::getInstance();
 	_logger->log(epg::log::TITLE, "[ BEGIN INITIALIZATION ] : " + epg::tools::TimeTools::getTime());
 	epg::Context* context = epg::ContextS::getInstance();
@@ -78,16 +86,19 @@ void app::calcul::JunctionMatchingOp::_init(std::string countryCodeDouble, bool 
 ///
 ///
 ///
-void app::calcul::JunctionMatchingOp::_matchJunctions()
+void app::calcul::JunctionMatchingOp::_matchJunctions() const
 {
 	_logger->log(epg::log::TITLE, "[ BEGIN MATCHING JUNCTIONS " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
 	//--
+	app::calcul::detail::EdgeCleaningGraphManager graphManager1, graphManager2;
+	_loadGraph(_vCountriesCodeName[0], graphManager1);
+	_loadGraph(_vCountriesCodeName[1], graphManager2);
 
-	GraphType graphEdgCountry1, graphEdgCountry2;
-	_loadGraphEdges(_vCountriesCodeName[0],graphEdgCountry1);
-	_loadGraphEdges(_vCountriesCodeName[1],graphEdgCountry2);
+	GraphType const& graphEdgCountry1 = graphManager1.getGraph();
+	GraphType const& graphEdgCountry2 = graphManager2.getGraph();
 
+	//--
 	std::map< vertex_descriptor, vertex_descriptor> mMatchedJ1WithBestJ2;
 	_getMatchedJunctBest(mMatchedJ1WithBestJ2, graphEdgCountry1, graphEdgCountry2);
 
@@ -95,42 +106,51 @@ void app::calcul::JunctionMatchingOp::_matchJunctions()
 	_getMatchedJunctBest(mMatchedJ2BestWithJ1, graphEdgCountry2, graphEdgCountry1);
 
 	//compare mMatchedBestJ1 et mMatchedBestJ2
-	//verification que les "meilleur noeuds" dans country1 et dans country 2 sont réciproques
+	//verification que les "meilleur noeuds" dans country1 et dans country 2 sont rÃ©ciproques
 	boost::progress_display display(mMatchedJ1WithBestJ2.size(), std::cout, "[ MATCH BEST JUNCTIONS CANDIDATES]\n");
 	
 	std::map<std::string, ign::feature::Feature> mEdgesModifiedGeom;
 
-	for (std::map< vertex_descriptor, vertex_descriptor>::iterator mitJ1 = mMatchedJ1WithBestJ2.begin();
+	for (std::map< vertex_descriptor, vertex_descriptor>::const_iterator mitJ1 = mMatchedJ1WithBestJ2.begin();
 		mitJ1 != mMatchedJ1WithBestJ2.end(); ++mitJ1) {
 		++display;
 
 		vertex_descriptor vJ1MatchedWithJ2 = mitJ1->first;
 		vertex_descriptor vJ2BestCandidateFromJ1 = mitJ1->second;
 
-		//si le candidat J2 n'a pas de meilleur résultat associé dans 1
-		if (mMatchedJ2BestWithJ1.find(vJ2BestCandidateFromJ1) == mMatchedJ2BestWithJ1.end())
+		std::map< vertex_descriptor, vertex_descriptor>::const_iterator mit2 = mMatchedJ2BestWithJ1.find(vJ2BestCandidateFromJ1);
+		//si le candidat J2 n'a pas de meilleur rÃ©sultat associÃ© dans 1
+		if (mit2 == mMatchedJ2BestWithJ1.end())
 			continue;
 
-		vertex_descriptor vJ1BestCandidateFromJ2 = mMatchedJ2BestWithJ1.find(vJ2BestCandidateFromJ1)->second;
-		//si le meilleur candidat n'est pas réciproque (J2 associé à un autre J1' que le J1 qui s'associe à lui)
+		//si le meilleur candidat n'est pas rÃ©ciproque (J2 associÃ© Ã  un autre J1' que le J1 qui s'associe Ã  lui)
+		vertex_descriptor vJ1BestCandidateFromJ2 = mit2->second;
 		if (vJ1BestCandidateFromJ2 != vJ1MatchedWithJ2)
 			continue;
 
-		//si ce sont les mêmes meilleurs candidats réciproques, on modifie la geom des carrefour
-		//modification des edges lié à ce point dans J1 et J2
+		//si ce sont les mÃªmes meilleurs candidats rÃ©ciproques, on modifie la geom des carrefour
+		//modification des edges liÃ© Ã  ce point dans J1 et J2
 		ign::geometry::Point ptJ1 = graphEdgCountry1.getGeometry(vJ1BestCandidateFromJ2);
 		ign::geometry::Point ptJ2 = graphEdgCountry2.getGeometry(vJ2BestCandidateFromJ1);
 
-		ign::geometry::MultiPoint mpJunctions2match;
-		mpJunctions2match.addGeometry(ptJ1);
-		mpJunctions2match.addGeometry(ptJ2);
+		bool isFictitious1 = _isFictitious(vJ1BestCandidateFromJ2, graphManager1);
+		bool isFictitious2 = _isFictitious(vJ2BestCandidateFromJ1, graphManager2);
 
-		ign::geometry::Point ptJNew = mpJunctions2match.getCentroid();
-		ptJNew.setFillZ((ptJ1.z() + ptJ2.z())*0.5);
+		if( isFictitious1 && !isFictitious2 ) {
+			_setNewGeomJunction(graphEdgCountry2, vJ2BestCandidateFromJ1, ptJ1, mEdgesModifiedGeom);
+		} else if ( isFictitious1 && !isFictitious2 ) {
+			_setNewGeomJunction(graphEdgCountry1, vJ1BestCandidateFromJ2, ptJ2, mEdgesModifiedGeom);
+		} else {
+			ign::geometry::MultiPoint mpJunctions2match;
+			mpJunctions2match.addGeometry(ptJ1);
+			mpJunctions2match.addGeometry(ptJ2);
 
-		_setNewGeomJunction(graphEdgCountry1, vJ1BestCandidateFromJ2, ptJNew, mEdgesModifiedGeom);
-		_setNewGeomJunction(graphEdgCountry2, vJ2BestCandidateFromJ1, ptJNew, mEdgesModifiedGeom);
+			ign::geometry::Point ptJNew = mpJunctions2match.getCentroid();
+			ptJNew.setFillZ((ptJ1.z() + ptJ2.z())*0.5);
 
+			_setNewGeomJunction(graphEdgCountry1, vJ1BestCandidateFromJ2, ptJNew, mEdgesModifiedGeom);
+			_setNewGeomJunction(graphEdgCountry2, vJ2BestCandidateFromJ1, ptJNew, mEdgesModifiedGeom);
+		}
 	}
 		
 	for (std::map<std::string, ign::feature::Feature>::iterator mit = mEdgesModifiedGeom.begin(); mit != mEdgesModifiedGeom.end(); ++mit) 
@@ -140,31 +160,69 @@ void app::calcul::JunctionMatchingOp::_matchJunctions()
 	_logger->log(epg::log::TITLE, "[ END CL MERGING FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 }
 
+///
+bool app::calcul::JunctionMatchingOp::_isFictitious(
+	vertex_descriptor vJunction,
+	app::calcul::detail::EdgeCleaningGraphManager const& graphManager
+) const {
+    GraphType const& graph = graphManager.getGraph();
 
+	std::vector< edge_descriptor > vIncidentEdges = graph.incidentEdges( vJunction );
 
-void app::calcul::JunctionMatchingOp::_loadGraphEdges(std::string countryCodeSimple, GraphType& graphEdges)
-{
+	typename std::vector< edge_descriptor >::const_iterator eit;
+	for( eit = vIncidentEdges.begin() ; eit != vIncidentEdges.end() ; ++eit )
+	{
+		if ( graphManager.getWTag(*eit) == "true" ) return true;
+	}
+	return false;
+}
+
+///
+///
+///
+void app::calcul::JunctionMatchingOp::_loadGraph(
+	std::string const& country,
+	app::calcul::detail::EdgeCleaningGraphManager & graphManager
+) const {
+	graphManager.clear();
+
+	//--
 	epg::Context* context = epg::ContextS::getInstance();
-	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
-	ign::feature::FeatureFilter filterEdgeCountryCode(countryCodeName + " = '" + countryCodeSimple + "'");
-	ign::feature::FeatureIteratorPtr it = _fsEdge->getFeatures(filterEdgeCountryCode);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsEdge, filterEdgeCountryCode);
-	boost::progress_display display(numFeatures, std::cout, "[ LOAD GRAPH EDGE " + countryCodeSimple + " ]\n");
-	ign::geometry::graph::builder::SimpleGraphBuilder<GraphType> graphBuilder(graphEdges, 0.01);
-	while (it->hasNext()) {
+	epg::params::EpgParameters const& epgParams = context->getEpgParameters();
+	std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
+
+	//--
+	app::params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
+	std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS).toString();
+	
+	//--
+	ign::feature::FeatureFilter filter(countryCodeName + " = '" + country + "'");
+
+	//--
+	int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, filter);
+	boost::progress_display display(numFeatures, std::cout, "[ LOAD GRAPH EDGE " + country + " ]\n");
+
+	ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
+	while (itEdge->hasNext())
+	{
 		++display;
-		ign::feature::Feature fedge = it->next();
-		graphBuilder.addEdge(fedge.getGeometry().asLineString(), fedge.getId());
+		ign::feature::Feature const& fEdge = itEdge->next();
+		ign::geometry::LineString const& ls = fEdge.getGeometry().asLineString();
+		std::string edgeId = fEdge.getId();
+		std::string fictitious = fEdge.getAttribute(fictitiousFieldName).toString();
+
+		graphManager.addEdgeSimple(ls, edgeId, OriginEdgeProperties(country, fictitious, false));
 	}
 }
 
-
-
+///
+///
+///
 void app::calcul::JunctionMatchingOp::_getMatchedJunctBest(
-	std::map< vertex_descriptor,vertex_descriptor>& mMatchedJuncRefWithBestJuncMatched,
-	GraphType& graphRef,
-	GraphType& graph2match)
-{
+	std::map< vertex_descriptor,vertex_descriptor> & mMatchedJuncRefWithBestJuncMatched,
+	GraphType const& graphRef,
+	GraphType const& graph2match
+) const {
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	double const distMaxJunctions = themeParameters->getValue(DIST_MAX_JUNCTIONS).toDouble();
 
@@ -194,7 +252,7 @@ void app::calcul::JunctionMatchingOp::_getMatchedJunctBest(
 		}*/
 		//DEBUG
 				
-		//recupération des angles incidents
+		//recupï¿½ration des angles incidents
 		/*std::vector< oriented_edge_descriptor > vEdgIncidenJref;
 		graphRef.incidentEdges(*vitRef, vEdgIncidenJref);
 		std::set<double> sAnglEdgesJRef;
@@ -215,13 +273,13 @@ void app::calcul::JunctionMatchingOp::_getMatchedJunctBest(
 			if ((degreeJRef == degreeCandidateJ2match)) {
 				mMatchedJuncRefWithBestJuncMatched[*vitRef] = vCandidate2match;
 			}
-			//si ce n'est pas le meme degré le candidat n'est pas gardé
+			//si ce n'est pas le meme degrï¿½ le candidat n'est pas gardï¿½
 			++vitRef;
 			continue;
 		}*/
 
 		double distMin = distMaxJunctions;
-		for (std::set<vertex_descriptor>::iterator sitV2match = sVCandidate2matchArroundJRef.begin(); sitV2match != sVCandidate2matchArroundJRef.end(); ++sitV2match) {
+		for (std::set<vertex_descriptor>::const_iterator sitV2match = sVCandidate2matchArroundJRef.begin(); sitV2match != sVCandidate2matchArroundJRef.end(); ++sitV2match) {
 			//on verifie le degree des noeuds
 			size_t degreeCandidateJ2match = graph2match.degree(*sitV2match);
 			if (degreeJRef != degreeCandidateJ2match)
@@ -256,15 +314,18 @@ void app::calcul::JunctionMatchingOp::_getMatchedJunctBest(
 	}
 }
 
+///
+///
+///
 bool app::calcul::JunctionMatchingOp::_IsSimilarIncidentsEdgesOnJunctions(
-	std::set<double> sAnglEdgesJ1,
-	std::set<double> sAnglEdgesJ2)
-{
+	std::set<double> const& sAnglEdgesJ1,
+	std::set<double> const& sAnglEdgesJ2
+) const {
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	double const angleMaxOrientEdgJunctions = themeParameters->getValue(ANGLE_MAX_ORIENTATION_EDGES).toDouble()* M_PI / 180;
 
-	std::set<double>::iterator sit1 = sAnglEdgesJ1.begin();
-	std::set<double>::iterator sit2 = sAnglEdgesJ2.begin();
+	std::set<double>::const_iterator sit1 = sAnglEdgesJ1.begin();
+	std::set<double>::const_iterator sit2 = sAnglEdgesJ2.begin();
 	while (sit1 != sAnglEdgesJ1.end()) {
 		double diffAngl = fabs(*sit1 - *sit2);
 		++sit1;
@@ -321,17 +382,19 @@ double app::calcul::JunctionMatchingOp::_getAngleEdgeIncident(
 	return angleEdgeIncident;
 }*/
 
-
+///
+///
+///
 void app::calcul::JunctionMatchingOp::_setNewGeomJunction(
-	GraphType& graph,
-	vertex_descriptor& vJunction,
-	ign::geometry::Point ptNewGeomJunction,
-	std::map<std::string, ign::feature::Feature>& mEdgesModifiedGeom)
-{
+	GraphType const& graph,
+	vertex_descriptor vJunction,
+	ign::geometry::Point const& ptNewGeomJunction,
+	std::map<std::string, ign::feature::Feature> & mEdgesModifiedGeom
+) const {
 	std::vector< oriented_edge_descriptor > vEdgesIncidentsJunction;
 	graph.incidentEdges(vJunction, vEdgesIncidentsJunction);
 
-	for (std::vector< oriented_edge_descriptor >::iterator oeit = vEdgesIncidentsJunction.begin(); oeit != vEdgesIncidentsJunction.end(); ++oeit) {
+	for (std::vector< oriented_edge_descriptor >::const_iterator oeit = vEdgesIncidentsJunction.begin(); oeit != vEdgesIncidentsJunction.end(); ++oeit) {
 		//recuperation du edge feature associe et modication de la geom de l'edge dans la table
 		std::string idEdge2modify = graph.origins(oeit->descriptor)[0];
 		ign::feature::Feature featEdge2modify;
@@ -343,7 +406,7 @@ void app::calcul::JunctionMatchingOp::_setNewGeomJunction(
 		//modification de la nouvelle geometrie de l'edge
 		ign::geometry::LineString lsEdge2modify = featEdge2modify.getGeometry().asLineString();
 
-		//projection de l'edge, et recupération de l'abs curviligne
+		//projection de l'edge, et recupï¿½ration de l'abs curviligne
 		//suppression des points de la ls entre la proj du nouveau point et le nouveau point (start ou end selon l'orientation) 
 		app::geometry::tools::LineStringSplitter lsSplitter2modify(lsEdge2modify);
 		lsSplitter2modify.addCuttingGeometry(ptNewGeomJunction);

@@ -2127,6 +2127,7 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL( double snapProjCl2edge)
 	std::string const edgeTableName = _fsEdge->getTableName();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
+	std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS).toString();
 	//std::string const natIdName = themeParameters->getValue(NATIONAL_IDENTIFIER).toString();
 
 	if(_vCountriesCodeName.size() != 2)
@@ -2164,6 +2165,7 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL( double snapProjCl2edge)
 		if (fEdg1.getId().empty() || fEdg2.getId().empty()) //si on ne trouve pas l'un des troncons liés
 			continue;
 
+
 		ign::geometry::LineString lsEdgInit1 = fEdg1.getGeometry().asLineString();
 		ign::geometry::LineString lsEdgInit2 = fEdg2.getGeometry().asLineString();
 		ign::geometry::LineString lsEdg1, lsEdg2;
@@ -2196,53 +2198,69 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL( double snapProjCl2edge)
 		}
 
 
-		//si les 2 edges sont dans le même pays, on prend la geom de la portion de l'edge du pays
-		/*bool isLs1InCountry1 = lsEdg1.intersects(mPolyCountry1);
-		bool isLs2InCountry1 = lsEdg2.intersects(mPolyCountry1);
-		bool isLs1InCountry2 = lsEdg1.intersects(mPolyCountry2);
-		bool isLs2InCountry2 = lsEdg2.intersects(mPolyCountry2);
-		if (isLs1InCountry1 && !isLs1InCountry2 && isLs2InCountry1 && !isLs2InCountry2)
-			_getGeomCL(lsCLUpdated, lsEdg1, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertex);
-		else if (isLs1InCountry2 && !isLs1InCountry1 && isLs2InCountry2 && !isLs2InCountry1)
-			_getGeomCL(lsCLUpdated, lsEdg2, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertex);
-		else {*/
-			
-		std::set<double> sAbsCurv;
-		geometry::tools::LengthIndexedLineString lsIndex1(lsEdg1);
-		geometry::tools::LengthIndexedLineString lsIndex2(lsEdg2);
-		for (size_t i = 0; i < lsEdg1.numPoints()-1; ++i) {
-			double abscurv = lsIndex1.getPointLocation(i)/lsEdg1.length();
-			sAbsCurv.insert(abscurv);
-		}
-		for (size_t i = 0; i < lsEdg2.numPoints()-1; ++i) {
-			double abscurv = lsIndex2.getPointLocation(i)/lsEdg2.length();
-			sAbsCurv.insert(abscurv);
-		}
+		std::string ficticiousValue1 = fEdg1.getAttribute(fictitiousFieldName).toString();
+		bool isFictEdg1 = false;
+		if (ficticiousValue1 == "true")
+			isFictEdg1 = true;
+		std::string ficticiousClValue2 = fEdg2.getAttribute(fictitiousFieldName).toString();
+		bool isFictEdg2 = false;
+		if (ficticiousClValue2 == "true")
+			isFictEdg2 = true;
 
-		for (std::set<double>::iterator sit = sAbsCurv.begin(); sit != sAbsCurv.end(); ++sit) {
-			ign::geometry::MultiPoint multiPt;
-			double test = *sit*lsEdg1.length();
-			ign::geometry::Point pt1 = lsIndex1.locateAlong(*sit*lsEdg1.length());
-			ign::geometry::Point pt2 = lsIndex2.locateAlong(*sit*lsEdg2.length());
-			multiPt.addGeometry(pt1);
-			multiPt.addGeometry(pt2);
-			ign::geometry::Point ptLsCentroid = multiPt.getCentroid();
-			bool hasPtDistMin = false;
-			if (sit != sAbsCurv.begin()) {
-				if (lsCLUpdated.endPoint().distance(ptLsCentroid) < 0)
-					hasPtDistMin = true;
+		if (isFictEdg1 && !isFictEdg2)
+			lsCLUpdated = lsEdg1;
+		else if (!isFictEdg1 && isFictEdg2)
+				lsCLUpdated = lsEdg2;
+		else {
+
+			//si les 2 edges sont dans le même pays, on prend la geom de la portion de l'edge du pays
+			/*bool isLs1InCountry1 = lsEdg1.intersects(mPolyCountry1);
+			bool isLs2InCountry1 = lsEdg2.intersects(mPolyCountry1);
+			bool isLs1InCountry2 = lsEdg1.intersects(mPolyCountry2);
+			bool isLs2InCountry2 = lsEdg2.intersects(mPolyCountry2);
+			if (isLs1InCountry1 && !isLs1InCountry2 && isLs2InCountry1 && !isLs2InCountry2)
+				_getGeomCL(lsCLUpdated, lsEdg1, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertex);
+			else if (isLs1InCountry2 && !isLs1InCountry1 && isLs2InCountry2 && !isLs2InCountry1)
+				_getGeomCL(lsCLUpdated, lsEdg2, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertex);
+			else {*/
+
+			std::set<double> sAbsCurv;
+			geometry::tools::LengthIndexedLineString lsIndex1(lsEdg1);
+			geometry::tools::LengthIndexedLineString lsIndex2(lsEdg2);
+			for (size_t i = 0; i < lsEdg1.numPoints() - 1; ++i) {
+				double abscurv = lsIndex1.getPointLocation(i) / lsEdg1.length();
+				sAbsCurv.insert(abscurv);
 			}
-			if(!hasPtDistMin)
-				lsCLUpdated.addPoint(ptLsCentroid);
+			for (size_t i = 0; i < lsEdg2.numPoints() - 1; ++i) {
+				double abscurv = lsIndex2.getPointLocation(i) / lsEdg2.length();
+				sAbsCurv.insert(abscurv);
+			}
+
+			for (std::set<double>::iterator sit = sAbsCurv.begin(); sit != sAbsCurv.end(); ++sit) {
+				ign::geometry::MultiPoint multiPt;
+				double test = *sit*lsEdg1.length();
+				ign::geometry::Point pt1 = lsIndex1.locateAlong(*sit*lsEdg1.length());
+				ign::geometry::Point pt2 = lsIndex2.locateAlong(*sit*lsEdg2.length());
+				multiPt.addGeometry(pt1);
+				multiPt.addGeometry(pt2);
+				ign::geometry::Point ptLsCentroid = multiPt.getCentroid();
+				bool hasPtDistMin = false;
+				if (sit != sAbsCurv.begin()) {
+					if (lsCLUpdated.endPoint().distance(ptLsCentroid) < 0)
+						hasPtDistMin = true;
+				}
+				if (!hasPtDistMin)
+					lsCLUpdated.addPoint(ptLsCentroid);
+			}
+			ign::geometry::MultiPoint multiPtEnd;
+			multiPtEnd.addGeometry(lsEdg1.endPoint());
+			multiPtEnd.addGeometry(lsEdg2.endPoint());
+			//multiPtEnd.addGeometry(endLsProj2);
+			lsCLUpdated.addPoint(multiPtEnd.getCentroid());
+			//lsCLUpdated.clearZ();
+			lsCLUpdated.setFillZ(0);
 		}
-		ign::geometry::MultiPoint multiPtEnd;
-		multiPtEnd.addGeometry(lsEdg1.endPoint());
-		multiPtEnd.addGeometry(lsEdg2.endPoint());
-		//multiPtEnd.addGeometry(endLsProj2);
-		lsCLUpdated.addPoint(multiPtEnd.getCentroid());
 //		}
-		//lsCLUpdated.clearZ();
-		lsCLUpdated.setFillZ(0);
 		fCL.setGeometry(lsCLUpdated);
 		_fsCL->modifyFeature(fCL);
 		

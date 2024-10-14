@@ -33,7 +33,11 @@ namespace params{
 		_initParameter( FORM_OF_WAY, "FORM_OF_WAY" );
 		_initParameter( SNAP_DIST, "SNAP_DIST");
 		_initParameter( ANGLE_MAX_2_CUT_BORDER, "ANGLE_MAX_2_CUT_BORDER" );
+
 		_initParameter( CLA_SURFACE_WIDTH, "CLA_SURFACE_WIDTH" );
+		_initParameter( CLA_FICTITIOUS_RATIO_THRESHOLD, "CLA_FICTITIOUS_RATIO_THRESHOLD" );
+		_initParameter( CLA_FICTITIOUS_LENGTH_THRESHOLD, "CLA_FICTITIOUS_LENGTH_THRESHOLD" );
+
 		_initParameter( CP_TABLE, "CP_TABLE");
 		_initParameter( CL_TABLE, "CL_TABLE");
 		_initParameter( CP_TABLE_SUFFIX, "CP_TABLE_SUFFIX");

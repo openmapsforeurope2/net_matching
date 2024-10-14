@@ -18,6 +18,7 @@
 #include <app/step/230_ImportConnectingLines.h>
 #include <app/step/240_GenerateConnectingPoint.h>
 #include <app/step/250_ConnectionConnectingPoint.h>
+#include <app/step/255_GenerateCLinArea2.h>
 #include <app/step/260_EdgeCleaning1.h>
 #include <app/step/270_EdgeConnection.h>
 #include <app/step/280_EdgeCleaning2.h>
@@ -42,6 +43,7 @@ namespace tools{
 		stepSuite.addStep( epg::step::factoryNew< ImportConnectingLines >() );
 		stepSuite.addStep( epg::step::factoryNew< GenerateConnectingPoint >() );
 		stepSuite.addStep( epg::step::factoryNew< ConnectionConnectingPoint >() );
+		stepSuite.addStep( epg::step::factoryNew< GenerateCLinArea2 >() );
 		stepSuite.addStep( epg::step::factoryNew< EdgeCleaning1 >() );
 		stepSuite.addStep( epg::step::factoryNew< EdgeConnection >() );
 		stepSuite.addStep( epg::step::factoryNew< EdgeCleaning2 >() );

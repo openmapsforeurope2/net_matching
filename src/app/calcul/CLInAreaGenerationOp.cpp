@@ -827,6 +827,29 @@ namespace app
             std::list<oriented_edge_descriptor> const& path
         ) const {
             //--
+            params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+            double const ficticiousRatioThreshold = themeParameters->getValue( CLA_FICTITIOUS_RATIO_THRESHOLD ).toDouble();
+            double const ficticiousLengthThreshold = themeParameters->getValue( CLA_FICTITIOUS_LENGTH_THRESHOLD ).toDouble();
+            
+            //--
+            std::pair<double, double> pRatioLength = _getFictitiousRatio(graph, country, path);
+
+            return pRatioLength.first > ficticiousRatioThreshold || pRatioLength.second > ficticiousLengthThreshold;
+        }
+
+        ///
+        ///
+        ///
+        std::pair<double, double> CLInAreaGenerationOp::_getFictitiousRatio(
+            GraphType const& graph,
+            std::string const& country,
+            std::list<oriented_edge_descriptor> const& path
+        ) const {
+            //--
+            double length = 0;
+            double fictitiousLength = 0;
+
+            //--
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
             std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS).toString();
 
@@ -836,21 +859,28 @@ namespace app
             _fsEdge->getFeatureById(originId, featOrigin);
 
             std::string fictitious = featOrigin.getAttribute(fictitiousFieldName).toString();
-            if( fictitious == "true" ) return true;
             
             edges_path_const_iterator pit;
             for( pit = path.begin() ; pit != path.end(); ++pit )
             {
+                ign::geometry::LineString edgeGeom = graph.getGeometry(pit->descriptor);
+                double edgeLength = edgeGeom.length();
+                length += edgeLength;
+
                 std::string currentOriginId = _getOrigin(graph, country, pit->descriptor);
                 if( currentOriginId != originId ) {
                     originId = currentOriginId;
                     _fsEdge->getFeatureById(originId, featOrigin);
 
                     fictitious = featOrigin.getAttribute(fictitiousFieldName).toString();
-                    if( fictitious == "true" ) return true;
-                }   
+                }
+
+                if ( fictitious == "true" ) {
+                    fictitiousLength += edgeLength;
+                }
+                
             }
-            return false;
+            return std::make_pair(fictitiousLength / length, fictitiousLength);
         }
 
         ///

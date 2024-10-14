@@ -126,12 +126,20 @@ namespace app
 
                 double ratio = _getRatio(ls, country);
 
-                if (ratio > minRatio && fictitious == "false") {
+                if (ratio >= minRatio && fictitious == "false") {
                     ign::feature::Feature fEdge_ = fEdge;
                     fEdge_.setAttribute(fictitiousFieldName, ign::data::String("true"));
 
                     //DEBUG
-                    fEdge_.setAttribute(wTagName, ign::data::String("debug_201"));
+                    fEdge_.setAttribute(wTagName, ign::data::String("debug_201_to_true"));
+                    
+                    _fsEdge->modifyFeature(fEdge_);
+                } else if (ratio < minRatio && fictitious == "true") {
+                    ign::feature::Feature fEdge_ = fEdge;
+                    fEdge_.setAttribute(fictitiousFieldName, ign::data::String("false"));
+
+                    //DEBUG
+                    fEdge_.setAttribute(wTagName, ign::data::String("debug_201_to_false"));
                     
                     _fsEdge->modifyFeature(fEdge_);
                 }
@@ -150,7 +158,7 @@ namespace app
             ign::geometry::GeometryPtr areaUnionPtr(new ign::geometry::Polygon());
 
             ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + ls.toString() + "'),3035))");
-            epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" = '"+country+"'");
+            epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" LIKE '%"+country+"%'");
             ign::feature::FeatureIteratorPtr itArea = _fsArea->getFeatures(filter);
             while (itArea->hasNext())
             {

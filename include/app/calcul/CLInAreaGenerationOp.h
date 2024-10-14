@@ -195,6 +195,13 @@ namespace calcul{
         ) const;
 
 		//--
+		std::pair<double, double> _getFictitiousRatio(
+            GraphType const& graph,
+            std::string const& country,
+            std::list<oriented_edge_descriptor> const& path
+        ) const;
+
+		//--
 		std::string _getOrigin(
             GraphType const& graph,
             std::string const& country,

@@ -411,7 +411,8 @@ namespace app
 
             //--
             detail::EdgeCleaningGraphManager graphManager;
-            _loadGraph(graphManager);
+            ign::feature::FeatureFilter filter(countryCodeName+" NOT LIKE '%#%'");
+            _loadGraph(graphManager, filter);
             GraphType const& graph = graphManager.getGraph();
 
             //--

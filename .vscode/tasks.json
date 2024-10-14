@@ -4,7 +4,7 @@
         {
             "label": "build release",
             "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/hy_matching hy_matching ./build-unix-release.sh",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./build-unix-release.sh",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -28,7 +28,7 @@
         {
             "label": "build debug",
             "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/hy_matching hy_matching ./build-unix-debug.sh",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./build-unix-debug.sh",
             "group": {
                 "kind": "build",
                 "isDefault": true

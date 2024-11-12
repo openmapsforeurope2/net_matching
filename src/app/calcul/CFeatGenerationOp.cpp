@@ -400,7 +400,6 @@ void app::calcul::CFeatGenerationOp::_init(std::string countryCodeDouble, bool v
 		_sFormwayValues4BigDist2Merge.insert(vValueFormwayBigDist2merge[i]);
 	}
 
-
 	///recuperation des features
 	std::string const boundaryTableName = epg::utils::replaceTableName(context->getEpgParameters().getValue(TARGET_BOUNDARY_TABLE).toString());
 	_fsBoundary = context->getDataBaseManager().getFeatureStore(boundaryTableName, idName, geomName);

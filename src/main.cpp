@@ -11,6 +11,7 @@
 #include <app/params/ThemeParameters.h>
 #include <app/step/tools/initSteps.h>
 #include <app/utils/createCpClTables.h>
+#include <app/utils/setTableName.h>
 
 
 namespace po = boost::program_options;
@@ -53,7 +54,6 @@ int main(int argc, char *argv[])
         ("cc" , po::value< std::string >(&countryCode)          , "country code" )
         ("sp", po::value< std::string >(&stepCode), OperatorDetail.str().c_str())
     ;
-    stepCode = "210-280";
 
     //main log
     std::string     logFileName = "log.txt";
@@ -74,6 +74,20 @@ int main(int argc, char *argv[])
             return 1;
         }
 
+        epg::step::StepSuite< app::params::ThemeParametersS >* stepSuitePtr = 0;
+        if (theme == "hy")
+			stepSuitePtr = &stepSuiteHy;
+		else if (theme == "tn")
+			stepSuitePtr = &stepSuiteTn;
+        else if (theme == "ra")
+			stepSuitePtr = &stepSuiteRa;
+        else {
+            std::string mError = "unknown theme " + theme;
+            IGN_THROW_EXCEPTION(mError);
+        }
+
+        if (stepCode.empty()) stepCode = stepSuitePtr->getStepsRange();
+
         //parametres EPG
 		context->loadEpgParameters( epgParametersFile, theme );
 
@@ -86,7 +100,7 @@ int main(int argc, char *argv[])
         {
             if (!boost::filesystem::create_directory(logDir))
             {
-                std::string mError = "le dossier " + logDirectory + " ne peut être cree";
+                std::string mError = "impossible to create directory " + logDirectory;
                 IGN_THROW_EXCEPTION(mError);
             }
         }
@@ -115,19 +129,18 @@ int main(int argc, char *argv[])
         //info de connection db
         context->loadEpgParameters( themeParameters->getValue(DB_CONF_FILE).toString() );
 
+        //set BDD search path
+        context->getDataBaseManager().setSearchPath(themeParameters->getValue(WORKING_SCHEMA).toString());
+        app::utils::setTableName(LANDMASK_TABLE);
+        app::utils::setTableName(TARGET_BOUNDARY_TABLE);
+
         //créer les tables CP et CL vides si elles n'existent pas
         app::utils::createCpClTables(themeParameters->getValue(EDGE_TABLE_INIT).toString());
 
         logger->log(epg::log::INFO, "[START EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 
         //lancement du traitement
-		if (theme == "hy")
-			stepSuiteHy.run(stepCode, verbose);
-		else if (theme == "tn")
-			stepSuiteTn.run(stepCode, verbose);
-        else if (theme == "ra")
-			stepSuiteRa.run(stepCode, verbose);
-		//stepSuite.run(stepCode, verbose);
+        stepSuitePtr->run(stepCode, verbose);
 
 		logger->log(epg::log::INFO, "[END EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 

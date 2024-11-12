@@ -16,6 +16,7 @@ namespace params{
 	ThemeParameters::ThemeParameters()
 	{
 		_initParameter( DB_CONF_FILE, "DB_CONF_FILE" );
+		_initParameter( WORKING_SCHEMA, "WORKING_SCHEMA" );
 		_initParameter( EDGE_TABLE_INIT, "EDGE_TABLE_INIT" );
 		_initParameter( COUNTRY_CODE_W, "COUNTRY_CODE_W" );
 		_initParameter( EDGE_FICTITIOUS, "EDGE_FICTITIOUS" );

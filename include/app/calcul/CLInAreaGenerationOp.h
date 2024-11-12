@@ -115,6 +115,13 @@ namespace calcul{
 		void _cleanOverLappingCl() const;
 
 		//--
+		void _setZ(
+            ign::geometry::LineString const& featGeom1,
+            ign::geometry::LineString const& featGeom2,
+            ign::geometry::LineString & edgeGeom
+        ) const;
+
+		//--
 		void _addIncidentFeatures(
             GraphType const& graph,
             vertex_descriptor v,

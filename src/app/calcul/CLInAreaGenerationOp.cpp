@@ -349,11 +349,41 @@ namespace app
                         _addIncidentFeatures(graph, graph.target(*foundInducedEdgesBack.second.rbegin()), sEdgesFront, mmIncidentFeatures);
                 }
 
+                _setZ(featFront.getGeometry().asLineString(), featBack.getGeometry().asLineString(), edgeGeom);
+
                 fRef->setGeometry(edgeGeom);
                 
 				_fsEdge->createFeature(*fRef);
             }
         }
+
+        ///
+        ///
+        ///
+        void CLInAreaGenerationOp::_setZ(
+            ign::geometry::LineString const& featGeom1,
+            ign::geometry::LineString const& featGeom2,
+            ign::geometry::LineString & edgeGeom
+        ) const {
+            if(ign::numeric::Numeric<double>::IsNaN(edgeGeom.startPoint().z() )){
+                ign::geometry::Point projPt1;
+                epg::tools::geometry::projectZ(featGeom1, edgeGeom.startPoint(), projPt1, 1e-5);
+
+                ign::geometry::Point projPt2;
+                epg::tools::geometry::projectZ(featGeom2, edgeGeom.startPoint(), projPt2, 1e-5);
+
+                edgeGeom.startPoint().z() = (projPt1.z() + projPt2.z()) / 2;
+            }
+            if(ign::numeric::Numeric<double>::IsNaN(edgeGeom.endPoint().z() )){
+                ign::geometry::Point projPt1;
+                epg::tools::geometry::projectZ(featGeom1, edgeGeom.endPoint(), projPt1, 1e-5);
+
+                ign::geometry::Point projPt2;
+                epg::tools::geometry::projectZ(featGeom2, edgeGeom.endPoint(), projPt2, 1e-5);
+
+                edgeGeom.endPoint().z() = (projPt1.z() + projPt2.z()) / 2;
+            }
+        }        
 
         ///
         ///
@@ -1080,6 +1110,7 @@ namespace app
             ) const 
         {
             graphManager.clear();
+            // graphManager.setSimplifiedPlanarization(true);
 
             //--
             epg::Context *context = epg::ContextS::getInstance();
@@ -1115,6 +1146,7 @@ namespace app
                 graphManager.planarize();
                 graphManager.createFaces();
             }
+            // graphManager.setSimplifiedPlanarization(false);
         }
 
 		///

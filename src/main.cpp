@@ -7,11 +7,13 @@
 #include <epg/tools/TimeTools.h>
 #include <epg/params/tools/loadParameters.h>
 
+//OME2
+#include <ome2/utils/setTableName.h>
+
 //APP
 #include <app/params/ThemeParameters.h>
 #include <app/step/tools/initSteps.h>
 #include <app/utils/createCpClTables.h>
-#include <app/utils/setTableName.h>
 
 
 namespace po = boost::program_options;
@@ -131,8 +133,8 @@ int main(int argc, char *argv[])
 
         //set BDD search path
         context->getDataBaseManager().setSearchPath(themeParameters->getValue(WORKING_SCHEMA).toString());
-        app::utils::setTableName(LANDMASK_TABLE);
-        app::utils::setTableName(TARGET_BOUNDARY_TABLE);
+        ome2::utils::setTableName<app::params::ThemeParametersS>(LANDMASK_TABLE);
+        ome2::utils::setTableName<epg::params::EpgParametersS>(TARGET_BOUNDARY_TABLE);
 
         //créer les tables CP et CL vides si elles n'existent pas
         app::utils::createCpClTables(themeParameters->getValue(EDGE_TABLE_INIT).toString());

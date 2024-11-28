@@ -81,7 +81,7 @@ namespace app
 
             //--
             std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
-            context->getDataBaseManager().getConnection()->update("UPDATE " + _fsEdge->getTableName() + " SET " + wTagName + " = NULL");
+            context->getDataBaseManager().resetColumn(_fsEdge->getTableName(), wTagName);
 
             //--
             // _shapeLogger = epg::log::ShapeLoggerS::getInstance();

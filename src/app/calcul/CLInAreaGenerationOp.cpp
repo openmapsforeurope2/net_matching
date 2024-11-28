@@ -126,7 +126,7 @@ namespace app
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
                 //DEBUG
-                // if( faceGeom.intersects(ign::geometry::Point(3984994.14,2957087.97))) {
+                // if( faceGeom.intersects(ign::geometry::Point(3831601.0,3097266.8))) {
                 //     bool test = true;
                 // } 
                 // if( faceGeom.intersects(ign::geometry::Point(3985008.38,2957082.03))) {
@@ -140,8 +140,25 @@ namespace app
 				if (!_getFacePaths(graphManager, *fit, vpCountryEdges))
 					continue;
 
+                //DEBUG
+                // std::vector<ign::geometry::LineString> vTest;
+                // for ( size_t g = 0 ; g < vpCountryEdges.size() ; ++g ) {
+                //     vTest.push_back(_convertPathToLineString(graph, vpCountryEdges[g].first, vpCountryEdges[g].second));
+                // }
+
+
 				if (vpCountryEdges.size() < 2) 
 					continue;
+
+                bool foundCl = false;
+                for (std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>::const_iterator vpit = vpCountryEdges.begin() ; vpit != vpCountryEdges.end() ; ++vpit) {
+                    if (vpit->first.find("#") != std::string::npos) {
+                        foundCl = true;
+                        break;
+                    }
+                }
+                if( foundCl )
+                    continue;
 
 				std::set<std::string> sFaceCountries;
 				for (std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>::const_iterator vpit = vpCountryEdges.begin() ; vpit != vpCountryEdges.end() ; ++vpit)
@@ -441,7 +458,8 @@ namespace app
 
             //--
             detail::EdgeCleaningGraphManager graphManager;
-            ign::feature::FeatureFilter filter(countryCodeName+" NOT LIKE '%#%'");
+            // ign::feature::FeatureFilter filter(countryCodeName+" NOT LIKE '%#%'");
+            ign::feature::FeatureFilter filter;
             _loadGraph(graphManager, filter);
             GraphType const& graph = graphManager.getGraph();
 
@@ -1367,6 +1385,7 @@ namespace app
                     std::string nextCountry = graphManager.getCountry(lit->descriptor);
                     if ( graph.degree(graph.target(*lit_previous)) > 2 || currentCountry != nextCountry ) {
                         vpCountryEdges.push_back(std::make_pair(nextCountry, std::list<oriented_edge_descriptor>()));
+                        currentCountry = nextCountry;
                     }
                 } else {
                     break;

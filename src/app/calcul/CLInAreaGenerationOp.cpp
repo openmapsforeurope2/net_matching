@@ -80,6 +80,10 @@ namespace app
             _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTableName, idName, geomName);
 
             //--
+            std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+            context->getDataBaseManager().setValueColumn(_fsEdge->getTableName(), wTagName, "\N");
+
+            //--
             // _shapeLogger = epg::log::ShapeLoggerS::getInstance();
             // _shapeLogger->addShape("ec_projected_antennas", epg::log::ShapeLogger::LINESTRING);
 

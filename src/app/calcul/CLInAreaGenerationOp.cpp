@@ -720,9 +720,16 @@ namespace app
                 _fsEdge->createFeature(newFeat);
             }
 
-            for( std::map<std::string, std::set<edge_descriptor>>::const_iterator mit = mFeatMergedEdges.begin() ; mit != mFeatMergedEdges.end() ; ++mit ) {
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "youyou");
 
+            for( std::map<std::string, std::set<edge_descriptor>>::const_iterator mit = mFeatMergedEdges.begin() ; mit != mFeatMergedEdges.end() ; ++mit )
+            {
                 ign::feature::Feature featOrigin;
+
+                //DEBUG
+                _logger->log(epg::log::DEBUG, mit->first);
+
                 _fsEdge->getFeatureById(mit->first, featOrigin);
                 ign::geometry::LineString geomOrigin = featOrigin.getGeometry().asLineString();
                 std::string originCountry = featOrigin.getAttribute(countryCodeName).toString();
@@ -741,7 +748,11 @@ namespace app
                 }
                 if (!path.empty()) vPaths.push_back(path);
 
-                for( size_t i = 0 ; i < vPaths.size() ; ++i ) {
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "pop");
+
+                for( size_t i = 0 ; i < vPaths.size() ; ++i )
+                {
                     ign::geometry::LineString newGeom = _convertPathToLineString(graph, originCountry, vPaths[i]);
 
                     // assurer la cohérence avec les données sources aux extrémités

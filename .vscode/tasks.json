@@ -2,6 +2,30 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "build package",
+            "type": "shell",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./build-unix-package.sh",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ],
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }
+            }
+        },
+        {
             "label": "build release",
             "type": "shell",
             "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./build-unix-release.sh",
@@ -65,7 +89,7 @@
         {
             "label": "run the code",
             // "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./bin/ome2_tn_matching --c /usr/local/src/tn_matching/data/config/epg_parameters.ini --t hy --cc be#fr --sp 201-280",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./bin/ome2_tn_matching --c /usr/local/src/tn_matching/config/epg_parameters.ini --t hy --cc be#fr --sp 201-280",
             "group": "build",
             "problemMatcher": []
         },

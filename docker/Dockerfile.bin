@@ -1,0 +1,15 @@
+FROM debian:10
+
+RUN apt-get update -y
+RUN apt-get install -y qt5-default
+
+WORKDIR /usr/local/src/
+COPY libs libs
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/libs
+
+WORKDIR /usr/local/src/tn_matching/
+COPY package/*.deb .
+COPY config/*.ini ./config/
+
+RUN dpkg -i *.deb
+RUN rm *.deb

@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     desc.add_options()
         ("help", "produce help message")
         ("c" , po::value< std::string >(&epgParametersFile)     , "conf file" )
-        ("t" , po::value< std::string >(&theme)                 , "theme" )
+        ("T" , po::value< std::string >(&theme)                 , "theme" )
         ("cc" , po::value< std::string >(&countryCode)          , "country code" )
         ("sp", po::value< std::string >(&stepCode), OperatorDetail.str().c_str())
     ;

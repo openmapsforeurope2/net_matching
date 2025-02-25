@@ -2,7 +2,7 @@ cmake_minimum_required( VERSION 2.8.3 )
 cmake_policy(SET CMP0020 NEW)
 
 # Definition du projet
-set(PROJECT_NAME ome2_tn_matching)
+set(PROJECT_NAME tn_matching)
 project(${PROJECT_NAME})
 
 FIND_PATH(SOCLE_EXTERN_ROOT NAMES SocleExterns.cmake

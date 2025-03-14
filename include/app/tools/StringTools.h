@@ -19,7 +19,7 @@ namespace tools{
 		/// @param separator 
 		/// @return 
 		template<typename Container>
-		static std::string toString(Container const& vStrings, std::string separator = ",") {
+		static std::string ToString(Container const& vStrings, std::string separator = ",") {
             std::string result = "";
             typename Container::const_iterator vit;
             for ( vit = vStrings.begin() ; vit != vStrings.end() ; ++vit ) {

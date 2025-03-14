@@ -817,7 +817,7 @@ namespace app
                 found = !fEdgeResult.getId().empty();
             } else {
                 double dMax = std::numeric_limits<double>::infinity();
-                ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(edgeIdName + " IN ('" + tools::StringTools::toString(vCandidates, "','") + "')");
+                ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(edgeIdName + " IN ('" + tools::StringTools::ToString(vCandidates, "','") + "')");
 
                 while (itEdge->hasNext())
                 {

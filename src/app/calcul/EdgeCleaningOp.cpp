@@ -1091,7 +1091,7 @@ namespace app
             std::list<edge_descriptor>::const_iterator lit = lEdges.begin();
             for ( ; lit != lEdges.end() ; ++lit) {
                 if (graph.origins(*lit).size() != 1) {
-                    _logger->log(epg::log::ERROR, "Edge with multiple origins [edge id] "+tools::StringTools::toString(graph.origins(*lit)));
+                    _logger->log(epg::log::ERROR, "Edge with multiple origins [edge id] "+tools::StringTools::ToString(graph.origins(*lit)));
 					aborded = true;
 					break;
                 }

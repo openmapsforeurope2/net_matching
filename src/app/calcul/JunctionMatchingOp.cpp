@@ -1,5 +1,8 @@
 
+//APP
 #include <app/calcul/JunctionMatchingOp.h>
+#include <app/params/ThemeParameters.h>
+#include <app/geometry/tools/LineStringSplitter.h>
 
 //BOOST
 #include <boost/timer.hpp>
@@ -15,10 +18,6 @@
 #include <epg/utils/replaceTableName.h>
 #include <epg/tools/geometry/angle.h>
 #include <epg/sql/tools/numFeatures.h>
-
-//APP
-#include <app/params/ThemeParameters.h>
-#include <app/geometry/tools/LineStringSplitter.h>
 
 ///
 ///
@@ -161,6 +160,8 @@ void app::calcul::JunctionMatchingOp::_matchJunctions() const
 }
 
 ///
+///
+///
 bool app::calcul::JunctionMatchingOp::_isFictitious(
 	vertex_descriptor vJunction,
 	app::calcul::detail::EdgeCleaningGraphManager const& graphManager
@@ -242,41 +243,12 @@ void app::calcul::JunctionMatchingOp::_getMatchedJunctBest(
 		}
 
 		ign::geometry::Point ptJRef = graphRef.getGeometry(*vitRef);
-		//DEBUG
-		/*::geometry::Point ptDEbug;
-		ptDEbug.setX(3940556);
-		ptDEbug.setY(3004362);
-		if (ptDEbug.distance(ptJRef) > 6) {
-			++vitRef;
-			continue;
-		}*/
-		//DEBUG
-				
-		//recup�ration des angles incidents
-		/*std::vector< oriented_edge_descriptor > vEdgIncidenJref;
-		graphRef.incidentEdges(*vitRef, vEdgIncidenJref);
-		std::set<double> sAnglEdgesJRef;
-		for (std::vector< oriented_edge_descriptor >::iterator eitRef = vEdgIncidenJref.begin(); eitRef != vEdgIncidenJref.end(); ++eitRef) {
-			double angleEdgeIncident = _getAngleEdgeIncident(graphRef, *eitRef);
-			sAnglEdgesJRef.insert(angleEdgeIncident);
-		}*/
 
 		//recuperation des noeuds proches du country2 
 		ign::geometry::Envelope envlpDistMaxJunctRef(ptJRef);
 		envlpDistMaxJunctRef.expandBy(distMaxJunctions);
 		std::set<vertex_descriptor> sVCandidate2matchArroundJRef;
 		graph2match.getVertices(envlpDistMaxJunctRef, sVCandidate2matchArroundJRef);
-
-		/*if (sVCandidate2matchArroundJRef.size() == 1) {
-			vertex_descriptor vCandidate2match = *sVCandidate2matchArroundJRef.begin();
-			size_t degreeCandidateJ2match = graph2match.degree(vCandidate2match);
-			if ((degreeJRef == degreeCandidateJ2match)) {
-				mMatchedJuncRefWithBestJuncMatched[*vitRef] = vCandidate2match;
-			}
-			//si ce n'est pas le meme degr� le candidat n'est pas gard�
-			++vitRef;
-			continue;
-		}*/
 
 		double distMin = distMaxJunctions;
 		for (std::set<vertex_descriptor>::const_iterator sitV2match = sVCandidate2matchArroundJRef.begin(); sitV2match != sVCandidate2matchArroundJRef.end(); ++sitV2match) {
@@ -295,20 +267,6 @@ void app::calcul::JunctionMatchingOp::_getMatchedJunctBest(
 				distMin = distJ1J2Candidate;
 				mMatchedJuncRefWithBestJuncMatched[*vitRef] = *sitV2match;
 			}
-
-			//on donne une note selon l'orientation des edges
-			/*std::vector< oriented_edge_descriptor > vEdgIncidenJ2match;
-			graph2match.incidentEdges(*sitV2match, vEdgIncidenJ2match);
-			std::set<double> sAnglEdgesJ2match;
-			for (std::vector< oriented_edge_descriptor >::iterator eit2match = vEdgIncidenJ2match.begin(); eit2match != vEdgIncidenJ2match.end(); ++eit2match) {
-				double angleEdgeIncident = _getAngleEdgeIncident(graph2match, *eit2match);
-				sAnglEdgesJ2match.insert(angleEdgeIncident);
-			}*/
-
-			/*if ( !_IsSimilarIncidentsEdgesOnJunctions(sAnglEdgesJ1, sAnglEdgesJ2) )
-				continue;*/
-
-			//en fonction de la dist et de la note lie a l'orientation des edges ont ajoute le meilleur candidat
 		}
 		++vitRef;
 	}
@@ -335,52 +293,7 @@ bool app::calcul::JunctionMatchingOp::_IsSimilarIncidentsEdgesOnJunctions(
 			return false;	
 	}
 	return true;
-	/*for (std::vector< oriented_edge_descriptor >::iterator eit1 = vEdgIncJ1.begin(); eit1 != vEdgIncJ1.end(); ++eit1) {
-		//debug
-		std::string idE1 = graphEdgCountry1.origins(eit1->descriptor)[0];
-
-		ign::geometry::LineString ls1 = graphEdgCountry1.getGeometry(*eit1);
-		if (eit1->direction == ign::graph::REVERSE)
-			ls1.reverse();
-		ign::math::Vec2d vec1(ls1.endPoint().x() - ls1.startPoint().x(), ls1.endPoint().y() - ls1.startPoint().y());
-		double azimuth1 = atan2(vec1.y(), vec1.x());
-		if (azimuth1 < 0) azimuth1 += 2 * M_PI;
-		double angleEdge1 = fmod(fabs(azimuth1), 2 * M_PI);
-		
-
-		for (std::vector< oriented_edge_descriptor >::iterator eit2 = vEdgIncJ2.begin(); eit2 != vEdgIncJ2.end(); ++eit2) {
-			std::string idE2 = graphEdgCountry2.origins(eit2->descriptor)[0];
-			ign::geometry::LineString ls2 = graphEdgCountry2.getGeometry(*eit2);
-			if (eit2->direction == ign::graph::REVERSE)
-				ls2.reverse();
-
-			ign::math::Vec2d vec2(ls2.endPoint().x() - ls2.startPoint().x(), ls2.endPoint().y() - ls2.startPoint().y());
-			double angleEdge, azimuth1, azimuth2;
-			azimuth1 = atan2(vec1.y(), vec1.x());
-			azimuth2 = atan2(vec2.y(), vec2.x());
-			
-			if (azimuth2 < 0) azimuth2 += 2 * M_PI;
-			angleEdge = fmod(fabs(azimuth2 - azimuth1), 2 * M_PI);
-			double angleEdgeEpg = epg::tools::geometry::angle(vec1, vec2);
-		}
-	}*/
-
-
 }
-/*
-double app::calcul::JunctionMatchingOp::_getAngleEdgeIncident(
-	GraphType& graphEdgCountry,
-	oriented_edge_descriptor& oeit)
-{
-	ign::geometry::LineString ls = graphEdgCountry.getGeometry(oeit.descriptor);
-	if (oeit.direction == ign::graph::REVERSE)
-		ls.reverse();
-	ign::math::Vec2d vec(ls.endPoint().x() - ls.startPoint().x(), ls.endPoint().y() - ls.startPoint().y());
-	double azimuth = atan2(vec.y(), vec.x());
-	if (azimuth < 0) azimuth += 2 * M_PI;
-	double angleEdgeIncident = fmod(fabs(azimuth), 2 * M_PI);
-	return angleEdgeIncident;
-}*/
 
 ///
 ///
@@ -418,8 +331,6 @@ void app::calcul::JunctionMatchingOp::_setNewGeomJunction(
 				lsEdge2modify = vLs2modify[0];
 		}
 
-
-		//ign::geometry::LineString lsEdge2modify = graph.getGeometry(oeit->descriptor);
 		if (oeit->direction == ign::graph::DIRECT)
 			lsEdge2modify.setPointN(ptNewGeomJunction, 0);
 		else

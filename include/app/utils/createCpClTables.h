@@ -6,7 +6,8 @@
 namespace app{
 namespace utils{
 
-    //--
+    /// @brief 
+    /// @param edgeTableName 
     void createCpClTables(std::string const& edgeTableName);
 }
 }

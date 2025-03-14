@@ -1,16 +1,15 @@
 #ifndef _APP_CALCUL_CLINAREAGENERATIONOP_H_
 #define _APP_CALCUL_CLINAREAGENERATIONOP_H_
 
-#include <epg/log/EpgLogger.h>
-#include <epg/log/ShapeLogger.h>
-
 // SOCLE
 #include <ign/feature/sql/FeatureStorePostgis.h>
 
-//APP
+// APP
 #include <app/calcul/detail/EdgeCleaningGraphManager.h>
 
-//EPG
+// EPG
+#include <epg/log/EpgLogger.h>
+#include <epg/log/ShapeLogger.h>
 #include <ome2/calcul/utils/AttributeMerger.h>
 
 
@@ -18,13 +17,18 @@ namespace app{
 namespace calcul{
 namespace detail{
 
+	//--
 	enum ENDING{
 		START,
 		END
 	};
 
+	//--
     struct IncidentFeature {
-        /// \brief
+
+        /// @brief 
+        /// @param originId_ 
+        /// @param ending_ 
         IncidentFeature(
 			std::string originId_,
 			ENDING ending_
@@ -33,12 +37,14 @@ namespace detail{
 			ending(ending_)
 		{};
 
-        /// \brief
+        /// @brief 
         ~IncidentFeature(){};
 
         //--
         ENDING		          ending;
+		//--
         std::string           originId;
+		//--
 		ign::geometry::Point  ptTarget;
     };
 }
@@ -48,6 +54,7 @@ namespace detail{
 namespace app{
 namespace calcul{
 
+	/// @brief 
 	class CLInAreaGenerationOp {
 
 	public:
@@ -66,8 +73,9 @@ namespace calcul{
 
 		typedef std::multimap<std::string, detail::IncidentFeature>::const_iterator  m_iterator;
 
-		/// \brief
-		static void compute(
+		/// @brief 
+		/// @param verbose 
+		static void Compute(
 			bool verbose
 		);
 

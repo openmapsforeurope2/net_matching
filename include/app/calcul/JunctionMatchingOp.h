@@ -16,6 +16,7 @@
 namespace app{
 namespace calcul{
 
+	/// @brief 
 	class JunctionMatchingOp {
 
 	public:
@@ -26,17 +27,42 @@ namespace calcul{
 		typedef typename GraphType::oriented_edge_descriptor               oriented_edge_descriptor;
 		typedef app::calcul::detail::OriginEdgeProperties                  OriginEdgeProperties;
 
-		/// \brief
+		/// @brief 
+		/// @param countryCodeDouble 
+		/// @param verbose 
 		JunctionMatchingOp(std::string const& countryCodeDouble, bool verbose = false);
 
-		/// \brief
+		/// @brief 
 		~JunctionMatchingOp();
 
-		/// \brief
+		/// @brief 
+		/// @param countryCodeDouble 
+		/// @param verbose 
 		static void MatchJunctions(std::string const& countryCodeDouble, bool verbose = false);
 
-		/// \brief
+		/// @brief 
+		/// @param countryCodeDouble 
+		/// @param verbose 
 		static void DisplaceJunctions(std::string const& countryCodeDouble, bool verbose = false);
+
+
+	private:
+		//--
+		ign::feature::sql::FeatureStorePostgis*            _fsEdge;
+		//--
+		ign::feature::sql::FeatureStorePostgis*            _fsBoundary;
+		//--
+		ign::feature::sql::FeatureStorePostgis*            _fsLandmask;
+		//--
+		epg::log::EpgLogger*                               _logger;
+		//--
+		epg::log::ShapeLogger*                             _shapeLogger;
+		//--
+		bool                                               _verbose;
+		//--
+		std::string                                        _countryCodeDouble;
+		//--
+		std::vector<std::string>						   _vCountriesCodeName;
 
 		
 	private:
@@ -68,12 +94,6 @@ namespace calcul{
 		) const;
 
 		//--
-		// double _getAngleEdgeIncident(
-		// 	GraphType const& graphEdgCountry,
-		// 	oriented_edge_descriptor oeit
-		// ) const;
-
-		//--
 		void _getMatchedJunctBest(
 			std::map< vertex_descriptor, vertex_descriptor> & mMatchedJuncRefWithBestJuncMatched,
 			GraphType const& graphRef,
@@ -87,24 +107,6 @@ namespace calcul{
 			ign::geometry::Point const& ptNewGeomJunction,
 			std::map<std::string, ign::feature::Feature> & mEdgesModifiedGeom
 		) const;
-
-	private:
-		//--
-		ign::feature::sql::FeatureStorePostgis*            _fsEdge;
-		//--
-		ign::feature::sql::FeatureStorePostgis*            _fsBoundary;
-		//--
-		ign::feature::sql::FeatureStorePostgis*            _fsLandmask;
-		//--
-		epg::log::EpgLogger*                               _logger;
-		//--
-		epg::log::ShapeLogger*                             _shapeLogger;
-		//--
-		bool                                               _verbose;
-		//--
-		std::string                                        _countryCodeDouble;
-		//--
-		std::vector<std::string>						   _vCountriesCodeName;
 
 	};
 

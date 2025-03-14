@@ -16,6 +16,7 @@
 namespace app{
 namespace calcul{
 
+	/// @brief 
 	class EdgeCleaningOp {
 
 	public:
@@ -32,7 +33,9 @@ namespace calcul{
 		typedef typename GraphType::edges_path_const_iterator              edges_path_const_iterator;
 		typedef app::calcul::detail::OriginEdgeProperties                  OriginEdgeProperties;
 
-		/// \brief
+		/// @brief 
+		/// @param borderCode 
+		/// @param verbose 
 		EdgeCleaningOp( 
 			std::string borderCode,
             bool verbose 
@@ -47,16 +50,23 @@ namespace calcul{
 		/// \brief
 		void cleanFaces2ByCountry() const;
 
-		/// \brief
+		/// @brief 
+		/// @param sqlFilter 
+		/// @param tagTreatedDangles 
 		void cleanFacesAndAntennaByCountry(std::string const& sqlFilter, bool tagTreatedDangles = false) const;
 
-		/// \brief
+		/// @brief 
+		/// @param sqlFilter 
+		/// @return 
 		bool cleanFaces2(std::string const& sqlFilter) const;
 
 		/// \brief
 		void cleanPathsOutOfCountry() const;
 
-        /// \brief
+		/// @brief 
+		/// @param withCl 
+		/// @param tagTreatedDangles 
+		/// @return 
 		bool cleanAntennas(bool withCl = true, bool tagTreatedDangles = false) const;
 
 		/// \brief
@@ -83,7 +93,6 @@ namespace calcul{
 		//--
 		bool                                                 _verbose;
 		//--
-		// inline static std::string const                      _tag = "EdgeCleaningOpTag"; //C++17
 		std::string                                          _tag;
 
 	private:
@@ -228,12 +237,6 @@ namespace calcul{
 		) const;
 
 		//--
-		// bool _isSlimSurface( 
-        //     ign::geometry::LineString const& closedLs, 
-        //     double maxWidth
-		// ) const;
-
-		//--
         bool _getFacePaths(
             detail::EdgeCleaningGraphManager const& graphManager, 
             face_descriptor fd, 
@@ -301,7 +304,6 @@ namespace calcul{
 		//--
 		bool _cleanAntennas(
 			detail::EdgeCleaningGraphManager & graphManager,
-			// std::set<vertex_descriptor> & sTreatedDangles,
 			std::set<std::string> & sTreatedFeatures,
 			bool isPlanarGraph,
 			bool withCl
@@ -310,7 +312,6 @@ namespace calcul{
 		//--
 		bool _cleanGraphAntennas(
             detail::EdgeCleaningGraphManager & graphManager,
-			// std::set<vertex_descriptor> & sTreatedDangles,
 			std::set<std::string> & sTreatedFeatures,
 			bool isPlanarGraph,
 			bool withCl

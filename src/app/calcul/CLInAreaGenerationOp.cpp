@@ -1,6 +1,5 @@
-#include <app/calcul/CLInAreaGenerationOp.h>
-
 //APP
+#include <app/calcul/CLInAreaGenerationOp.h>
 #include <app/params/ThemeParameters.h>
 #include <app/geometry/tools/LengthIndexedLineString.h>
 #include <app/calcul/detail/graph/concept/EdgeCleaningGraphSpecializations.h>
@@ -30,7 +29,7 @@ namespace app
 		///
         ///
         ///
-        void CLInAreaGenerationOp::compute(
+        void CLInAreaGenerationOp::Compute(
             bool verbose
         ) {
             CLInAreaGenerationOp cLInAreaGenerationOp(verbose);
@@ -52,7 +51,6 @@ namespace app
 		///
 		CLInAreaGenerationOp::~CLInAreaGenerationOp()
 		{
-			// _shapeLogger->closeShape("CLBeforeMerge");
 		}
 
 		///
@@ -82,10 +80,6 @@ namespace app
             //--
             std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
             context->getDataBaseManager().resetColumn(_fsEdge->getTableName(), wTagName);
-
-            //--
-            // _shapeLogger = epg::log::ShapeLoggerS::getInstance();
-            // _shapeLogger->addShape("ec_projected_antennas", epg::log::ShapeLogger::LINESTRING);
 
             //--
             std::string listAttrWName = themeParameters->getValue(LIST_ATTR_W).toString();
@@ -129,27 +123,9 @@ namespace app
 
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
-                //DEBUG
-                // if( faceGeom.intersects(ign::geometry::Point(3831601.0,3097266.8))) {
-                //     bool test = true;
-                // } 
-                // if( faceGeom.intersects(ign::geometry::Point(3985008.38,2957082.03))) {
-                //     bool test = true;
-                // }
-                // if( faceGeom.intersects(ign::geometry::Point(3985011.55,2957061.70))) {
-                //     bool test = true;
-                // }
-
 				std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
 				if (!_getFacePaths(graphManager, *fit, vpCountryEdges))
 					continue;
-
-                //DEBUG
-                // std::vector<ign::geometry::LineString> vTest;
-                // for ( size_t g = 0 ; g < vpCountryEdges.size() ; ++g ) {
-                //     vTest.push_back(_convertPathToLineString(graph, vpCountryEdges[g].first, vpCountryEdges[g].second));
-                // }
-
 
 				if (vpCountryEdges.size() < 2) 
 					continue;
@@ -483,14 +459,6 @@ namespace app
             std::vector<detail::IncidentFeature> vIncident2Create;
             for( std::map<std::string, std::set<edge_descriptor>>::const_iterator mit = mFeatMergedEdges.begin() ; mit != mFeatMergedEdges.end() ; ++mit ) {
                 ++display2;
-                //DEBUG
-                // _logger->log(epg::log::DEBUG, mit->first);
-                // if (mit->first == "c1e3d360-13e4-4ba5-a59f-c15a919fb883") {
-                //     bool test = true;
-                // }
-                // if (mit->first == "03e700dc-77ed-4569-a74c-506641f8a07c") {
-                //     bool test = true;
-                // }
 
                 ign::feature::Feature featOrigin;
                 _fsEdge->getFeatureById(mit->first, featOrigin);
@@ -724,9 +692,6 @@ namespace app
                 _fsEdge->createFeature(newFeat);
             }
 
-            //DEBUG
-            _logger->log(epg::log::DEBUG, "youyou");
-
             for( std::map<std::string, std::set<edge_descriptor>>::const_iterator mit = mFeatMergedEdges.begin() ; mit != mFeatMergedEdges.end() ; ++mit )
             {
                 ign::feature::Feature featOrigin;
@@ -751,9 +716,6 @@ namespace app
                     }
                 }
                 if (!path.empty()) vPaths.push_back(path);
-
-                //DEBUG
-                _logger->log(epg::log::DEBUG, "pop");
 
                 for( size_t i = 0 ; i < vPaths.size() ; ++i )
                 {
@@ -964,13 +926,6 @@ namespace app
             ign::feature::Feature featOrigin;
             _fsEdge->getFeatureById(originId, featOrigin);
 
-            //DEBUG
-            // _logger->log(epg::log::DEBUG, "ouha1");
-            // _logger->log(epg::log::DEBUG, originId);
-            // _logger->log(epg::log::DEBUG, featOrigin.getId());
-            // _logger->log(epg::log::DEBUG, "ouha11");
-            // _logger->log(epg::log::DEBUG, featOrigin.getGeometry().toString());
-
             ign::geometry::LineString const * refGeom = &featOrigin.getGeometry().asLineString();
 
             _setZ(firstPoint, *refGeom),
@@ -986,11 +941,6 @@ namespace app
                         if( currentOriginId != originId ) {
                             originId = currentOriginId;
                             _fsEdge->getFeatureById(originId, featOrigin);
-
-                            //DEBUG
-                            // _logger->log(epg::log::DEBUG, "ouha1");
-                            // _logger->log(epg::log::DEBUG, originId);
-                            // _logger->log(epg::log::DEBUG, featOrigin.getGeometry().toString());
 
                             refGeom = &featOrigin.getGeometry().asLineString();
                         }
@@ -1143,7 +1093,6 @@ namespace app
             ) const 
         {
             graphManager.clear();
-            // graphManager.setSimplifiedPlanarization(true);
 
             //--
             epg::Context *context = epg::ContextS::getInstance();
@@ -1179,7 +1128,6 @@ namespace app
                 graphManager.planarize();
                 graphManager.createFaces();
             }
-            // graphManager.setSimplifiedPlanarization(false);
         }
 
 		///
@@ -1363,8 +1311,6 @@ namespace app
                 }
                 
                 //on depile
-                // lEdges.resize( eit_begin - lEdges.begin() );
-                // lEdges.resize( 5 );
                 lEdges = std::list<oriented_edge_descriptor>(lEdges.begin(), eit_begin);
         
                 nextEd = ign::geometry::graph::detail::nextEdge( nextEd, graph );
@@ -1383,11 +1329,6 @@ namespace app
             GraphType const& graph = graphManager.getGraph();
 
             std::list<oriented_edge_descriptor> lEdges = _getExteriorRingEdges(graph, fd);
-
-            //DEBUG
-            if (lEdges.size() == 0) {
-                return false;
-            }
 
             std::string currentCountry = graphManager.getCountry(lEdges.begin()->descriptor);
             vpCountryEdges.push_back(std::make_pair(currentCountry, std::list<oriented_edge_descriptor>()));
@@ -1425,6 +1366,5 @@ namespace app
 
             return true;
         }
-
 	}
 }

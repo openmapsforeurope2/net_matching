@@ -1,21 +1,31 @@
 #ifndef _APP_TOOLS_MERGEVERTICES_H_
 #define _APP_TOOLS_MERGEVERTICES_H_
 
+// SOCLE
+#include <ign/tools/stringtools.h>
 
-//Epg
+// EPG
 #include <epg/Context.h>
 #include <epg/graph/concept/geom.h>
 #include <epg/graph/concept/vertexFictitious.h>
 #include <epg/graph/concept/countryCode.h>
 #include <epg/graph/concept/setAttribute.h>
 #include <epg/tools/StringTools.h>
-#include <ign/tools/stringtools.h>
 #include <epg/graph/concept/feature.h>
+
 
 namespace app{
 namespace tools{
 
 	/// \warning edges must have been displaced before to use this function
+	/// @brief 
+	/// @tparam GraphType 
+	/// @param graph 
+	/// @param v 
+	/// @param vRef 
+	/// @param mOldNewEdges 
+	/// @param sEdges2remove 
+	/// @param sVertices2remove 
 	template< typename GraphType >
 	void mergeVertices( 
 		GraphType& graph,

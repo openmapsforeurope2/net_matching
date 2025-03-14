@@ -9,10 +9,15 @@
 namespace app{
 namespace tools{
 
+    /// @brief 
     class StringTools {
         public:
 
-        //--
+		/// @brief 
+		/// @tparam Container 
+		/// @param vStrings 
+		/// @param separator 
+		/// @return 
 		template<typename Container>
 		static std::string toString(Container const& vStrings, std::string separator = ",") {
             std::string result = "";

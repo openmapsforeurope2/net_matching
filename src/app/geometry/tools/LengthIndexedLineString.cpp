@@ -60,7 +60,7 @@ LengthIndexedLineString::~LengthIndexedLineString()
 ///
 ///
 ///
-ign::geometry::LineString	const& 		LengthIndexedLineString::getLineString() const
+ign::geometry::LineString const& LengthIndexedLineString::getLineString() const
 {
 	return _lineString;
 }
@@ -68,7 +68,7 @@ ign::geometry::LineString	const& 		LengthIndexedLineString::getLineString() cons
 ///
 ///
 ///
-void					LengthIndexedLineString::setLineString( ign::geometry::LineString const& lineString )
+void LengthIndexedLineString::setLineString( ign::geometry::LineString const& lineString )
 {
 	_lineString = lineString;
 	_computeIndex();
@@ -77,7 +77,7 @@ void					LengthIndexedLineString::setLineString( ign::geometry::LineString const
 ///
 ///
 ///
-double		LengthIndexedLineString::getPointLocation( size_t numPoint ) const
+double LengthIndexedLineString::getPointLocation( size_t numPoint ) const
 {
 	IGN_ASSERT( numPoint < _lineString.numPoints() );
 	return _index[numPoint];
@@ -86,7 +86,7 @@ double		LengthIndexedLineString::getPointLocation( size_t numPoint ) const
 ///
 ///
 ///
-ign::geometry::LineString		LengthIndexedLineString::getSubLineString( double const& sBegin, double const& sEnd )
+ign::geometry::LineString LengthIndexedLineString::getSubLineString( double const& sBegin, double const& sEnd )
 {
 	std::vector< double > abscisses;
 
@@ -132,7 +132,7 @@ std::vector< double > const & LengthIndexedLineString::getPointAbscisses() const
 ///
 ///
 ///
-double					LengthIndexedLineString::length() const
+double LengthIndexedLineString::length() const
 {
 	if ( _lineString.isEmpty() ){
 		return ign::numeric::Numeric< double >::NaN();
@@ -143,7 +143,7 @@ double					LengthIndexedLineString::length() const
 ///
 ///
 ///
-size_t	LengthIndexedLineString::numLines() const
+size_t LengthIndexedLineString::numLines() const
 {
 	size_t npt = _lineString.numPoints();
 	if ( npt < 2 ){
@@ -158,7 +158,7 @@ size_t	LengthIndexedLineString::numLines() const
 ///
 ///
 ///
-ign::geometry::Point	LengthIndexedLineString::locateAlong( double const& s ) const
+ign::geometry::Point LengthIndexedLineString::locateAlong( double const& s ) const
 {
 	IGN_ASSERT( _lineString.isValid() && ! _lineString.isEmpty() );
 	size_t numSeg = _findLine( s );
@@ -188,7 +188,7 @@ ign::geometry::Point	LengthIndexedLineString::locateAlong( double const& s ) con
 ///
 ///
 ///
-double  LengthIndexedLineString::project( ign::geometry::Point const& p )const
+double LengthIndexedLineString::project( ign::geometry::Point const& p )const
 {
 	double minDistance = std::numeric_limits<double>::max();
 
@@ -222,7 +222,7 @@ double  LengthIndexedLineString::project( ign::geometry::Point const& p )const
 ///
 ///
 ///
-void	LengthIndexedLineString::_computeIndex()
+void LengthIndexedLineString::_computeIndex()
 {
 	if( ! _lineString.isValid() || _lineString.isEmpty() ){
 		_index.resize(0);
@@ -250,7 +250,7 @@ void	LengthIndexedLineString::_computeIndex()
 ///
 ///
 ///
-size_t	LengthIndexedLineString::_findLine( double const& s ) const
+size_t LengthIndexedLineString::_findLine( double const& s ) const
 {
 
 	if ( s <= 0.0 ){

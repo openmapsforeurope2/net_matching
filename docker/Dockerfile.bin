@@ -7,7 +7,7 @@ WORKDIR /usr/local/src/
 COPY libs libs
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/libs
 
-WORKDIR /usr/local/src/tn_matching/
+WORKDIR /usr/local/src/net_matching/
 COPY package/*.deb .
 COPY config/*.ini ./config/
 

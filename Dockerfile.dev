@@ -3,7 +3,7 @@ FROM libepg
 RUN apt-get -y update
 RUN apt-get -y install gdb
 
-ENV APP_DIR_SRC=/usr/local/src/tn_matching/                                                     
+ENV APP_DIR_SRC=/usr/local/src/net_matching/                                                     
 
 WORKDIR $APP_DIR_SRC
 

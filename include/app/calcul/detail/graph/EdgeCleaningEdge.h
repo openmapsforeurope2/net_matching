@@ -2,7 +2,7 @@
 #define _APP_CALCUL_DETAIL_GRAPH_EDGECLEANINGEDGE_H_
 
 
-//SOCLE
+// SOCLE
 #include <ign/geometry/Point.h>
 #include <ign/geometry/graph/LinearEdgeProperties.h>
 
@@ -13,11 +13,13 @@ namespace calcul{
 namespace detail{
 namespace graph{
 
+	/// @brief 
 	struct EdgeCleaningEdge : public ign::geometry::graph::LinearEdgeProperties {
-        /// \brief
+
+        /// \brief constructor
         EdgeCleaningEdge(){};
 
-        /// \brief
+        /// \brief destructor
         ~EdgeCleaningEdge(){};
 
         //--

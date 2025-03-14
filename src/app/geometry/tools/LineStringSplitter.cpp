@@ -1,3 +1,4 @@
+//APP
 #include <app/geometry/tools/LineStringSplitter.h>
 #include <app/geometry/tools/LengthIndexedLineString.h>
 
@@ -25,9 +26,6 @@ LineStringSplitter::LineStringSplitter( ign::geometry::LineString const& ls, dou
 	_qTreeSegment.ensureExtent( _lsRef.getEnvelope() );
 	for( size_t i = 0 ; i < _lsRef.numSegments() ; ++i )
 	{
-//		if( _lsRef.pointN(i).equals( _lsRef.pointN(i+1) ) )
-//			IGN_THROW_EXCEPTION( "[epg::tools::geometry::LineStringSplitter::LineStringSplitter] null segment in Linestring '"+_lsRef.toString()+"' between points [index] "+ign::data::Integer(i).toString()+" and "+ign::data::Integer(i+1).toString()+"." );
-		
 		_qTreeSegment.insert( i, ign::geometry::Envelope( _lsRef.pointN(i), _lsRef.pointN(i+1) ) );
 	}
 }

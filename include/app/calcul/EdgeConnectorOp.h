@@ -16,6 +16,7 @@
 namespace app{
 namespace calcul{
 
+	/// @brief 
 	class EdgeConnectorOp {
 
 	public:
@@ -23,24 +24,18 @@ namespace calcul{
 		typedef app::calcul::detail::EdgeCleaningGraphManager::GraphType   GraphType;
 		typedef typename GraphType::edge_descriptor                        edge_descriptor;
 		typedef typename GraphType::oriented_edge_descriptor               oriented_edge_descriptor;
-		// typedef typename GraphType::edge_iterator                          edge_iterator;
-		// typedef typename GraphType::face_descriptor                        face_descriptor;
-		// typedef typename GraphType::face_iterator                          face_iterator;
 		typedef typename GraphType::vertex_descriptor                      vertex_descriptor;
 		typedef typename GraphType::vertex_iterator                        vertex_iterator;
-		// typedef typename GraphType::edges_path                             edges_path;
-		// typedef typename GraphType::edges_path_const_iterator              edges_path_const_iterator;
 		typedef typename GraphType::linear_origin_iterator                 linear_origin_iterator;
 		typedef app::calcul::detail::OriginEdgeProperties                  OriginEdgeProperties;
 
-		/// \brief
-		static void compute(
+		/// @brief 
+		/// @param borderCode 
+		/// @param verbose 
+		static void Compute(
 			std::string borderCode, 
 			bool verbose
 		);
-
-		
-		
 
 	private:
 		//--
@@ -48,13 +43,7 @@ namespace calcul{
 		//--
 		ign::feature::sql::FeatureStorePostgis*            _fsEdge;
 		//--
-		// ign::feature::sql::FeatureStorePostgis*            _fsCp;
-		// //--
-		// ign::feature::sql::FeatureStorePostgis*            _fsCl;
-		//--
-		std::map<std::string, ign::geometry::GeometryPtr>    _mCountryGeomPtr;
-		//--
-		// std::map<std::string, ign::geometry::GeometryPtr>    _mCountryGeomWithBuffPtr;
+		std::map<std::string, ign::geometry::GeometryPtr>  _mCountryGeomPtr;
 		//--
 		epg::log::EpgLogger*                               _logger;
 		//--

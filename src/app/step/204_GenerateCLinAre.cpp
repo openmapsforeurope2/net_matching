@@ -29,7 +29,7 @@ namespace app {
 			ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true, true);
 
 			//--
-			app::calcul::CLInAreaGenerationOp::compute(verbose);
+			app::calcul::CLInAreaGenerationOp::Compute(verbose);
 		}
 
 	}

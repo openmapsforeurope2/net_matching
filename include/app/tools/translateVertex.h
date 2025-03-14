@@ -1,13 +1,11 @@
 #ifndef _APP_TOOLS_TRANSLATEVERTEX_H_
 #define _APP_TOOLS_TRANSLATEVERTEX_H_
 
-// app
+// APP
 #include <app/tools/mergeVertices.h>
 
-// epg
+// EPG
 #include <epg/Context.h>
-
-// socle
 #include <epg/graph/concept/geom.h>
 #include <epg/graph/concept/vertexFictitious.h>
 #include <epg/graph/concept/countryCode.h>
@@ -17,6 +15,17 @@ namespace app{
 namespace tools{
 
 	/// \warning edges must have been displaced before to use this function
+	/// @brief 
+	/// @tparam GraphType 
+	/// @param graph 
+	/// @param v 
+	/// @param vect 
+	/// @param mOldNewEdges 
+	/// @param sEdges2remove 
+	/// @param sVertices2remove 
+	/// @param withMerging 
+	/// @param precision 
+	/// @return 
 	template< typename GraphType >
 	std::pair< bool/*merged*/, typename GraphType::vertex_descriptor > translateVertex( 
 		GraphType& graph,

@@ -1,6 +1,5 @@
-#include <app/calcul/FillFictitiousFieldOp.h>
-
 //APP
+#include <app/calcul/FillFictitiousFieldOp.h>
 #include <app/params/ThemeParameters.h>
 
 //BOOST
@@ -58,15 +57,10 @@ namespace app
             _logger->log(epg::log::INFO, "[START] initialization: " + epg::tools::TimeTools::getTime());
 
             //--
-            // _shapeLogger = epg::log::ShapeLoggerS::getInstance();
-            // _shapeLogger->addShape("ecl_deleted_edges", epg::log::ShapeLogger::LINESTRING);
-
-            //--
             epg::Context *context = epg::ContextS::getInstance();
 
             // epg parameters
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
-            // std::string const boundaryTableName = epgParams.getValue(TARGET_BOUNDARY_TABLE).toString();
             std::string const idName = epgParams.getValue(ID).toString();
             std::string const geomName = epgParams.getValue(GEOM).toString();
             std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();

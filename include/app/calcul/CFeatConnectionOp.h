@@ -1,10 +1,10 @@
 #ifndef _APP_CALCUL_CFEATCONNECTIONOP_H_
 #define _APP_CALCUL_CFEATCONNECTIONOP_H_
 
-//SOCLE
+// SOCLE
 #include <ign/feature/sql/FeatureStorePostgis.h>
 
-//EPG
+// EPG
 #include <epg/log/EpgLogger.h>
 #include <epg/log/ShapeLogger.h>
 #include <epg/calcul/matching/detail/LineStringDeformer.h>
@@ -21,6 +21,7 @@
 namespace app{
 namespace calcul{
 
+	/// @brief 
 	class CFeatConnectionOp {
 		typedef boost::bimap<boost::bimaps::multiset_of<std::string>, boost::bimaps::set_of<std::string>> bimap_t;
         typedef bimap_t::value_type value_type;
@@ -33,34 +34,41 @@ namespace calcul{
 		typedef typename GraphType::vertex_descriptor vertex_descriptor;
         typedef typename GraphType::edge_iterator edge_iterator;
 
-		/// \brief
+		/// @brief 
+		/// @param countryCode 
+		/// @param verbose 
 		CFeatConnectionOp( 
             std::string countryCode, 
             bool verbose 
         );
 
-		/// \brief
+		/// @brief 
 		~CFeatConnectionOp();
 
 
-		/// \brief
+		/// @brief 
+		/// @param countryCode 
+		/// @param verbose 
 		static void ComputeCp( 
             std::string countryCode, 
             bool verbose 
         );
 
-		/// \brief
+		/// @brief 
+		/// @param countryCode 
+		/// @param verbose 
 		static void ComputeCl( 
             std::string countryCode, 
             bool verbose 
         );
 
-		/// \brief
+		/// @brief 
+		/// @param countryCode 
+		/// @param verbose 
 		static void ComputeClImport( 
             std::string countryCode, 
             bool verbose 
         );
-
 
 		/// \brief
 		void computeCp();

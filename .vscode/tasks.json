@@ -4,7 +4,7 @@
         {
             "label": "build package",
             "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./build-unix-package.sh",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching ./build-unix-package.sh",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -28,7 +28,7 @@
         {
             "label": "build release",
             "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./build-unix-release.sh",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching ./build-unix-release.sh",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -52,7 +52,7 @@
         {
             "label": "build debug",
             "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./build-unix-debug.sh",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching ./build-unix-debug.sh",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -73,13 +73,6 @@
                 }
             }
         },
-        // {
-        //     "label": "clean (in container)",
-        //     "type": "shell",
-        //     "command": "docker run --privileged -v c:/vsc_docker_cc_gdb/:/root vsc_docker_cc_gdb make clean",
-        //     "group": "build",
-        //     "problemMatcher": []
-        // },
         {
             "label": "remove containers",
             "type": "shell",
@@ -88,15 +81,15 @@
         },
         {
             "label": "run the code",
-            // "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching tn_matching ./bin/tn_matching --c /usr/local/src/tn_matching/config/epg_parameters.ini --T hy --cc be#fr --sp 201-280",
+            "type": "shell",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching ./bin/net_matching --c /usr/local/src/net_matching/config/epg_parameters.ini --T hy --cc be#fr --sp 201-280",
             "group": "build",
             "problemMatcher": []
         },
         {
             "label": "prepare to debug",
             "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/tn_matching --name tn_matching_container -it tn_matching ",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching --name net_matching_container -it net_matching ",
             "group": "build",
             "problemMatcher": []
         }

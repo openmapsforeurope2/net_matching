@@ -8,13 +8,6 @@
 //APP
 #include <app/calcul/CFeatGenerationOp.h>
 
-//EPG
-#include <epg/Context.h>
-#include <epg/log/ScopeLogger.h>
-#include <ome2/utils/CopyTableUtils.h>
-
-//APP
-#include <app/calcul/CFeatGenerationOp.h>
 
 namespace app {
 	namespace step {

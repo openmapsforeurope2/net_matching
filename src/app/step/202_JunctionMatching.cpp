@@ -5,9 +5,8 @@
 #include <epg/log/ScopeLogger.h>
 #include <ome2/utils/CopyTableUtils.h>
 
-
 //APP
- #include <app/calcul/JunctionMatchingOp.h>
+#include <app/calcul/JunctionMatchingOp.h>
 
 namespace app {
 	namespace step {

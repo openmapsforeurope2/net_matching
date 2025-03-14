@@ -34,7 +34,7 @@ namespace step {
 		ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true, true);
 
 		//--
-		app::calcul::EdgeConnectorOp::compute(countryCodeW, verbose);
+		app::calcul::EdgeConnectorOp::Compute(countryCodeW, verbose);
 	}
 
 }

@@ -12,32 +12,55 @@ namespace app{
 namespace geometry{
 namespace tools{
 
+	/// @brief 
 	class LineStringSplitter{
 
 	public:
-		/// \brief 
+		/// @brief 
+		/// @param ls 
+		/// @param precision 
 		LineStringSplitter( ign::geometry::LineString const& ls, double precision = 1e-5 );
 
-		/// \brief
+		/// @brief 
 		~LineStringSplitter();
 
-		/// \brief
+		/// @brief 
+		/// @param geom 
 		void addCuttingGeometry( ign::geometry::Geometry const& geom );
 
-		/// \brief
+		/// @brief 
+		/// @return 
 		std::vector< ign::geometry::LineString > trimStart()const;
 
-		/// \brief
+		/// @brief 
+		/// @return 
 		std::vector< ign::geometry::LineString > trimEnd()const;
 
-		/// \brief
+		/// @brief 
+		/// @return 
 		ign::geometry::LineString truncAtEnds()const;
 
-		/// \brief
+		/// @brief 
+		/// @return 
 		std::vector< ign::geometry::LineString > getSubLineStrings()const;
 
-		/// \brief
+		/// @brief 
+		/// @return 
 		std::vector< ign::geometry::LineString > getSubLineStringsZ()const;
+
+	private:
+		//--
+		ign::geometry::LineString const&                    _lsRef;
+		//--
+		std::vector< std::set< double > >                   _vCuttings;
+		//--
+		ign::geometry::algorithm::LineIntersectorOpGeos     _intersector;
+		//--
+		double                                              _precision;
+		//--
+		ign::geometry::index::QuadTree< int >              _qTreeSegment;
+		//--
+		epg::log::EpgLogger*                               _logger;
 
 	private:
 		//--
@@ -60,29 +83,6 @@ namespace tools{
 
 		//--
 		std::vector< ign::geometry::LineString > _cut( std::pair< int, double > const& cutAbs )const;
-
-
-	private:
-
-		//--
-		ign::geometry::LineString const&                    _lsRef;
-	
-		//--
-		std::vector< std::set< double > >                   _vCuttings;
-
-		//--
-		ign::geometry::algorithm::LineIntersectorOpGeos     _intersector;
-
-		//--
-		double                                              _precision;
-
-		//--
-		ign::geometry::index::QuadTree< int >              _qTreeSegment;
-		
-		//--
-		epg::log::EpgLogger*                               _logger;
-
-	
 	};
 
 }

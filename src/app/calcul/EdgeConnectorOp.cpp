@@ -3,8 +3,6 @@
 #include <app/params/ThemeParameters.h>
 #include <app/geometry/tools/LineStringSplitter.h>
 #include <app/tools/StringTools.h>
-// #include <app/tools/translateVertex.h>
-
 
 // BOOST
 #include <boost/progress.hpp>
@@ -22,8 +20,6 @@
 #include <epg/tools/FilterTools.h>
 #include <epg/tools/geometry/LineIntersector.h>
 
-//#include <ome2/calcul/detail/ClMerger.h>
-
 // SOCLE
 #include <ign/geometry/graph/builder/SimpleGraphBuilder.h>
 #include <ign/tools/stringtools.h>
@@ -39,10 +35,10 @@ namespace app
         ///
         ///
         ///
-        void EdgeConnectorOp::compute(
+        void EdgeConnectorOp::Compute(
             std::string borderCode,
-            bool verbose)
-        {
+            bool verbose
+        ) {
             EdgeConnectorOp EdgeConnectorOp(borderCode, verbose);
             EdgeConnectorOp._compute();
         }
@@ -67,7 +63,6 @@ namespace app
             _shapeLogger->closeShape("ec_projected_antennas");
             _shapeLogger->closeShape("ec_split_edges");
             _shapeLogger->closeShape("ec_trimed_edges_parts");
-            // _shapeLogger->closeShape("test");
         }
 
         ///
@@ -87,7 +82,6 @@ namespace app
             _shapeLogger->addShape("ec_projected_antennas", epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("ec_split_edges", epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("ec_trimed_edges_parts", epg::log::ShapeLogger::LINESTRING);
-            // _shapeLogger->addShape("test", epg::log::ShapeLogger::POLYGON);
 
             // epg parameters
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
@@ -142,11 +136,6 @@ namespace app
 
                 //on calcul la geometry de travail
                 _mCountryGeomPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(boundBuffPtr->Intersection(mpLandmask)) ));
-                // _mCountryGeomWithBuffPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(_mCountryGeomPtr[*vit]->buffer(-1*landmaskBuffer))));
-
-                // ign::feature::Feature feat;
-                // feat.setGeometry(*_mCountryGeomPtr[*vit]);
-                // _shapeLogger->writeFeature("test", feat);
             }
 
             //--
@@ -221,13 +210,8 @@ namespace app
                         break;
                     }
 
-                    if( graph.degree( vTarget ) != 2 ) { // ou si nextEdge est une CL ?
-                        // if( graph.degree( vTarget ) == 1 /*antenne isolee*/)
-                        // {
-                        //     visitedVertices.insert( vTarget );
-                        // }
+                    if( graph.degree( vTarget ) != 2 ) // ou si nextEdge est une CL ?
                         break;
-                    }
 
                     std::vector< oriented_edge_descriptor > vIncEdges;
                     graph.incidentEdges( vTarget, vIncEdges );
@@ -255,21 +239,6 @@ namespace app
                 ign::geometry::Point dangleEndPoint = vpit->second.begin()->direction == ign::graph::DIRECT? antennaGeom.startPoint() : antennaGeom.endPoint();
                 ign::geometry::Point dangleNextPoint = vpit->second.begin()->direction == ign::graph::DIRECT? antennaGeom.pointN(1) : antennaGeom.pointN(antennaGeom.numPoints()-2);
 
-
-                //DEBUG
-                // _logger->log(epg::log::DEBUG, dangleEndPoint.toString());
-                // if( dangleEndPoint.distance(ign::geometry::Point(4018719.791,2567756.697)) < 1 ) {
-                //     bool test =true;
-                // }
-
-                // std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomWithBuffPtr.find(vpit->first);
-                // if (mit == _mCountryGeomWithBuffPtr.end()) {
-                //     _logger->log(epg::log::ERROR, "Unknown country [country code] " + vpit->first);
-                //     continue;
-                // }
-
-                // On ne snap que les edges "étrangers" vers les edges "locaux"
-                // if( mit->second->intersects(dangleEndPoint)) continue;
 
                 ign::geometry::MultiLineString mlsEdgesAround;
 
@@ -361,7 +330,6 @@ namespace app
                 std::string edgeId = graph.origins(vpit->second.begin()->descriptor)[0];
                 ign::feature::Feature fEdge;
                 _fsEdge->getFeatureById(edgeId, fEdge);
-                // ign::geometry::LineString edgeGeom = fEdge.getGeometry().asLineString();
 
                 ign::math::Vec2d vectDeform = maxPt.toVec2d() - dangleEndPoint.toVec2d();
 
@@ -390,7 +358,6 @@ namespace app
             }
 
             _loadGraphAndPlanarize(graphManager/*, vCountry[i]*/);
-            // std::string otherCountry = vCountry.front() == vCountry[i] ? vCountry.back() : vCountry.front();
 
             boost::progress_display display3(graph.numLinearOrigins(), std::cout, "[ split edges  % complete ]\n");
 
@@ -405,14 +372,6 @@ namespace app
                     _logger->log(epg::log::ERROR, "No induced edges for edge [id] " + *oit);
                     continue;
                 }
-
-                //DEBUG
-                // _logger->log(epg::log::DEBUG, *oit);
-                // if( *oit == "ddcdc9d7-01c1-4033-9990-9b5d4d528ef4") {
-                //     bool testt = true;
-                //     ign::geometry::LineString ls1 = graph.getGeometry(foundInducedEdges.second.front());
-                //     ign::geometry::LineString ls2 = graph.getGeometry(foundInducedEdges.second.back());
-                // }
 
                 if( foundInducedEdges.second.size() == 0 ) continue;
 
@@ -455,7 +414,7 @@ namespace app
 
                 // on fusionne les subEdges si les coupures sont causées par des edges du meme pays
                 std::vector< std::pair<vertex_descriptor, vertex_descriptor >> vpSourceTarget;
-                // vLs.push_back(graph.getGeometry(foundInducedEdges.second.front()));
+
                 vertex_descriptor currentSource = graph.source(foundInducedEdges.second.front());
                 for (size_t i = 1 ; i < foundInducedEdges.second.size() ; ++i) {
                     if( !_isCuttingPoint(graphManager, graph.source(foundInducedEdges.second[i]) ) ) continue;
@@ -540,7 +499,6 @@ namespace app
                             }
 
                             if( !inCountryBuf || vLs[i].length() < antennaMinLength) {
-							//if (!mit->second->intersects(dangleEndPoint) || vLs[i].length() < antennaMinLength) {
                                 ign::feature::Feature feat;
                                 feat.setGeometry(vLs[i]);
                                 _shapeLogger->writeFeature("ec_trimed_edges_parts", feat);
@@ -565,11 +523,6 @@ namespace app
                         if (hDist >= 0 && hDist < antennaMinDist2Neighbor)
                             continue;
                     }
-
-                    // vLs[i].startPoint().z() = previousZ;
-                    // double nextZ = i != vLs.size()-1 ? _getZ(originLengthIndexedGeom, vLs[i].endPoint()) : originGeom.endPoint().z();;
-                    // vLs[i].endPoint().z() = nextZ;
-                    // previousZ = nextZ;
 
                     featOrigin.setGeometry(vLs[i]);
                     _fsEdge->createFeature(featOrigin);
@@ -652,19 +605,7 @@ namespace app
 
             graphManager.clear();
 
-            // std::vector<std::string> vCountry;
-		    // epg::tools::StringTools::Split(_borderCode, "#", vCountry);
-            // std::string otherCountry = vCountry.front() == countryCode ? vCountry.back() : vCountry.front();
-
-            // std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomPtr.find(countryCode);
-            // if (mit == _mCountryGeomPtr.end()) {
-            //     _logger->log(epg::log::ERROR, "Unknown country [country code] " + countryCode);
-            //     return;
-            // }
-
-            // ign::feature::FeatureFilter filter(countryCodeName +" = '"+otherCountry+"'");
             ign::feature::FeatureFilter filter;
-            // epg::tools::FilterTools::addAndConditions(filter, "ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + mit->second->toString() + "'),3035))");
 
             int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, filter);
             boost::progress_display display(numFeatures, std::cout, "[ edge_loading  % complete ]\n");
@@ -679,27 +620,7 @@ namespace app
                 std::string country = fEdge.getAttribute(countryCodeName).toString();
                 bool isCl = country.find("#") != std::string::npos;
 
-                //DEBUG
-                // if( fEdge.getId() == "9b39ec5b-4f1a-4706-b07e-06249a4f105e") {
-                //     bool test = true;
-                // }
-
                 graphManager.addEdge(edgeGeom, edgeId, OriginEdgeProperties(country, isCl));
-
-                // ign::feature::FeatureFilter filter2(countryCodeName +" = '"+countryCode+"'");
-                // epg::tools::FilterTools::addAndConditions(filter2, "ST_DISTANCE(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + edgeGeom.toString() + "'),3035)) < 0.001");
-
-                // ign::feature::FeatureIteratorPtr itEdge2 = _fsEdge->getFeatures(filter2);
-                // while (itEdge2->hasNext())
-                // {
-                //     ign::feature::Feature const& fEdge2 = itEdge2->next();
-                //     ign::geometry::LineString const& edgeGeom2 = fEdge2.getGeometry().asLineString();
-                //     std::string edgeId2 = fEdge2.getId();
-                //     std::string country2 = fEdge2.getAttribute(countryCodeName).toString();
-                //     bool isCl2 = country2.find("#") != std::string::npos;
-
-                //     graphManager.addEdge(edgeGeom2, edgeId2, OriginEdgeProperties(country2, isCl2));
-                // }
             }
 
             graphManager.planarize();

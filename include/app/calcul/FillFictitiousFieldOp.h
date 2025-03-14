@@ -12,21 +12,26 @@
 namespace app{
 namespace calcul{
 
+	/// @brief 
 	class FillFictitiousFieldOp {
 
         public:
 
-            /// \brief
+            /// @brief 
+            /// @param countryCode 
+            /// @param verbose 
             FillFictitiousFieldOp( 
                 std::string countryCode, 
                 bool verbose 
             );
 
-            /// \brief
+            /// @brief 
             ~FillFictitiousFieldOp();
 
 
-            /// \brief
+            /// @brief 
+            /// @param countryCode 
+            /// @param verbose 
             static void Compute( 
                 std::string countryCode, 
                 bool verbose 

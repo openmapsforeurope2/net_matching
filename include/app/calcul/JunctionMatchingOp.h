@@ -16,7 +16,7 @@
 namespace app{
 namespace calcul{
 
-	/// @brief 
+	/// @brief Classe utilisée pour l'appairage des carrefours
 	class JunctionMatchingOp {
 
 	public:
@@ -27,23 +27,20 @@ namespace calcul{
 		typedef typename GraphType::oriented_edge_descriptor               oriented_edge_descriptor;
 		typedef app::calcul::detail::OriginEdgeProperties                  OriginEdgeProperties;
 
-		/// @brief 
-		/// @param countryCodeDouble 
-		/// @param verbose 
+		/// @brief Constructeur
+		/// @param countryCodeDouble Code pays double
+		/// @param verbose Mode verbeux
 		JunctionMatchingOp(std::string const& countryCodeDouble, bool verbose = false);
 
-		/// @brief 
+		/// @brief Destructeur
 		~JunctionMatchingOp();
 
-		/// @brief 
-		/// @param countryCodeDouble 
-		/// @param verbose 
+		/// @brief Appairage des carrefours. Si l'un des deux carrefours appairés est fictif, sa position est conservée 
+		/// et c'est l'autre  carrefour qui est déplacé. Sinon les deux carrefours A et B sont déplacés au milieu 
+		/// du segment [AB].
+		/// @param countryCodeDouble Code pays double
+		/// @param verbose Mode verbeux
 		static void MatchJunctions(std::string const& countryCodeDouble, bool verbose = false);
-
-		/// @brief 
-		/// @param countryCodeDouble 
-		/// @param verbose 
-		static void DisplaceJunctions(std::string const& countryCodeDouble, bool verbose = false);
 
 
 	private:

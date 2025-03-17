@@ -16,7 +16,7 @@ namespace app{
 namespace calcul{
 namespace detail{
 
-    /// @brief 
+    /// @brief Structure permettant de conserver en mémoire les propriétés des données d'origines
     struct OriginEdgeProperties {
 
         /// \brief
@@ -34,7 +34,7 @@ namespace detail{
         std::string   wTag;
     };
 
-    /// @brief 
+    /// @brief Classe utilitaire facilitant la manipulation du graph de travail
     class EdgeCleaningGraphManager {
 
     public:
@@ -52,7 +52,7 @@ namespace detail{
 
     public:
 
-        /// @brief 
+        /// @brief Constructeur
         EdgeCleaningGraphManager() :
             _builder(0),
             _simpleBuilder(0),
@@ -60,35 +60,35 @@ namespace detail{
         {
         };
 
-        /// @brief 
+        /// @brief Destructeur
         ~EdgeCleaningGraphManager() {
             if (_builder) delete _builder;
             if (_simpleBuilder) delete _simpleBuilder;
         };
 
-        /// @brief 
-        /// @param simplified 
+        /// @brief Setter pour indiquer si la planarisation doit être simplifiée
+        /// @param simplified Booléen
         void setSimplifiedPlanarization(bool simplified) {
             _simplifiedPlanarization = simplified;
         }
 
-        /// @brief 
-        /// @return 
+        /// @brief Retourne le graph encapsulé
+        /// @return Graph encapsulé
         inline GraphType const& getGraph() const {
             return _graph;
         }
 
-        /// @brief 
-        /// @return 
+        /// @brief Retourne le graph encapsulé
+        /// @return Graph encapsulé
         inline GraphType & getGraph() {
             return _graph;
         }
 
-        /// @brief 
-        /// @param ls 
-        /// @param idOrigin 
-        /// @param edgeProperties 
-        /// @return 
+        /// @brief Ajoute un arc au graph
+        /// @param ls Géométrie de l'arc
+        /// @param idOrigin Identifiant d'origine
+        /// @param edgeProperties Propriété de l'arc d'origine
+        /// @return Booléen indiquant si l'arc a bien été ajouté
         bool addEdge( 
             ign::geometry::LineString const& ls,
             std::string const& idOrigin,
@@ -99,13 +99,13 @@ namespace detail{
             return _builder->addEdge(ls, idOrigin);
         };
 
-        /// @brief 
-        /// @param vSource 
-        /// @param vTarget 
-        /// @param intermediatePoints 
-        /// @param idOrigin 
-        /// @param edgeProperties 
-        /// @return 
+        /// @brief Ajoute un arc au graph
+        /// @param vSource Identifiant du sommet source
+        /// @param vTarget Identifiant du sommet cible
+        /// @param intermediatePoints Points intermédiaires constituants la géométrie de l'arc
+        /// @param idOrigin Identifiant d'origine
+        /// @param edgeProperties Propriété de l'arc d'origine
+        /// @return Identifiant de l'arc ajouté
         oriented_edge_descriptor addEdge(
             vertex_descriptor vSource,
             vertex_descriptor vTarget,
@@ -119,11 +119,11 @@ namespace detail{
             return _graph.addEdge(vSource, vTarget, intermediatePoints);
         };
 
-        /// @brief 
-        /// @param ls 
-        /// @param idOrigin 
-        /// @param edgeProperties 
-        /// @return 
+        /// @brief Ajoute un arc au graph en utiisant le SimpleGraphBuilder
+        /// @param ls Géométrie de l'arc
+        /// @param idOrigin Identifiant d'origine
+        /// @param edgeProperties Propriété de l'arc d'origine
+        /// @return Identifiant de l'arc ajouté
         oriented_edge_descriptor addEdgeSimple( 
             ign::geometry::LineString const& ls,
             std::string const& idOrigin,
@@ -134,12 +134,12 @@ namespace detail{
             return _simpleBuilder->addEdge(ls, idOrigin);
         };
 
-        /// @brief 
+        /// @brief Lance la planarisation du graph
         void planarize() {
             if (_builder) _builder->planarize();
         };
 
-        /// @brief 
+        /// @brief Lance l'affectation du poids des arcs (longueur)
         void initWeight() {
             edge_iterator eit, eend;
             for (_graph.edges(eit, eend) ; eit != eend ; ++eit) {
@@ -147,12 +147,12 @@ namespace detail{
             }
         };
 
-        /// @brief 
+        /// @brief Lance la création des faces sur le graph planaire
         void createFaces() {
             _graph.createFaces();
         };
 
-        /// @brief 
+        /// @brief Nettoyage de la classe (graph et builders)
         void clear() {
             _graph.clear();
             delete _builder;
@@ -161,9 +161,9 @@ namespace detail{
             _simpleBuilder = 0;
         };
 
-        /// @brief 
-        /// @param e 
-        /// @return 
+        /// @brief Indique si l'arc est une connecting line
+        /// @param e Identifiant de l'arc
+        /// @return Booléen
         bool isCl(edge_descriptor e) const {
             std::vector< std::string > const& vOrigins = _graph.origins(e);
             for (std::vector< std::string >::const_iterator vit = vOrigins.begin() ; vit != vOrigins.end() ; ++vit){
@@ -173,9 +173,9 @@ namespace detail{
             return false;
         };
 
-        /// @brief 
-        /// @param v 
-        /// @return 
+        /// @brief Indique si le sommet touche une connecting line
+        /// @param v Indentifiant du sommet
+        /// @return Booléen
         bool isTouchingCl(vertex_descriptor v) const {
             std::vector< edge_descriptor > vIncidents = _graph.incidentEdges(v);
             for (std::vector<edge_descriptor>::const_iterator vit = vIncidents.begin() ; vit != vIncidents.end() ; ++vit) {
@@ -186,9 +186,9 @@ namespace detail{
             return false;
         };
 
-        /// @brief 
-        /// @param e 
-        /// @return 
+        /// @brief Retourne la valeur du champ de travail w_tag de l'arc
+        /// @param e Identifiant de l'arc
+        /// @return Valeur du champ w_tag
         std::string getWTag(edge_descriptor e) const {
             std::vector< std::string > const& vOrigins = _graph.origins(e);
             std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(vOrigins.front());
@@ -196,9 +196,9 @@ namespace detail{
             return "";
         };
 
-        /// @brief 
-        /// @param e 
-        /// @return 
+        /// @brief Retourne un code pays de l'arc
+        /// @param e Identifiant de l'arc
+        /// @return Code pays
         std::string getCountry(edge_descriptor e) const {
             std::vector< std::string > const& vOrigins = _graph.origins(e);
             std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(vOrigins.front());
@@ -206,9 +206,9 @@ namespace detail{
             return "";
         };
 
-        /// @brief 
-        /// @param e 
-        /// @return 
+        /// @brief Retourne les codes pays de l'arc (plusieurs codes sont possibles si l'arc du graph possède plusieurs linéaires d'origine)
+        /// @param e Identifiant de l'ars
+        /// @return Codes pays
         std::set<std::string> getCountries(edge_descriptor e) const {
             std::set<std::string> sCountry;
             std::vector< std::string > const& vOrigins = _graph.origins(e);
@@ -219,9 +219,9 @@ namespace detail{
             return sCountry;
         };
 
-        /// @brief 
-        /// @param e 
-        /// @return 
+        /// @brief Retourne les codes pays simples de l'arc (en supprimant les '#')
+        /// @param e Identifiant de l'arc
+        /// @return Codes pays simples
         std::set<std::string> getSingleCountries(edge_descriptor e) const {
             std::set<std::string> sCountry = getCountries(e);
             std::set<std::string> sSingleCountry;

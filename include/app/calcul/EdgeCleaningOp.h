@@ -16,7 +16,7 @@
 namespace app{
 namespace calcul{
 
-	/// @brief 
+	/// @brief Classe utilitaire fournissant divers méthodes de nettoyage
 	class EdgeCleaningOp {
 
 	public:
@@ -33,46 +33,59 @@ namespace calcul{
 		typedef typename GraphType::edges_path_const_iterator              edges_path_const_iterator;
 		typedef app::calcul::detail::OriginEdgeProperties                  OriginEdgeProperties;
 
-		/// @brief 
-		/// @param borderCode 
-		/// @param verbose 
+		/// @brief Constructeur
+		/// @param borderCode Code frontière (code double)
+		/// @param verbose Mode verbeux
 		EdgeCleaningOp( 
 			std::string borderCode,
             bool verbose 
         );
 
-		/// \brief
+		/// \brief Destructeur
 		~EdgeCleaningOp();
 
-		/// \brief
+		/// \brief Nettoie les faces étroites en ne gardant qu'un seul des deux chemins parallèles.
+		/// Le chemin a conserver est déterminé en prenant en compte la longeur d'arc situé dans le 
+		/// bon pays et l'existance ou non de connexion avec le reste du réseau.
 		void cleanFaces() const;
 
-		/// \brief
+		/// \brief Nettoie les faces étroites pays par pays en ne considérant donc que les faces constituées
+		/// des arcs d'un même pays. La sélection du chemin a conserver prends en compte la proportion de chemin situé 
+		/// dans le bon pays. Si les proportions sont identiques c'est le chemin le plus court qui est selectionné.
+		/// La méthode fonctionne iterativement en supprimant successivement les faces puis les antennes pouvant
+		/// résulter de ces suppressions. La fonction s'arrête lorsque plus aucune face ni antenne ne peuvent être
+		/// supprimées.
 		void cleanFaces2ByCountry() const;
 
-		/// @brief 
-		/// @param sqlFilter 
-		/// @param tagTreatedDangles 
+		/// @brief Supprime successivement les antennes et les faces pays par pays jusqu'à ce que plus aucune 
+		/// suppression de soit possible.
+		/// @param sqlFilter Condition sql pour filtrer les objets à traiter
+		/// @param tagTreatedDangles Booléen identiquant si on souhaite marquer (en renseignant un champ) les objets traités
 		void cleanFacesAndAntennaByCountry(std::string const& sqlFilter, bool tagTreatedDangles = false) const;
 
-		/// @brief 
-		/// @param sqlFilter 
-		/// @return 
+		/// \brief Nettoie les faces étroites. La sélection du chemin a conserver prends en compte la proportion de chemin situé 
+		/// dans le bon pays. Si les proportions sont identiques c'est le chemin le plus court qui est selectionné.
+		/// La méthode fonctionne iterativement en supprimant successivement les faces puis les antennes pouvant
+		/// résulter de ces suppressions. La fonction s'arrête lorsque plus aucune face ni antenne ne peuvent être
+		/// supprimées.
+		/// @param sqlFilter Condition sql pour filtrer les objets à traiter
+		/// @return Booléen indiquant si un nettoyage a eu lieu
 		bool cleanFaces2(std::string const& sqlFilter) const;
 
-		/// \brief
+		/// \brief Supprime les arcs des chemins situés entre deux connecting feature localisés dans le mauvais pays.
 		void cleanPathsOutOfCountry() const;
 
-		/// @brief 
-		/// @param withCl 
-		/// @param tagTreatedDangles 
+		/// @brief Supprime les antennes
+		/// @param withCl Booléen indiquant si les connecting lines doivent être prises en compte dans le calcul des antennes
+		/// @param tagTreatedDangles Booléen identiquant si on souhaite marquer (en renseignant un champ) les objets traités
 		/// @return 
 		bool cleanAntennas(bool withCl = true, bool tagTreatedDangles = false) const;
 
-		/// \brief
+		/// \brief Nettoie les arcs parallèles. Détermine un arc de référence (celui qui est majoritairement dans le bon pays),
+		/// puis supprime les arcs parallèles situé à une distance de hausdorff de cette référence inférieure à un seuil.
 		void cleanParalelleEdges() const;
 
-		/// \brief
+		/// \brief Fusionne les arcs dont la longueur est inférieure à un seuil.
 		void cleanTinyEdges() const;
 
 	private:

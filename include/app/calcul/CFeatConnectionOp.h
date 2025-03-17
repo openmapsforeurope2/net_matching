@@ -21,7 +21,7 @@
 namespace app{
 namespace calcul{
 
-	/// @brief 
+	/// @brief Classe utilitaire de reconnexion topologique
 	class CFeatConnectionOp {
 		typedef boost::bimap<boost::bimaps::multiset_of<std::string>, boost::bimaps::set_of<std::string>> bimap_t;
         typedef bimap_t::value_type value_type;
@@ -34,52 +34,53 @@ namespace calcul{
 		typedef typename GraphType::vertex_descriptor vertex_descriptor;
         typedef typename GraphType::edge_iterator edge_iterator;
 
-		/// @brief 
-		/// @param countryCode 
-		/// @param verbose 
+		/// @brief Constructeur
+		/// @param countryCode Code pays simple
+		/// @param verbose Mode verbeux
 		CFeatConnectionOp( 
             std::string countryCode, 
             bool verbose 
         );
 
-		/// @brief 
+		/// @brief Destructeur
 		~CFeatConnectionOp();
 
 
-		/// @brief 
-		/// @param countryCode 
-		/// @param verbose 
+		/// @brief Reconnecte les arcs du réseau aux connecting points
+		/// @param countryCode Code pays simple
+		/// @param verbose Mode verbeux
 		static void ComputeCp( 
             std::string countryCode, 
             bool verbose 
         );
 
-		/// @brief 
-		/// @param countryCode 
-		/// @param verbose 
+		/// @brief Reconnecte les arcs du réseau aux connectings lines et ajoute des arcs (segments) entre
+		/// les connecting lines déconnectées
+		/// @param countryCode Code pays simple
+		/// @param verbose Mode verbeux
 		static void ComputeCl( 
             std::string countryCode, 
             bool verbose 
         );
 
-		/// @brief 
-		/// @param countryCode 
-		/// @param verbose 
+		/// @brief Importe les connecting lines dans le réseau
+		/// @param countryCode Code pays simple
+		/// @param verbose Mode verbeux
 		static void ComputeClImport( 
             std::string countryCode, 
             bool verbose 
         );
 
-		/// \brief
+		/// \brief Reconnecte les arcs du réseau aux connecting points
 		void computeCp();
 
-		/// \brief
+		/// \brief Reconnecte les arcs du réseau aux connectings lines et ajoute des arcs (segments) entre
 		void computeCl();
 
-		/// \brief
+		/// \brief Reconnecte les arcs aux connecting points et aux connecting lines
 		void computeCpCl();
 
-		/// \brief
+		/// \brief Importe les connecting lines dans le réseau
 		void computeClImport();
 
 

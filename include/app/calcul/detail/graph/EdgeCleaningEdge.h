@@ -13,13 +13,13 @@ namespace calcul{
 namespace detail{
 namespace graph{
 
-	/// @brief 
+	/// @brief Propriétés des arcs pour le graph EdgeCleaningGraph
 	struct EdgeCleaningEdge : public ign::geometry::graph::LinearEdgeProperties {
 
-        /// \brief constructor
+        /// \brief constructeur
         EdgeCleaningEdge(){};
 
-        /// \brief destructor
+        /// \brief destructeur
         ~EdgeCleaningEdge(){};
 
         //--

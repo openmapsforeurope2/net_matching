@@ -9,15 +9,15 @@
 namespace app{
 namespace tools{
 
-    /// @brief 
+    /// @brief Classe utilitaire pour les opérations sur les chaînes de charactères
     class StringTools {
         public:
 
-		/// @brief 
+		/// @brief Transforme une liste en chaîne de charactères
 		/// @tparam Container 
-		/// @param vStrings 
-		/// @param separator 
-		/// @return 
+		/// @param vStrings Liste de chaînes de charactères
+		/// @param separator Séparateur
+		/// @return Chaîne de charactères
 		template<typename Container>
 		static std::string ToString(Container const& vStrings, std::string separator = ",") {
             std::string result = "";

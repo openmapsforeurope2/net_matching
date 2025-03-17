@@ -10,22 +10,22 @@ namespace calcul{
 namespace matching{
 namespace detail{
 
-	/// \brief
-	class LineStringAbsDampedDeformer : public LineStringDeformer{
+	/// \brief Classe utilitaire pour la déformation amortie de linéaire
+	class LineStringAbsDampedDeformer : public LineStringDeformer {
 	public:
-		/// @brief 
-		/// @param absThreshold 
-		/// @param influenceFactor 
-		/// @param snapDist 
+		/// @brief Constructeur
+		/// @param absThreshold Abscisse curviligne définissant la limite de déformation
+		/// @param influenceFactor Facteur permettant de définir la zone d'inluence d'un vecteur de déformation (cercle de rayon = norme du vecteur x influenceFactor)
+		/// @param snapDist Distance de snapping permettant de prendre un point existant comme limite de déformation
 		LineStringAbsDampedDeformer(double absThreshold, double influenceFactor, double snapDist);
 
-		/// \brief
+		/// \brief Destructeur
 		virtual ~LineStringAbsDampedDeformer();
 
-		/// @brief 
-		/// @param startDeformation 
-		/// @param endDeformation 
-		/// @param ls 
+		/// @brief Déforme la polyligne donnée en argument.
+		/// @param startDeformation Vecteur de déformation appliqué au point de départ
+		/// @param endDeformation Vecteur de déformation appliqué au dernier point
+		/// @param ls Polyligne à déformer
 		virtual void deform( 
 			ign::math::Vec2d const& startDeformation,
 			ign::math::Vec2d const& endDeformation,

@@ -242,25 +242,11 @@ namespace app
             {
                 ++display;
                 ign::feature::Feature const& fCl = itCl->next();
-                // ign::geometry::LineString const& clGeom = fCl.getGeometry().asLineString();
                 std::string const linkedFeatureId = fCl.getAttribute(linkedFeatureIdName).toString();
                 std::string const countryCode = fCl.getAttribute(countryCodeName).toString();
 
-                //DEBUG
-                // std::string clId = fCl.getId();
-
-                // if (_verbose) _logger->log(epg::log::DEBUG, fCl.getId());
-
                 if ( sTreatedCl.find(fCl.getId()) != sTreatedCl.end() ) continue;
                 sTreatedCl.insert(fCl.getId());
-
-                //DEBUG
-                // std::string idDebug = fCl.getId();
-                // if ( idDebug != "CONNECTINGLINE2096" && idDebug != "CONNECTINGLINE2093" && idDebug != "CONNECTINGLINE2095" && idDebug != "CONNECTINGLINE2094" && idDebug != "CONNECTINGLINE2086" ) continue;
-                // if ( idDebug == "CONNECTINGLINE1817" || idDebug == "CONNECTINGLINE1816") {
-                //     bool test = true;
-                // }
-                // if ( idDebug != "CONNECTINGLINE2218" && idDebug != "CONNECTINGLINE2230") continue;
 
                 std::pair<bool, std::string> foundFeatureId = _getSingleValue(linkedFeatureId, countryCode, country);
                 if (!foundFeatureId.first)
@@ -268,18 +254,6 @@ namespace app
                     _logger->log(epg::log::ERROR, "Feature id not found [connecting edge id] " + fCl.getId());
                     continue;
                 }
-
-                //DEBUG
-                // std::map<std::string, std::vector<std::string>>::const_iterator mit = mParentChilds.find("fd8c7927-7e77-422e-a50e-67a4989550fc");
-                // if (mit !=  mParentChilds.end()) {
-                //     std::vector<std::string>>::const_iterator vit;
-                //     for( vit = mit->second.begin() ; vit != mit->second.end() ; ++vit) {
-                //         if (vit == foundFeatureId.second)
-                //     }
-                // }
-                // if (foundFeatureId.second == "fd8c7927-7e77-422e-a50e-67a4989550fc") {
-                //     bool test =true;
-                // }
 
                 //fusionner les cl adjacentes avec le même edgeLink, récuperer le géométrie fusionnée et lister les cl traitées pour ne pas les traiter de nouveau
                 std::pair<bool, ign::geometry::LineString> foundMergedClGeom = ome2::calcul::detail::ClMerger::merge(_fsCl, fCl, foundFeatureId.second, sTreatedCl);
@@ -292,8 +266,6 @@ namespace app
                     _logger->log(epg::log::ERROR, "No candidate edge found [" + linkedFeatureIdName + "] " + foundFeatureId.second);
                     continue;
                 }
-
-                // if (_verbose) _logger->log(epg::log::DEBUG, "  "+edgeId);
 
                 ign::geometry::LineString const& edgeGeom = foundEdge.second.getGeometry().asLineString();
 
@@ -333,7 +305,7 @@ namespace app
                     }
                     _addDisplacement(startPoint, mergedClGeom->startPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
 
-                    // size_t minId2 = vDist[2] < vDist[3] ? 2 : 3;
+                    //--
                     size_t minId2 = minId == 0  ? 3 : 2;
                     if (vDist[minId2] <= snapDistance)
                     {
@@ -372,7 +344,7 @@ namespace app
                     }
                     _addDisplacement(startPoint, mergedClGeom->endPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
 
-                    // size_t minId2 = vDist[0] < vDist[1] ? 0 : 1;
+                    //--
                     size_t minId2 = minId == 2  ? 1 : 0;
                     if (vDist[minId2] <= snapDistance)
                     {
@@ -455,11 +427,6 @@ namespace app
             std::string const& linkedFeatureId,
             std::string const& country
         ) const {
-
-            //DEBUG
-            // if(sourcePoint.distance(ign::geometry::Point(3901654.307,3019435.784))< 1e-1) {
-            //     bool test = true;
-            // }
             
             ign::math::Vec2d v = targetPoint.toVec2d() - sourcePoint.toVec2d();
 
@@ -537,37 +504,6 @@ namespace app
             _applyEdgeDisplacement(graph, mDisplacements, vDeformedEdges, sCollapsedEdges);
 
 
-            //DEBUG
-            // std::set<edge_descriptor> sVisitedEdge;
-            // edge_iterator eit, eend;
-            // for (graph.edges(eit, eend); eit != eend; ++eit)
-            // {
-            //     if ( sVisitedEdge.find(*eit) != sVisitedEdge.end() ) continue;
-            //     std::vector< oriented_edge_descriptor > vParallelEdges;
-            //     graph.edges( graph.source(*eit), graph.target(*eit), vParallelEdges );
-            //     if(vParallelEdges.size() < 2) continue;
-
-            //     std::vector< oriented_edge_descriptor >::const_iterator vit;
-            //     std::vector< oriented_edge_descriptor >::const_iterator vit_last = --vParallelEdges.end();
-            //     std::set<edge_descriptor> sVisited;
-            //     for (vit = vParallelEdges.begin() ; vit != vit_last ; ++vit ) {
-            //         if ( sVisitedEdge.find(vit->descriptor) != sVisitedEdge.end() ) continue;
-            //         sVisitedEdge.insert(vit->descriptor);
-            //         ign::geometry::LineString lsRef = graph.getGeometry(*vit);
-            //         std::vector< oriented_edge_descriptor >::const_iterator vit2 = vit;
-            //         for ( ++vit2 ; vit2 != vParallelEdges.end() ; ++vit2 ) {
-            //             if( vit2->descriptor == vit->descriptor ) continue; /*gestion des boucle*/
-            //             ign::geometry::LineString ls = graph.getGeometry(vit2->descriptor);
-            //             if ( ign::geometry::algorithm::HausdorffDistanceOp::distance(lsRef, ls) < 0.1 /*todo a ajuster*/ ) {
-            //                 sVisitedEdge.insert(vit2->descriptor);
-            //                 ign::feature::Feature eFeat;
-            //                 eFeat.setGeometry(ls);
-            //                 _shapeLogger->writeFeature("cl_superposed_edges_"+country, eFeat);
-            //             }
-            //         }
-            //     }
-            // }
-
             // on enregistre les modifications
             _persistEdgeDisplacement(graph, vDeformedEdges);
 
@@ -599,20 +535,7 @@ namespace app
             // app params
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
             
-
             double const snapDistance = themeParameters->getValue(SNAP_DIST).toDouble();
-
-            // ign::geometry::MultiPolygon mpLandmask;
-            // ign::feature::FeatureIteratorPtr itLandmask = _fsLandmask->getFeatures(ign::feature::FeatureFilter(landCoverTypeName + " = '" + landAreaValue + "' AND " + countryCodeName + " = '" + _countryCode + "'"));
-            // while (itLandmask->hasNext())
-            // {
-            //     ign::feature::Feature const &fLandmask = itLandmask->next();
-            //     ign::geometry::MultiPolygon const &mp = fLandmask.getGeometry().asMultiPolygon();
-            //     for (int i = 0; i < mp.numGeometries(); ++i)
-            //     {
-            //         mpLandmask.addGeometry(mp.polygonN(i));
-            //     }
-            // }
 
             ign::feature::FeatureFilter filterCp(countryCodeName + " LIKE '%" + country + "%'");
 
@@ -629,17 +552,9 @@ namespace app
                 ++display;
                 ign::feature::Feature const& fCp = itCp->next();
 
-                // if (_verbose) _logger->log(epg::log::DEBUG, fCp.getId());
-
                 ign::geometry::Point const& cpGeom = fCp.getGeometry().asPoint();
                 std::string const linkedFeatureId = fCp.getAttribute(linkedFeatureIdName).toString();
                 std::string const countryCode = fCp.getAttribute(countryCodeName).toString();
-
-                // if (fCp.getId() == "427a15b5-8fef-44bc-b688-f348aab542d8") {
-                //     bool test = true;
-                // } else {
-                //     continue;
-                // }
 
                 std::pair<bool, std::string> foundFeatureId = _getSingleValue(linkedFeatureId, countryCode, country);
                 if (!foundFeatureId.first)
@@ -647,20 +562,6 @@ namespace app
                     _logger->log(epg::log::ERROR, "Feature id not found [connecting point id] " + fCp.getId());
                     continue;
                 }
-
-                // ign::feature::Feature fEdge;
-                // _fsEdge->getFeatureById(foundFeatureId.second, fEdge);
-
-                // if (_verbose)
-                //     _logger->log(epg::log::DEBUG, foundFeatureId.second);
-
-                // if (foundEdge.second == "41f0d5bf-d002-4c8e-a828-779aeed290ae") {
-                //     bool test = true;
-                // } else {
-                //     continue;
-                // }
-
-                // ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
 
                 std::pair<bool, ign::feature::Feature> foundEdge = _getNearestChild(cpGeom, foundFeatureId.second, mParentChilds);
                 std::string edgeId = foundEdge.second.getId();
@@ -670,10 +571,7 @@ namespace app
                     continue;
                 }
 
-                // if (_verbose) _logger->log(epg::log::DEBUG, "  "+edgeId);
-
                 ign::geometry::LineString const& edgeGeom = foundEdge.second.getGeometry().asLineString();
-
 
                 ign::geometry::Point startPoint;
                 // peut-on connecter l'edge aux extremités du connecting edge ?
@@ -799,10 +697,6 @@ namespace app
             bool found = false;
 
             std::vector<std::string> vCandidates;
-
-            // bimap_t::const_iterator mit = mParentChilds.find(parentFeatureId);
-            // if ( mit == mParentChilds.end() ) vCandidates.push_back(parentFeatureId);
-            // else vCandidates = mit->second;
 
             auto range = mParentChilds.left.equal_range(parentFeatureId);
             for (auto l_it = range.first; l_it != range.second; ++l_it) {
@@ -982,11 +876,6 @@ namespace app
             std::map<ign::geometry::Point, ign::math::Vec2d>::const_iterator rit;
             for (rit = mReferences.begin(); rit != mReferences.end(); ++rit)
             {
-                //DEBUG 
-                // if(ign::geometry::Point(3901652.835363,3019437.212460).distance(rit->first) < 0.1){
-                //     bool testy =true;
-                // }
-
                 std::pair<bool, vertex_descriptor> foundVertex = _getNearestVertex(graph, rit->first, 1e-2);
                 if (!foundVertex.first)
                 {
@@ -1067,19 +956,8 @@ namespace app
                 ign::math::Vec2d vectTarget = (dit_target != mDisplacements.end()) ? _computeDisplacement(dit_target->second) : ign::math::Vec2d();
 
                 // deformation
-                //DEBUG
-                // _logger->log(epg::log::DEBUG, "pouet");
-                // _logger->log(epg::log::DEBUG, ls.toString());
-                // double distance = ls.distance(ign::geometry::Point(4028460.063,2571989.990));
-                // std::ostringstream sstream;
-                // sstream << distance;
-                // _logger->log(epg::log::DEBUG, sstream.str());
-                // if( distance < 0.8) {
-                //     bool test = true;
-                // }
                 lineStringDeformer.deform(vectSource, vectTarget, ls);
-                // DEBUG
-                // double distance = ls.startPoint().distance2d( ls.endPoint());
+
                 /// \todo en cas de geometrie effondree assurer la continuite topologique
                 /// supprimer le sommet deplace, mettre a jour les arcs lies au sommet deplacer (geometrie et sommet ini ou fin)
                 if ((ls.startPoint().distance2d(ls.endPoint()) < 1e-5) && (graph.source(*eit) != graph.target(*eit)))
@@ -1134,8 +1012,6 @@ namespace app
             {
                 ign::math::Vec2d displacement = _computeDisplacement(dit->second);
                 tools::translateVertex( graph, dit->first, displacement, mOldNewEdges, sEdges2remove, sVertices2remove, true/*with merging*/, 1e-5 );
-                // ign::geometry::Point oldGeom = graph.getGeometry(dit->first);
-                // graph.setGeometry(dit->first, ign::geometry::Point(oldGeom.x() + displacement.x(), oldGeom.y() + displacement.y(), oldGeom.z()));
             }
             for ( std::set<edge_descriptor>::const_iterator sit = sEdges2remove.begin() ; sit != sEdges2remove.end() ; ++sit )
                 graph.removeEdge(*sit);
@@ -1189,11 +1065,7 @@ namespace app
             for ( vit = vDeformedEdges.begin() ; vit != vDeformedEdges.end() ; ++vit ) {
                 ign::geometry::LineString edgeGeom = graph.getGeometry(*vit);
 
-                // _logger->log(epg::log::DEBUG, edgeGeom.toString());
-
                 std::string edgeId = graph.origins(*vit)[0];
-
-                // _logger->log(epg::log::DEBUG, edgeId);
                 
                 ign::feature::Feature fEdge;
                 _fsEdge->getFeatureById(edgeId, fEdge);

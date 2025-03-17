@@ -18,14 +18,15 @@ namespace app{
 namespace tools{
 
 	/// \warning edges must have been displaced before to use this function
-	/// @brief 
+	/// @brief Fonction permettant de fusionner deux sommets (péalablement déplacés en un même point)
+	/// par la mise à jour des relations d'adjacence au sein du graph.
 	/// @tparam GraphType 
-	/// @param graph 
-	/// @param v 
-	/// @param vRef 
-	/// @param mOldNewEdges 
-	/// @param sEdges2remove 
-	/// @param sVertices2remove 
+	/// @param graph Graph à modifier
+	/// @param v Sommet à supprimer
+	/// @param vRef Sommet de référence
+	/// @param mOldNewEdges Mapping entre les anciens ars (à supprimer) et les nouveaux.
+	/// @param sEdges2remove Liste des arcs à supprimer
+	/// @param sVertices2remove Liste des sommets à supprimer
 	template< typename GraphType >
 	void mergeVertices( 
 		GraphType& graph,

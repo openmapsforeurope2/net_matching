@@ -1846,11 +1846,11 @@ namespace app
 
             std::set<edge_descriptor> sVisitedEdge;
 
-            boost::progress_display display4(graph.numEdges(), std::cout, "[ cleaning parallele edges  % complete ]\n");
+            boost::progress_display display(graph.numEdges(), std::cout, "[ cleaning parallele edges  % complete ]\n");
             edge_iterator eit, eend;
             for (graph.edges(eit, eend); eit != eend; ++eit)
             {
-                ++display4;
+                ++display;
                 if ( sVisitedEdge.find(*eit) != sVisitedEdge.end() ) continue;
                 std::vector< oriented_edge_descriptor > vParallelEdges;
                 graph.edges( graph.source(*eit), graph.target(*eit), vParallelEdges );

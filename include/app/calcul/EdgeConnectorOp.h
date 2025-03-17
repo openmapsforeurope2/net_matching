@@ -16,7 +16,7 @@
 namespace app{
 namespace calcul{
 
-	/// @brief 
+	/// @brief Classe servant à connecter les antennes dont l'extrémité est dans le mauvais pays à un arc de ce pays.
 	class EdgeConnectorOp {
 
 	public:
@@ -29,9 +29,13 @@ namespace calcul{
 		typedef typename GraphType::linear_origin_iterator                 linear_origin_iterator;
 		typedef app::calcul::detail::OriginEdgeProperties                  OriginEdgeProperties;
 
-		/// @brief 
-		/// @param borderCode 
-		/// @param verbose 
+		/// @brief Connexion des antennes. La projection axiale est privilégiée à la projection orthogonale.
+		/// La projection axiale est autorisé si la distance de projection est inférieure à un seuil. Si pas de 
+		/// projection axiale, la projection orthogonale est autorisée si la distance de projection est 
+		/// inférieure à la moitié de ce seuil. Les antennes résultant de l'opération de connexion sont 
+		/// supprimées si elles sont hors de leur pays.
+		/// @param borderCode Code Frontière (code double)
+		/// @param verbose Mode Verbeux
 		static void Compute(
 			std::string borderCode, 
 			bool verbose

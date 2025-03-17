@@ -14,18 +14,20 @@
 namespace app{
 namespace tools{
 
-	/// \warning edges must have been displaced before to use this function
-	/// @brief 
+	/// @brief Déplace le sommet d'un graph et réalise la fusion si sa nouvelle position
+	/// correspond à la position (à la précision près) d'un sommet existant.
+	/// Note : les arcs doivent avoir été préalablement déplacés avant d'utiliser cette fonction.
 	/// @tparam GraphType 
-	/// @param graph 
-	/// @param v 
-	/// @param vect 
-	/// @param mOldNewEdges 
-	/// @param sEdges2remove 
-	/// @param sVertices2remove 
-	/// @param withMerging 
-	/// @param precision 
-	/// @return 
+	/// @param graph Graph à modifier
+	/// @param v Identifiant du sommet à déplacer
+	/// @param vect Vecteur de déplacement
+	/// @param mOldNewEdges Mapping entre les anciens ars (à supprimer) et les nouveaux.
+	/// @param sEdges2remove Liste des arcs à supprimer
+	/// @param sVertices2remove Liste des sommets à supprimer
+	/// @param withMerging Booléen indiquant si l'éventuelle fusion doit être réalisée
+	/// @param precision Précision
+	/// @return Pair indiquant si une fusion a été réalisée, et, si oui, l'identifiant du sommet 
+	/// auquel le sommet déplacé a été fusionné.
 	template< typename GraphType >
 	std::pair< bool/*merged*/, typename GraphType::vertex_descriptor > translateVertex( 
 		GraphType& graph,

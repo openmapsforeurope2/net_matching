@@ -23,10 +23,10 @@ namespace detail{
 		END
 	};
 
-	//--
+    /// @brief Structure décrivant un edge incident
     struct IncidentFeature {
 
-        /// @brief 
+        /// @brief Constructeur
         /// @param originId_ 
         /// @param ending_ 
         IncidentFeature(
@@ -37,7 +37,7 @@ namespace detail{
 			ending(ending_)
 		{};
 
-        /// @brief 
+        /// @brief Destructeur
         ~IncidentFeature(){};
 
         //--
@@ -54,7 +54,7 @@ namespace detail{
 namespace app{
 namespace calcul{
 
-	/// @brief 
+	/// @brief Classe destinée au calcul de connecting lines par fusion d'arcs parallèles (au sens topologique)
 	class CLInAreaGenerationOp {
 
 	public:
@@ -73,8 +73,8 @@ namespace calcul{
 
 		typedef std::multimap<std::string, detail::IncidentFeature>::const_iterator  m_iterator;
 
-		/// @brief 
-		/// @param verbose 
+		/// @brief Calcul des connecting lines
+		/// @param verbose Mode verbeux
 		static void Compute(
 			bool verbose
 		);

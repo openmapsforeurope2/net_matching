@@ -14,7 +14,7 @@
 namespace app{
 namespace calcul{
 
-	/// @brief 
+	/// @brief Classe utilitaire dédiée à la génération des connecting lines et des connecting points
 	class CFeatGenerationOp {
 	private:
 		typedef ign::geometry::graph::GeometryGraph< ign::geometry::graph::PunctualVertexProperties, ign::geometry::graph::LinearEdgeProperties >  GraphType;
@@ -23,47 +23,47 @@ namespace calcul{
 
 	public:
 
-		/// @brief 
-		/// @param countryCodeDouble 
-		/// @param verbose 
+		/// @brief Constructeur
+		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param verbose Mode verbeux
 		CFeatGenerationOp(std::string countryCodeDouble, bool verbose = false);
 
 		/// @brief 
 		~CFeatGenerationOp();
 
-		/// @brief 
-		/// @param countryCodeDouble 
-		/// @param verbose 
+		/// @brief Generation des connecting lines
+		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param verbose Mode verbeux
 		static void ComputeCL(std::string countryCodeDouble, bool verbose = false);
 
-		/// @brief 
-		/// @param countryCodeDouble 
-		/// @param verbose 
+		/// @brief Generation des connecting points
+		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param verbose Mode verbeux
 		static void ComputeCP(std::string countryCodeDouble, bool verbose = false);
 
-		/// @brief 
+		/// @brief Generation des connecting lines pays par pays
 		/// @param countryCodeDouble 
-		/// @param verbose 
+		/// @param verbose Mode verbeux
 		static void GenerateConnectingLinesByCountry(std::string countryCodeDouble, bool verbose = false);
 
-		/// @brief 
-		/// @param countryCodeDouble 
-		/// @param verbose 
+		/// @brief Fusion des connecting lines projetées sur les frontières
+		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param verbose Mode verbeux
 		static void MergeConnectingLinesOnBorder(std::string countryCodeDouble, bool verbose = false);
 
 		/// @brief 
-		/// @param countryCodeDouble 
-		/// @param verbose 
+		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param verbose Mode verbeux
 		static void SnapConnectingLines(std::string countryCodeDouble, bool verbose = false);
 
 		/// @brief 
-		/// @param countryCodeDouble 
-		/// @param verbose 
+		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param verbose Mode verbeux
 		static void DeleteConnectingLines(std::string countryCodeDouble, bool verbose = false);
 
-		/// @brief 
-		/// @param countryCodeDouble 
-		/// @param verbose 
+		/// @brief Calcul de la géométrie des connecting lines par interpolation des géométries d'origine
+		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param verbose Mode verbeux
 		static void UpdateGeomConnectingLines(std::string countryCodeDouble, bool verbose = false);
 
 	private:

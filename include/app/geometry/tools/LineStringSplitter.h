@@ -12,40 +12,41 @@ namespace app{
 namespace geometry{
 namespace tools{
 
-	/// @brief 
+	/// @brief Classe servant à découper les polylignes
 	class LineStringSplitter{
 
 	public:
-		/// @brief 
-		/// @param ls 
-		/// @param precision 
+		/// @brief Constructeur
+		/// @param ls Polyligne à découper
+		/// @param precision Précision
 		LineStringSplitter( ign::geometry::LineString const& ls, double precision = 1e-5 );
 
-		/// @brief 
+		/// @brief Destructeur
 		~LineStringSplitter();
 
-		/// @brief 
-		/// @param geom 
+		/// @brief Ajoute une géométrie de découpe. Si c'est une géométrie surfacique 
+		/// celle-ci est considérée comme une collection de polyligne
+		/// @param geom Géométrie de découpe
 		void addCuttingGeometry( ign::geometry::Geometry const& geom );
 
-		/// @brief 
-		/// @return 
+		/// @brief Calcule la découpe en supprimant l'extrémité de départ
+		/// @return Polylignes résultant de la découpe
 		std::vector< ign::geometry::LineString > trimStart()const;
 
-		/// @brief 
-		/// @return 
+		/// @brief Calcule la découpe en supprimant l'extrémité de fin
+		/// @return Polylignes résultant de la découpe
 		std::vector< ign::geometry::LineString > trimEnd()const;
 
-		/// @brief 
-		/// @return 
+		/// @brief Calcule la découpe en supprimant les extremités
+		/// @return Polylignes résultant de la découpe 
 		ign::geometry::LineString truncAtEnds()const;
 
-		/// @brief 
-		/// @return 
+		/// @brief Calcule la découpe.
+		/// @return Polylignes résultant de la découpe
 		std::vector< ign::geometry::LineString > getSubLineStrings()const;
 
-		/// @brief 
-		/// @return 
+		/// @brief Calcule la découpe en conservant le Z au niveau des points de découpe
+		/// @return Polylignes résultant de la découpe
 		std::vector< ign::geometry::LineString > getSubLineStringsZ()const;
 
 	private:

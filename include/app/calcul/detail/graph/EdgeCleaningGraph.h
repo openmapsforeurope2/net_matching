@@ -13,16 +13,17 @@ namespace calcul{
 namespace detail{
 namespace graph{
 
-	/// @brief 
+	/// @brief Graph de travail
 	class EdgeCleaningGraph : public ign::geometry::graph::GeometryGraph< ign::geometry::graph::PunctualVertexProperties, app::calcul::detail::graph::EdgeCleaningEdge > {
     public:
-        /// \brief constructor 
+        /// \brief Constructeur
 		EdgeCleaningGraph() {};
 
-		/// \brief destructor
+		/// \brief Destructeur
 		~EdgeCleaningGraph() {};
 
-		///\brief return graph Name
+		/// @brief 
+		/// @return Nom du graph
 		virtual std::string getName() const {return "EdgeCleaningGraph" ; }
     };
 }

@@ -137,7 +137,7 @@ void app::calcul::JunctionMatchingOp::_matchJunctions() const
 
 		if( isFictitious1 && !isFictitious2 ) {
 			_setNewGeomJunction(graphEdgCountry2, vJ2BestCandidateFromJ1, ptJ1, mEdgesModifiedGeom);
-		} else if ( isFictitious1 && !isFictitious2 ) {
+		} else if ( !isFictitious1 && isFictitious2 ) {
 			_setNewGeomJunction(graphEdgCountry1, vJ1BestCandidateFromJ2, ptJ2, mEdgesModifiedGeom);
 		} else {
 			ign::geometry::MultiPoint mpJunctions2match;

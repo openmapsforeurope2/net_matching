@@ -12,26 +12,28 @@
 namespace app{
 namespace calcul{
 
-	/// @brief 
+	/// @brief Classe pour le calcul du champ fictitious
 	class FillFictitiousFieldOp {
 
         public:
 
-            /// @brief 
-            /// @param countryCode 
-            /// @param verbose 
+            /// @brief Constructeur
+            /// @param countryCode Code pays simple
+            /// @param verbose Mode Verbeux
             FillFictitiousFieldOp( 
                 std::string countryCode, 
                 bool verbose 
             );
 
-            /// @brief 
+            /// @brief Destructeur
             ~FillFictitiousFieldOp();
 
 
-            /// @brief 
-            /// @param countryCode 
-            /// @param verbose 
+            /// @brief Calcul le champ fictitious d'une classe d'objets linéaires en fonction de leur superposition ou non
+            /// avec les objets de la (des) classe(s) de surfaciques associée(s). Un objet linéaire est considéré comme fictif
+            /// si son ratio "longueur superposé/longueur totale" dépasse un certain seuil.
+            /// @param countryCode Code pays simple
+            /// @param verbose Mode verbeux
             static void Compute( 
                 std::string countryCode, 
                 bool verbose 

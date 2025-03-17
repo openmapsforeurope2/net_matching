@@ -16,64 +16,64 @@ namespace app {
 			class LengthIndexedLineString {
 
 			public:
-				/// \brief constructeur par defaut
+				/// \brief Constructeur par defaut
 				LengthIndexedLineString();
 				
-				/// @brief constructeur a partir d'une polyligne
+				/// @brief Constructeur a partir d'une polyligne
 				/// @param lineString 
 				LengthIndexedLineString( ign::geometry::LineString const& lineString );
 
-				/// @brief constructeur par recopie
+				/// @brief Constructeur par recopie
 				/// @param other 
 				LengthIndexedLineString( LengthIndexedLineString const& other );
 
-				/// @brief affectation
+				/// @brief Affectation
 				/// @param other 
 				/// @return 
 				LengthIndexedLineString& operator = ( LengthIndexedLineString const& other );
 
-				/// @brief destructeur
+				/// @brief Destructeur
 				~LengthIndexedLineString();
 
-				/// @brief renvoie la polyligne
+				/// @brief Renvoie la polyligne
 				/// @return 
 				ign::geometry::LineString const& getLineString() const ;
 				
-				/// @brief definit la polyligne a indexer
+				/// @brief Définit la polyligne a indexer
 				/// @param lineString 
 				void setLineString( ign::geometry::LineString const& lineString );
 
-				/// @brief renvoie l'abscisse d'un point
-				/// @param numPoint 
+				/// @brief Renvoie l'abscisse d'un point
+				/// @param numPoint index du point
 				/// @return 
 				double getPointLocation( size_t numPoint ) const ;
 
-				/// @brief renvoie une sous-partie de la linestring
-				/// @param sBegin 
-				/// @param sEnd 
+				/// @brief Renvoie une sous-partie de la linestring
+				/// @param sBegin Abscisse curviligne de début
+				/// @param sEnd Abscisse curviligne de fin
 				/// @return 
 				ign::geometry::LineString getSubLineString( double const& sBegin, double const& sEnd );
 
-				/// @brief renvoie les abscisses des points intermediaires
-				/// @return 
+				/// @brief Renvoie les abscisses des points intermediaires
+				/// @return Abscisses des points intermédiaires
 				std::vector< double > const & getPointAbscisses() const ;
 
-				/// @brief renvoie la longueur de la polyligne
-				/// @return 
+				/// @brief Renvoie la longueur de la polyligne
+				/// @return Longueur
 				double length() const ;
 
-				/// @brief renvoie le nombre de segments
-				/// @return 
+				/// @brief Renvoie le nombre de segments
+				/// @return Nombre de segments
 				size_t numLines() const ;
 
-				/// @brief renvoie un point en fonction d'une abscisse curviligne
-				/// @param s 
-				/// @return 
+				/// @brief Renvoie un point en fonction d'une abscisse curviligne
+				/// @param s Abscisse curviligne
+				/// @return Point
 				ign::geometry::Point locateAlong( double const& s ) const ;
 
-				/// @brief renvoie l'abscisse curviligne du point le plus proche sur la polyligne du point p.
-				/// @param p 
-				/// @return 
+				/// @brief Renvoie l'abscisse curviligne du point le plus proche sur la polyligne du point p.
+				/// @param p Point
+				/// @return Abscisse
 				double project( ign::geometry::Point const& p )const;
 
 			private:

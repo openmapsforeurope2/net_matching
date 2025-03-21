@@ -17,7 +17,6 @@
 namespace app{
 namespace tools{
 
-	/// \warning edges must have been displaced before to use this function
 	/// @brief Fonction permettant de fusionner deux sommets (péalablement déplacés en un même point)
 	/// par la mise à jour des relations d'adjacence au sein du graph.
 	/// @tparam GraphType 

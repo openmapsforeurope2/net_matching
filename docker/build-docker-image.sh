@@ -16,11 +16,11 @@ fi
 
 GIT_BRANCH_LOWER=$(echo $GIT_BRANCH | tr '[:upper:]' '[:lower:]')
 
-DOCKER_TAG=$GIT_BRANCH_LOWER
+DOCKER_TAG=$(head -n 1 ./../VERSION)
 
-if [ $GIT_BRANCH = "main" ]
+if [ $GIT_BRANCH_LOWER = "main" ]
 then
-    DOCKER_TAG="latest"
+    DOCKER_TAG+="latest"
 fi
 
 echo $GIT_BRANCH

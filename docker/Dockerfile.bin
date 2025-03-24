@@ -4,7 +4,7 @@ RUN apt-get update -y
 RUN apt-get install -y qt5-default
 
 WORKDIR /usr/local/src/
-COPY libs libs
+COPY libs/linux libs
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/libs
 
 WORKDIR /usr/local/src/net_matching/

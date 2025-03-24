@@ -46,6 +46,18 @@ Voici quelles sont les étapes jouées en fonction du thème traité:
 ## compilation
 ## utilisation
 
+Paramètres:
+* c [obligatoire] : chemin vers le fichier de configuration
+* T [obligatoire] : thème (doit être parmi les valeurs : tn, hy, ra)
+* cc [obligatoire] : code pays double (exemple : be#fr)
+* sp [obligatoire] : étape(s) à executer (exemples: 220 ; 220,240 ; 210-280)
+
+Exemples d'appels:
+
+~~~
+bin/net_matching --c path/to/config/epg_parmaters.ini --cc be#fr --T hy
+bin/net_matching --c path/to/config/epg_parmaters.ini --cc be#fr --T hy --sp 250
+~~~
 
 ## Définition
 

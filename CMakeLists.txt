@@ -151,10 +151,10 @@ install(
 	bin
 )
 
-if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/version)
-    file(READ ${CMAKE_CURRENT_LIST_DIR}/version VERSION)
+if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/VERSION)
+    file(READ ${CMAKE_CURRENT_LIST_DIR}/VERSION VERSION)
 else()
-    message("version file not found")
+    message("VERSION file not found")
 	set(VERSION 0.0.0)
 endif ()
 

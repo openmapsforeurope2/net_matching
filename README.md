@@ -1,8 +1,8 @@
 # net_matching
 
-## Context: Ome2
+## Context
 
-Thèmes
+Ce projet s'inscrit dans le cadre du projet [OME2](https://github.com/openmapsforeurope2/OME2)
 
 ## Description
 
@@ -18,22 +18,22 @@ Etape préliminaire d'extraction du réseau autour des frontières
 
 On travail sur la table de travail. A chaque étape une table de travail intermédiaire préfixée du numéro d'étape est créée.
 
-201 : initialisation du champ 'fictitious' des arcs du réseau
-202 : apparairage des carrefour
-204 : généralisation des surfaces étroites en linéaire (les surfaces sont constitués des arcs de 2 pays, les linéaires résultant sont des 'connecting lines' bi-nationales)
-210 : génération des 'connectings lines' projetées aux frontières
-211 : fusion des 'connecting lines'
-212 :
-213 :
-214 : calcul de la géométrie des 'connecting lines' par interpolation
-220 : connection du réseau aux 'connecting lines'
-230 : import des 'connecting lines' dans le réseau
-240 : génération des 'connecting points'
-250 : connection du réseau aux 'connecting points'
-255 : généralisation des surfaces étroites en linéaire (les surfaces sont constitués des arcs de 2 pays, les linéaires résultant sont des 'connecting lines' bi-nationales)
-260 : nettoyage des artefacts (faces étroites, antennes, arcs superposés...)
-270 : connection des antennes hors pays au réseau du pays voisin
-280 : nettoyage des artefacts (faces étroites, antennes, arcs superposés, arcs de petite taille...)
+- 201 : initialisation du champ 'fictitious' des arcs du réseau
+- 202 : apparairage des carrefour
+- 204 : généralisation des surfaces étroites en linéaire (les surfaces sont constitués des arcs de 2 pays, les linéaires résultant sont des 'connecting lines' bi-nationales)
+- 210 : génération des 'connectings lines' projetées aux frontières
+- 211 : fusion des 'connecting lines'
+- 212 :
+- 213 :
+- 214 : calcul de la géométrie des 'connecting lines' par interpolation
+- 220 : connection du réseau aux 'connecting lines'
+- 230 : import des 'connecting lines' dans le réseau
+- 240 : génération des 'connecting points'
+- 250 : connection du réseau aux 'connecting points'
+- 255 : généralisation des surfaces étroites en linéaire (les surfaces sont constitués des arcs de 2 pays, les linéaires résultant sont des 'connecting lines' bi-nationales)
+- 260 : nettoyage des artefacts (faces étroites, antennes, arcs superposés...)
+- 270 : connection des antennes hors pays au réseau du pays voisin
+- 280 : nettoyage des artefacts (faces étroites, antennes, arcs superposés, arcs de petite taille...)
 
 
 Voici quelles sont les étapes jouées en fonction du thème traité:

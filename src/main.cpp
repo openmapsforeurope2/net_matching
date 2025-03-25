@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 
         //epg logger
         epg::log::EpgLogger* logger = epg::log::EpgLoggerS::getInstance();
-        // logger->setProdOfstream( logDirectory+"/au_merging.log" );
+        // logger->setProdOfstream( logDirectory+"/net_matching.log" );
         logger->setDevOfstream( context->getLogDirectory()+"/net_matching.log" );
 
         //shape logger

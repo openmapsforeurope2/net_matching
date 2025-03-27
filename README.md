@@ -8,21 +8,21 @@ L'élaboration de la chaîne de production a nécessité le développement d'un 
 
 ## Description
 
-Le présent outil est dédié au raccordements transfrontaliers des réseaux (réseaux routier, ferré, hydrographique...).
+Le présent outil est dédié aux raccordement transfrontaliers des réseaux (réseaux routier, ferré, hydrographique...).
 
 Lorsqu'elle est lancée l'application traite un couple de pays frontaliers. Pour raccorder l'ensemble du réseau d'un pays le programme doit être lancé successivement sur ses différentes frontières (en considérant l'ensemble de ses pays limitrophes).
 
 
 ## Fonctionnement
 
-Le programme ne manipule pas directement les données de production. Les données à traiter, localisées autour de la frontière, sont extraites dans une table de travail. A l'issu du traitement les données dérivées sont ré-injectée dans la table source.
+Le programme ne manipule pas directement les données de production. Les données à traiter, localisées autour de la frontière, sont extraites dans une table de travail. A l'issu du traitement les données dérivées sont injectées dans la table source en remplacement des données initiales.
 
 Le processus de raccordement est décomposé en plusieurs étapes. Un numéro est attribué à chaque étape. Une table de travail préfixée de ce numéro est délivrée en sortie de chaque étape. Chaque étape prend en données d'entrées les tables de travail générées lors d'étapes antérieures.
 
 Voici la liste de l'ensemble des étapes dont dispose l'outil :
 
 201. initialisation du champ 'fictitious' des arcs du réseau
-202. apparairage des carrefour
+202. appariement des carrefour
 204. généralisation des surfaces étroites en linéaire (les surfaces sont constitués des arcs de 2 pays, les linéaires résultant sont des 'connecting lines' bi-nationales)
 210. génération des 'connectings lines' projetées aux frontières
 211. fusion des 'connecting lines'
@@ -41,7 +41,7 @@ Voici la liste de l'ensemble des étapes dont dispose l'outil :
 
 > _Précisions_ :
 > - _'Connecting line' : arc résultant de la fusion de deux arcs de deux pays différents réprésentant la même portion de réseau._
-> - _'Connecting point' : sommet représenant un point de passage du réseau à la frontière. Les réseaux des deux pays limitrophes doivent être connectés à ce point afin d'assurer la continuité topologique du référentiel européen._
+> - _'Connecting point' : sommet représentant un point de passage du réseau à la frontière. Les réseaux des deux pays limitrophes doivent être connectés à ce point afin d'assurer la continuité topologique du référentiel européen._
 > - _champ 'fictitious' : la valeur de ce champ est 'vraie' lorsqu'un arc est couvert par une géométrie surfacique représentant le même objet (certains réseaux possèdes deux représentations linéaire et surfacique modélisées par deux classes d'objets différentes. Tous les objets linéaires n'ont pas de représentation surfacique)._
 
 
@@ -57,7 +57,7 @@ L'outil s'appuie sur de nombreux paramètres de configuration permettant d'adapt
 
 On trouve dans le [dossier de configuration](https://github.com/openmapsforeurope2/net_matching/tree/main/config) les fichiers suivants :
 
-- epg_parameters.ini : regroupe des paramètres de base issus de la bibliothèque libepg qui constitue le socle de développement l'outil. Ce fichier est aussi le fichier chapeau qui pointe vers les autres fichiers de configurations
+- epg_parameters.ini : regroupe des paramètres de base issus de la bibliothèque libepg qui constitue le socle de développement l'outil. Ce fichier est aussi le fichier chapeau qui pointe vers les autres fichiers de configurations.
 - db_conf.ini : informations de connexion à la base de données.
 - hy_theme_parameters.ini : configuration des paramètres spécifiques au thème hydrographie.
 - ra_theme_parameters.ini : configuration des paramètres spécifiques au thème transport ferré.

@@ -24,11 +24,11 @@ Voici la liste de l'ensemble des étapes dont dispose l'outil :
 201. initialisation du champ 'fictitious' des arcs du réseau
 202. apparairage des carrefour
 204. généralisation des surfaces étroites en linéaire (les surfaces sont constitués des arcs de 2 pays, les linéaires résultant sont des 'connecting lines' bi-nationales)
-210. génération des 'connectings lines' projetées aux frontières
-211. fusion des 'connecting lines'
-212.
-213.
-214. calcul de la géométrie des 'connecting lines' par interpolation
+210. génération des 'connectings lines' projetées aux frontières pour chacun des pays frontaliers
+211. fusion des 'connecting lines' de chacun des pays en linéaire partagé par les deux pays
+212. snap des 'connecting lines' dont les extrémités sont proches pour éviter les petites coupures
+213. suppression des 'connecting lines' dont les couple de linéaires sont incohérents selon l'angle ou la dist
+214. calcul de la géométrie des 'connecting lines' par interpolation 
 220. connection du réseau aux 'connecting lines'
 230. import des 'connecting lines' dans le réseau
 240. génération des 'connecting points'

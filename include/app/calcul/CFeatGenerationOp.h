@@ -51,12 +51,12 @@ namespace calcul{
 		/// @param verbose Mode verbeux
 		static void MergeConnectingLinesOnBorder(std::string countryCodeDouble, bool verbose = false);
 
-		/// @brief 
+		/// @brief Snap des connecting lines pour éviter des petites discontinuité 
 		/// @param countryCodeDouble Code pays double (avec '#')
 		/// @param verbose Mode verbeux
 		static void SnapConnectingLines(std::string countryCodeDouble, bool verbose = false);
 
-		/// @brief 
+		/// @brief Suppression des connecting lines dont les objets d'origines ne sont pas cohérents (dist et angle)
 		/// @param countryCodeDouble Code pays double (avec '#')
 		/// @param verbose Mode verbeux
 		static void DeleteConnectingLines(std::string countryCodeDouble, bool verbose = false);

@@ -280,6 +280,18 @@ namespace app
                 ign::feature::Feature featBack;
                 _fsEdge->getFeatureById(vOrigins.back(), featBack);
 
+
+				//on verifie que l'on ne fusionne pas un obj d'un pays deja fusionne dans une CL
+				if (featFront.getAttribute(countryCodeName).toString().find(
+					featBack.getAttribute(countryCodeName).toString() ) != std::string::npos
+					 || featBack.getAttribute(countryCodeName).toString().find(
+						 featFront.getAttribute(countryCodeName).toString()) != std::string::npos
+					) {
+					_logger->log(epg::log::WARN, " fusion impossible de deux troncons d'un même pays pour la geom : " +featFront.getGeometry().asText() + " et la geom : " + featBack.getGeometry().asText());
+					continue;
+				}
+
+
                 //--
                 std::map<std::string, std::set<edge_descriptor>>::iterator mit;
                 mit = mFeatMergedEdges.find(featFront.getId());

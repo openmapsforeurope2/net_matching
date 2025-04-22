@@ -20,7 +20,7 @@ DOCKER_TAG=$(head -n 1 ./../VERSION)
 
 if [ $GIT_BRANCH_LOWER = "main" ]
 then
-    DOCKER_TAG+="latest"
+    DOCKER_TAG="latest"
 fi
 
 echo $GIT_BRANCH

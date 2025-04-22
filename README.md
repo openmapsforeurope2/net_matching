@@ -27,7 +27,7 @@ Voici la liste de l'ensemble des étapes dont dispose l'outil :
 210. génération des 'connectings lines' projetées aux frontières pour chacun des pays frontaliers
 211. fusion des 'connecting lines' de chacun des pays en linéaire partagé par les deux pays
 212. snap des 'connecting lines' dont les extrémités sont proches pour éviter les petites coupures
-213. suppression des 'connecting lines' dont les couple de linéaires sont incohérents selon l'angle ou la dist
+213. suppression des 'connecting lines' dont les couples de linéaires sont incohérents selon l'angle ou la distance
 214. calcul de la géométrie des 'connecting lines' par interpolation 
 220. connection du réseau aux 'connecting lines'
 230. import des 'connecting lines' dans le réseau

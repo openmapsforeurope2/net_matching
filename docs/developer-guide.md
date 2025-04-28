@@ -67,22 +67,22 @@ Ce fonctionnement permet de conserver les résultats intermédiaires du processu
 
 Les étapes qui composent le traitement de raccordement sont les suivantes :
 
-201. initialisation du champ 'fictitious' des arcs du réseau
-202. appariement des carrefours
-204. généralisation des surfaces étroites en linéaires (les contours des surfaces sont constituées des arcs des 2 pays et les linéaires résultant de la fusion de ces arcs sont bi-nationaux)
-210. génération des _'connectings lines'_ projetées aux frontières pour chacun des pays frontaliers
-211. fusion des _'connecting lines'_ de chacun des pays en linéaires bi-nationaux
-212. accrochage des _'connecting lines'_ dont les extrémités sont proches pour éviter les petites coupures
-213. suppression des _'connecting lines'_ dont les couples de linéaires sont incohérents selon l'angle ou la distance
-214. calcul de la géométrie des _'connecting lines'_ par interpolation 
-220. connection du réseau aux _'connecting lines'_
-230. import des _'connecting lines'_ dans le réseau
-240. génération des _'connecting points'_
-250. connection du réseau aux _'connecting points'_
-255. généralisation des surfaces étroites en linéaires bi-nationaux
-260. nettoyage des artefacts (faces étroites, antennes, arcs superposés...)
-270. connection des antennes hors pays au réseau du pays voisin
-280. nettoyage des artefacts (faces étroites, antennes, arcs superposés, arcs de petite taille...)
+*201* - initialisation du champ 'fictitious' des arcs du réseau
+*202* - appariement des carrefours
+*204* - généralisation des surfaces étroites en linéaires (les contours des surfaces sont constituées des arcs des 2 pays et les linéaires résultant de la fusion de ces arcs sont bi-nationaux)
+*210* - génération des _'connectings lines'_ projetées aux frontières pour chacun des pays frontaliers
+*211* - fusion des _'connecting lines'_ de chacun des pays en linéaires bi-nationaux
+*212* - accrochage des _'connecting lines'_ dont les extrémités sont proches pour éviter les petites coupures
+*213* - suppression des _'connecting lines'_ dont les couples de linéaires sont incohérents selon l'angle ou la distance
+*214* - calcul de la géométrie des _'connecting lines'_ par interpolation 
+*220* - connection du réseau aux _'connecting lines'_
+*230* - import des _'connecting lines'_ dans le réseau
+*240* - génération des _'connecting points'_
+*250* - connection du réseau aux _'connecting points'_
+*255* - généralisation des surfaces étroites en linéaires bi-nationaux
+*260* - nettoyage des artefacts (faces étroites, antennes, arcs superposés...)
+*270* - connection des antennes hors pays au réseau du pays voisin
+*280* - nettoyage des artefacts (faces étroites, antennes, arcs superposés, arcs de petite taille...)
 
 > _Précisions_ :
 > - _'Connecting line' : arc résultant de la fusion de deux arcs de deux pays différents réprésentant la même portion de réseau._

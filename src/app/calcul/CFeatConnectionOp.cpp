@@ -223,9 +223,9 @@ namespace app
             // app params
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
 
-            std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE).toString();
+            std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE_NAME).toString();
             std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
-            double snapDistance = themeParameters->getValue(SNAP_DIST).toDouble();
+            double snapDistance = themeParameters->getValue(CFC_SNAP_DIST).toDouble();
 
             ign::feature::FeatureFilter filterCl(countryCodeName + " LIKE '%" + country + "%'");
 
@@ -535,7 +535,7 @@ namespace app
             // app params
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
             
-            double const snapDistance = themeParameters->getValue(SNAP_DIST).toDouble();
+            double const snapDistance = themeParameters->getValue(CFC_SNAP_DIST).toDouble();
 
             ign::feature::FeatureFilter filterCp(countryCodeName + " LIKE '%" + country + "%'");
 

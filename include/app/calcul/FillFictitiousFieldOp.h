@@ -18,10 +18,8 @@ namespace calcul{
         public:
 
             /// @brief Constructeur
-            /// @param countryCode Code pays simple
             /// @param verbose Mode Verbeux
-            FillFictitiousFieldOp( 
-                std::string countryCode, 
+            FillFictitiousFieldOp(
                 bool verbose 
             );
 
@@ -32,10 +30,8 @@ namespace calcul{
             /// @brief Calcul le champ fictitious d'une classe d'objets linéaires en fonction de leur superposition ou non
             /// avec les objets de la (des) classe(s) de surfaciques associée(s). Un objet linéaire est considéré comme fictif
             /// si son ratio "longueur superposé/longueur totale" dépasse un certain seuil.
-            /// @param countryCode Code pays simple
             /// @param verbose Mode verbeux
             static void Compute( 
-                std::string countryCode, 
                 bool verbose 
             );
 
@@ -54,8 +50,6 @@ namespace calcul{
             epg::log::ShapeLogger*                             _shapeLogger;
             //--
             bool                                               _verbose;
-            //--
-            std::string                                        _countryCodeDouble;
 
         private:
 

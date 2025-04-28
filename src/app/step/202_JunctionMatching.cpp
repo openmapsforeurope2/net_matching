@@ -26,13 +26,12 @@ namespace app {
 		{
 			//--
 			std::string countryCodeW = _themeParams.getParameter(COUNTRY_CODE_W).getValue().toString();
-			std::string clRefTableName = _themeParams.getParameter(CL_TABLE).getValue().toString();
 
 			//--
 			_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));
 			ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true, true);
 
-			app::calcul::JunctionMatchingOp::MatchJunctions(countryCodeW, verbose);
+			app::calcul::JunctionMatchingOp::Compute(countryCodeW, verbose);
 
 		}
 

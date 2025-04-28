@@ -78,7 +78,7 @@ namespace app
             _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTableName, idName, geomName);
 
             //--
-            std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+            std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
             context->getDataBaseManager().resetColumn(_fsEdge->getTableName(), wTagName);
 
             //--
@@ -107,7 +107,7 @@ namespace app
             
             //--
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+			std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
             double const slimSurfaceWidth = themeParameters->getValue( CLA_SURFACE_WIDTH ).toDouble();
 
             //--
@@ -259,7 +259,7 @@ namespace app
 
             //--
             app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+			std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
 
             boost::progress_display display(graph.numEdges(), std::cout, "[ generating CL on overlapping edges % complete ]\n");
 
@@ -446,7 +446,7 @@ namespace app
 
 			//--
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+			std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
 
             //--
             detail::EdgeCleaningGraphManager graphManager;
@@ -587,7 +587,7 @@ namespace app
 
             //--
             app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+			std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
 
             //--
             detail::EdgeCleaningGraphManager graphManager;
@@ -762,7 +762,7 @@ namespace app
         void CLInAreaGenerationOp::_mergeByWTag() const {
             //--
             app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+			std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
 
             //--
             detail::EdgeCleaningGraphManager graphManager;
@@ -889,7 +889,7 @@ namespace app
 
             //--
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
-            std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS).toString();
+            std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS_NAME).toString();
 
             std::string originId = _getOrigin(graph, country, path.begin()->descriptor);
 
@@ -1113,7 +1113,7 @@ namespace app
 
             //--
             app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+			std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
 
             // chargement des edges
             int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, filter);

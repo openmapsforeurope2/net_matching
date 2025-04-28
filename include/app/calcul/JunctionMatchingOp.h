@@ -40,7 +40,7 @@ namespace calcul{
 		/// du segment [AB].
 		/// @param countryCodeDouble Code pays double
 		/// @param verbose Mode verbeux
-		static void MatchJunctions(std::string const& countryCodeDouble, bool verbose = false);
+		static void Compute(std::string const& countryCodeDouble, bool verbose = false);
 
 
 	private:
@@ -65,7 +65,7 @@ namespace calcul{
 	private:
 
 		//--
-		void _init(std::string const& countryCodeDouble, bool verbose);
+		void _init();
 
 		//--
 		void _matchJunctions() const;

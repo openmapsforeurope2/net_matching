@@ -108,7 +108,7 @@ void app::calcul::CFeatGenerationOp::_generateConnectingLinesByCountry() const
 	double angleMaxBorder = themeParameters->getValue(CL_BORDER_MAX_ANGLE).toDouble();
 	double angleMaxEdges = themeParameters->getValue(CL_EDGE_MAX_ANGLE).toDouble();
 	double const distMergeCL = themeParameters->getValue(CL_MERGE_CL_DIST).toDouble();
-	double angleMaxToCutBorder = themeParameters->getValue(ANGLE_MAX_2_CUT_BORDER).toDouble();
+	double angleMaxToCutBorder = themeParameters->getValue(CFG_BOUNDARY_ANGLE_THRESHOLD).toDouble();
 	
 	angleMaxBorder = angleMaxBorder * M_PI / 180;
 	angleMaxEdges = angleMaxEdges * M_PI / 180;
@@ -1100,7 +1100,7 @@ bool app::calcul::CFeatGenerationOp::_areDistanceTypeCompatible(
 	double distance
 ) const {
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-	std::string const typeName = themeParameters->getValue(FORM_OF_WAY).toString();
+	std::string const typeName = themeParameters->getValue(FORM_OF_WAY_NAME).toString();
 	double const distMergeCP = themeParameters->getValue(CP_MERGE_DIST_CP).toDouble();
 	double const distMergeTractorCP = themeParameters->getValue(CP_MERGE_DIST_TRACTOR_CP).toDouble();
 
@@ -2052,7 +2052,7 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(double snapProjCl2edge) const
 	std::string const edgeTableName = _fsEdge->getTableName();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
-	std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS).toString();
+	std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS_NAME).toString();
 	//std::string const natIdName = themeParameters->getValue(NATIONAL_IDENTIFIER).toString();
 
 	if(_vCountriesCodeName.size() != 2)
@@ -2295,7 +2295,7 @@ void app::calcul::CFeatGenerationOp::_getGeomCountry(
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-	std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE).toString();
+	std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE_NAME).toString();
 	std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
 
 

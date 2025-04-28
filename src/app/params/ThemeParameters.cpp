@@ -19,8 +19,8 @@ namespace params{
 		_initParameter( WORKING_SCHEMA, "WORKING_SCHEMA" );
 		_initParameter( EDGE_TABLE_INIT, "EDGE_TABLE_INIT" );
 		_initParameter( COUNTRY_CODE_W, "COUNTRY_CODE_W" );
-		_initParameter( EDGE_FICTITIOUS, "EDGE_FICTITIOUS" );
-		_initParameter( W_TAG, "W_TAG" );
+		_initParameter( EDGE_FICTITIOUS_NAME, "EDGE_FICTITIOUS_NAME" );
+		_initParameter( W_TAG_NAME, "W_TAG_NAME" );
 
 		_initParameter( WATERCOURSE_AREA_TABLE, "WATERCOURSE_AREA_TABLE" );
 		_initParameter( STANDING_WATER_TABLE, "STANDING_WATER_TABLE" );
@@ -29,11 +29,11 @@ namespace params{
 		
 		_initParameter( BOUNDARY_SMOOTHED_TABLE, "BOUNDARY_SMOOTHED_TABLE");
 		_initParameter( LANDMASK_TABLE, "LANDMASK_TABLE" );
-		_initParameter( LAND_COVER_TYPE, "LAND_COVER_TYPE" );
+		_initParameter( LAND_COVER_TYPE_NAME, "LAND_COVER_TYPE_NAME" );
 		_initParameter( TYPE_LAND_AREA, "TYPE_LAND_AREA" );
-		_initParameter( FORM_OF_WAY, "FORM_OF_WAY" );
-		_initParameter( SNAP_DIST, "SNAP_DIST");
-		_initParameter( ANGLE_MAX_2_CUT_BORDER, "ANGLE_MAX_2_CUT_BORDER" );
+		_initParameter( FORM_OF_WAY_NAME, "FORM_OF_WAY_NAME" );
+		_initParameter( CFC_SNAP_DIST, "CFC_SNAP_DIST");
+		_initParameter( CFG_BOUNDARY_ANGLE_THRESHOLD, "CFG_BOUNDARY_ANGLE_THRESHOLD" );
 
 		_initParameter( CLA_SURFACE_WIDTH, "CLA_SURFACE_WIDTH" );
 		_initParameter( CLA_FICTITIOUS_RATIO_THRESHOLD, "CLA_FICTITIOUS_RATIO_THRESHOLD" );
@@ -89,8 +89,8 @@ namespace params{
 		_initParameter( ECL_ANTENNA_MIN_DIST_2_NEIGHBOR, "ECL_ANTENNA_MIN_DIST_2_NEIGHBOR");
 		_initParameter( ECL_TINY_EDGE_MAX_LENGTH, "ECL_TINY_EDGE_MAX_LENGTH");
 
-		_initParameter( DIST_MAX_JUNCTIONS, "DIST_MAX_JUNCTIONS");
-		_initParameter( ANGLE_MAX_ORIENTATION_EDGES, "ANGLE_MAX_ORIENTATION_EDGES");
+		_initParameter( JM_MAX_DIST, "JM_MAX_DIST");
+		_initParameter( JM_MAX_ANGLE, "JM_MAX_ANGLE");
 	
 	}
 

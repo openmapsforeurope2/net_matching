@@ -103,7 +103,7 @@ namespace app
                 cpTableName = edgeTableName + cpTableSuffix;
             }
             std::string const landmaskTableName = themeParameters->getValue(LANDMASK_TABLE).toString();
-            std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE).toString();
+            std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE_NAME).toString();
             std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
             std::string clTableName = themeParameters->getValue(CL_TABLE).toString();
             if ( clTableName == "" ) {
@@ -692,7 +692,7 @@ namespace app
             std::set<std::string> sTreatedFeatures;
 
             app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+			std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
 
             ign::feature::FeatureFilter filter = filter_;
             epg::tools::FilterTools::addAndConditions(filter, wTagName +" = '"+_tag+"'");
@@ -722,7 +722,7 @@ namespace app
             std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
             //--
             app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-			std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+			std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
 
             std::string newTreatedFeatures = "";
             for (std::set<std::string>::const_iterator sit = sTreatedFeatures.begin() ; sit != sTreatedFeatures.end() ; ++sit) {

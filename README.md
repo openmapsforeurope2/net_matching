@@ -22,18 +22,18 @@ Le processus de raccordement est décomposé en plusieurs étapes. Un numéro es
 Voici la liste de l'ensemble des étapes dont dispose l'outil :
 
 201. initialisation du champ 'fictitious' des arcs du réseau
-202. appariement des carrefour
-204. généralisation des surfaces étroites en linéaire (les surfaces sont constitués des arcs de 2 pays, les linéaires résultant sont des 'connecting lines' bi-nationales)
-210. génération des 'connectings lines' projetées aux frontières pour chacun des pays frontaliers
-211. fusion des 'connecting lines' de chacun des pays en linéaire partagé par les deux pays
-212. snap des 'connecting lines' dont les extrémités sont proches pour éviter les petites coupures
-213. suppression des 'connecting lines' dont les couples de linéaires sont incohérents selon l'angle ou la distance
-214. calcul de la géométrie des 'connecting lines' par interpolation 
-220. connection du réseau aux 'connecting lines'
-230. import des 'connecting lines' dans le réseau
-240. génération des 'connecting points'
-250. connection du réseau aux 'connecting points'
-255. généralisation des surfaces étroites en linéaire (les surfaces sont constitués des arcs de 2 pays, les linéaires résultant sont des 'connecting lines' bi-nationales)
+202. appariement des carrefours
+204. généralisation des surfaces étroites en linéaires (les contours des surfaces sont constituées des arcs des 2 pays et les linéaires résultant de la fusion de ces arcs sont bi-nationaux)
+210. génération des _'connectings lines'_ projetées aux frontières pour chacun des pays frontaliers
+211. fusion des _'connecting lines'_ de chacun des pays en linéaires bi-nationaux
+212. accrochage des _'connecting lines'_ dont les extrémités sont proches pour éviter les petites coupures
+213. suppression des _'connecting lines'_ dont les couples de linéaires sont incohérents selon l'angle ou la distance
+214. calcul de la géométrie des _'connecting lines'_ par interpolation 
+220. connection du réseau aux _'connecting lines'_
+230. import des _'connecting lines'_ dans le réseau
+240. génération des _'connecting points'_
+250. connection du réseau aux _'connecting points'_
+255. généralisation des surfaces étroites en linéaires bi-nationaux
 260. nettoyage des artefacts (faces étroites, antennes, arcs superposés...)
 270. connection des antennes hors pays au réseau du pays voisin
 280. nettoyage des artefacts (faces étroites, antennes, arcs superposés, arcs de petite taille...)
@@ -67,12 +67,16 @@ On trouve dans le [dossier de configuration](https://github.com/openmapsforeurop
 ## Utilisation
 
 L'outil s'utilise en ligne de commande.
+Le traitement peut être lancé sur trois types de réseaux:
+- routier (code tn)
+- férré (code ra)
+- hydrographique (code hy)
 
 Paramètres:
 * c [obligatoire] : chemin vers le fichier de configuration
 * T [obligatoire] : thème (doit être parmi les valeurs : tn, hy, ra)
 * cc [obligatoire] : code pays double (exemple : be#fr)
-* sp [obligatoire] : étape(s) à executer (exemples: 220 ; 220,240 ; 210-280)
+* sp [obligatoire] : code de l'étape(s) à executer (exemples: 220 ou 220,240 ou 210-280...)
 
 <br>
 

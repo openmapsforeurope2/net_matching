@@ -186,9 +186,9 @@ namespace detail{
             return false;
         };
 
-        /// @brief Retourne la valeur du champ de travail w_tag de l'arc
+        /// @brief Retourne la valeur du champ de travail W_TAG_NAME de l'arc
         /// @param e Identifiant de l'arc
-        /// @return Valeur du champ w_tag
+        /// @return Valeur du champ W_TAG_NAME
         std::string getWTag(edge_descriptor e) const {
             std::vector< std::string > const& vOrigins = _graph.origins(e);
             std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(vOrigins.front());

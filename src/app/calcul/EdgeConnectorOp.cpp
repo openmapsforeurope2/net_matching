@@ -94,7 +94,7 @@ namespace app
 
             // app parameters
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
-            std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE).toString();
+            std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE_NAME).toString();
             std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
             std::string const landmaskTableName = themeParameters->getValue(LANDMASK_TABLE).toString();
             double const landmaskBuffer = themeParameters->getValue(EC_LANDMASK_BUFFER).toDouble();

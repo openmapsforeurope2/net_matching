@@ -22,11 +22,13 @@ namespace app
         ///
         ///
         FillFictitiousFieldOp::FillFictitiousFieldOp( 
-            std::string countryCode, 
             bool verbose 
-        ) {
+        ): 
+            _verbose(verbose)
+        {
             _init();
         }
+
 
         ///
         ///
@@ -40,10 +42,9 @@ namespace app
         ///
         ///
         void FillFictitiousFieldOp::Compute( 
-            std::string countryCode, 
             bool verbose 
         ) {
-            FillFictitiousFieldOp op(countryCode, verbose);
+            FillFictitiousFieldOp op(verbose);
             op._compute();
         }
 
@@ -98,10 +99,10 @@ namespace app
             //--
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
             double const minRatio = themeParameters->getValue(FFF_RATIO).toDouble();
-            std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS).toString();
+            std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS_NAME).toString();
 
             //DEBUG
-            std::string const wTagName = themeParameters->getParameter(W_TAG).getValue().toString();
+            std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
 
             //--
             ign::feature::FeatureFilter filter;
@@ -180,6 +181,8 @@ namespace app
 
         }
 
+        ///
+        ///
         ///
         double FillFictitiousFieldOp::_getLength( ign::geometry::Geometry const& geom ) const
         {

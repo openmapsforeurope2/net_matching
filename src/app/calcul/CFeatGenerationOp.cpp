@@ -40,6 +40,7 @@
 
 // OME2
 #include <ome2/calcul/detail/ClMerger.h>
+#include <ome2/feature/sql/NotDestroyedTools.h>
 
 // BOOST
 #include <boost/bimap.hpp>
@@ -339,7 +340,7 @@ void app::calcul::CFeatGenerationOp::_computeCP() const
 	double const distCp2snapCl = themeParameters->getValue(CP_CP_2_CL_SNAP_DIST).toDouble();
 	double const snapDistOnVertexFromCl = themeParameters->getValue(CP_VERTEX_CL_SNAP_DIST).toDouble();
 
-	ign::feature::FeatureIteratorPtr itBoundary = _fsBoundary->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCodeDouble + "'"));
+    ign::feature::FeatureIteratorPtr itBoundary = ome2::feature::sql::NotDestroyedTools::GetFeatures(_fsBoundary, ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCodeDouble + "'"));
 	while (itBoundary->hasNext()) {
 		ign::feature::Feature fBoundary = itBoundary->next();
 		_logger->log(epg::log::INFO, "id boundary :" + fBoundary.getId());

@@ -234,6 +234,68 @@ namespace detail{
             }
             return sSingleCountry;
         };
+
+        /// @brief Retourne la geometrie de l'arc d'origine reconstruite à partir des edges induits.
+        /// Si des edges induits ont été supprimés et que la reconstruction de la géométrie résulte
+        /// en plusieurs polylignes, c'est la polyligne la plus longue qui est retournée.
+        /// @param id identifiant de la géométrie d'origine
+        /// @return une paire avec un booléen indiquant si la géomtrie à pu être reconstruite et la géométrie reconstruite
+        std::pair<bool, ign::geometry::LineString> getLongestInducedLineString(std::string const& id) const {
+            std::vector<ign::geometry::LineString> vInducedLs(1, ign::geometry::LineString());
+            
+            std::pair<bool, std::vector<oriented_edge_descriptor>> foundInducedEdges = _graph.getInducedEdges(id);
+            if(!foundInducedEdges.first)
+                return std::make_pair(false, ign::geometry::LineString());
+            
+            std::vector< oriented_edge_descriptor > const& vEdges = foundInducedEdges.second;
+            
+            vertex_descriptor vdTarget = 0;
+            for ( size_t i = 0 ; i < vEdges.size() ; ++i )
+            {
+                ign::graph::EdgeDirection direction = vEdges[ i ].direction;
+                edge_descriptor ed = vEdges[ i ].descriptor;
+                
+                vertex_descriptor vdSource = ( direction == ign::graph::DIRECT )? _graph.source( ed ) : _graph.target( ed );
+                
+                if ( i != 0 && vdSource != vdTarget ) {
+                    vInducedLs.back().addPoint(_graph[vdTarget].point);
+                    vInducedLs.push_back(ign::geometry::LineString());
+                }
+                
+                vdTarget = ( direction == ign::graph::DIRECT )? _graph.target( ed ) : _graph.source( ed );
+                
+                vInducedLs.back().addPoint( _graph[vdSource].point );
+                
+                std::vector< ign::geometry::Point > const& vPoints = _graph[ ed ].intermediatePoints;
+                
+                if( direction == ign::graph::DIRECT )
+                {
+                    std::vector< ign::geometry::Point >::const_iterator it = vPoints.begin();
+                    for( ; it != vPoints.end() ; ++it )
+                         vInducedLs.back().addPoint( *it );
+                }
+                else{
+                    std::vector< ign::geometry::Point >::const_reverse_iterator it = vPoints.rbegin();
+                    for( ; it != vPoints.rend() ; ++it )
+                         vInducedLs.back().addPoint( *it );
+                }
+            }
+            vInducedLs.back().addPoint( _graph[vdTarget].point );
+
+            size_t idLongest = 0;
+            if (vInducedLs.size() > 1) {
+                double longestLength = 0;
+                for ( size_t i = 0 ; i < vInducedLs.size() ; ++i ) {
+                    double length = vInducedLs[i].length();
+                    if( length > longestLength) {
+                        longestLength = length;
+                        idLongest = i;
+                    }
+                }
+            }
+            
+            return std::make_pair(true, vInducedLs[idLongest]);
+        }
         
     private:
         //--

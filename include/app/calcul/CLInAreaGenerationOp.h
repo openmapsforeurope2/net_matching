@@ -106,8 +106,24 @@ namespace calcul{
 		void _compute() const;
 
 		//--
-		void _createCLOnFaces(
+		bool _isFaceToTreat(
             detail::EdgeCleaningGraphManager const& graphManager,
+            face_descriptor f,
+            std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges,
+            std::vector<ign::geometry::LineString> & vPathsGeom,
+            double slimSurfaceWidth
+        ) const;
+
+		//--
+		bool _isFaceToTreat(
+            detail::EdgeCleaningGraphManager const& graphManager,
+            face_descriptor f,
+            double slimSurfaceWidth
+        ) const;
+
+		//--
+		void _createCLOnFaces(
+            detail::EdgeCleaningGraphManager & graphManager,
             std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
             std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
         ) const;

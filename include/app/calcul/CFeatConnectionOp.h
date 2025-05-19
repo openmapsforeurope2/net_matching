@@ -72,16 +72,16 @@ namespace calcul{
         );
 
 		/// \brief Reconnecte les arcs du réseau aux connecting points
-		void computeCp();
+		void computeCp() const;
 
 		/// \brief Reconnecte les arcs du réseau aux connectings lines et ajoute des arcs (segments) entre
-		void computeCl();
+		void computeClByCountry() const;
 
-		/// \brief Reconnecte les arcs aux connecting points et aux connecting lines
-		void computeCpCl();
+		/// \brief Reconnecte les arcs du réseau aux connectings lines et ajoute des arcs (segments) entre
+		void computeCl() const;
 
 		/// \brief Importe les connecting lines dans le réseau
-		void computeClImport();
+		void computeClImport() const;
 
 
 	private:
@@ -109,19 +109,23 @@ namespace calcul{
 		void _init();
 
 		//--
-		void _computeCpDisplacements(std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements, std::string const& country) const;
+		void _computeCpDisplacements(
+			std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements,
+			std::string const& country
+		) const;
 
 		//--
-		void _computeClDisplacements(std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements, std::string const& country) const;
+		void _computeClDisplacements(
+			std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements, 
+			std::map<ign::geometry::Point, ign::geometry::LineString> & mDisplacementCls,
+			std::string const& country
+		) const;
 
 		//--
-		void _computeCp(std::string const& country);
+		void _computeCp(std::string const& country) const;
 
 		//--
-		void _computeCl(std::string const& country);
-
-		//--
-		void _computeCpCl(std::string const& country);
+		void _computeCl(std::string const& country) const;
 
 		//--
 		void _addDisplacement(
@@ -149,7 +153,7 @@ namespace calcul{
 		) const;
 
 		//--
-		void _loadEdgeGraph(GraphType & graph, std::string const& country) const;
+		void _loadEdgeGraph(GraphType & graph, std::string country = "") const;
 
 		//--
 		std::pair<bool, vertex_descriptor> _getNearestVertex(
@@ -186,7 +190,7 @@ namespace calcul{
 		ign::math::Vec2d _computeDisplacement( std::vector< ign::math::Vec2d > const& vVectors ) const;
 
 		//--
-		void _importCLintoEdgeTable();
+		void _importCLintoEdgeTable() const;
     };
 
 }

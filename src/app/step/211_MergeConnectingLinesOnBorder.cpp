@@ -1,11 +1,11 @@
 #include <app/step/211_MergeConnectingLinesOnBorder.h>
 
-//EPG
+// EPG
 #include <epg/Context.h>
 #include <epg/log/ScopeLogger.h>
 #include <epg/utils/CopyTableUtils.h>
 
-//APP
+// APP
 #include <app/calcul/CFeatGenerationOp.h>
 
 namespace app {

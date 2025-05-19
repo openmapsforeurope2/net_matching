@@ -1,11 +1,11 @@
 #include <app/step/280_EdgeCleaning2.h>
 
-//EPG
+// EPG
 #include <epg/Context.h>
 #include <epg/log/ScopeLogger.h>
 #include <ome2/utils/CopyTableUtils.h>
 
-//APP
+// APP
 #include <app/params/ThemeParameters.h>
 #include <app/calcul/EdgeCleaningOp.h>
 

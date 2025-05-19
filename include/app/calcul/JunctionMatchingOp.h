@@ -1,15 +1,15 @@
 #ifndef _APP_CALCUL_JUNCTIONMATCHINGOP_H_
 #define _APP_CALCUL_JUNCTIONMATCHINGOP_H_
 
-//SOCLE
+// SOCLE
 #include <ign/geometry/graph/GeometryGraph.h>
 
-//EPG
+// EPG
 #include <epg/log/EpgLogger.h>
 #include <epg/log/ShapeLogger.h>
 #include <epg/tools/MultiLineStringTool.h>
 
-//APP
+// APP
 #include <app/calcul/detail/EdgeCleaningGraphManager.h>
 
 

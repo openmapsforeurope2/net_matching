@@ -7,6 +7,9 @@
 // BOOST
 #include <boost/timer.hpp>
 #include <boost/progress.hpp>
+#include <boost/bimap.hpp>
+#include <boost/bimap/set_of.hpp>
+#include <boost/bimap/multiset_of.hpp>
 
 // SOCLE
 #include <ign/geometry/algorithm/BufferOpGeos.h>
@@ -41,11 +44,6 @@
 // OME2
 #include <ome2/calcul/detail/ClMerger.h>
 #include <ome2/feature/sql/NotDestroyedTools.h>
-
-// BOOST
-#include <boost/bimap.hpp>
-#include <boost/bimap/set_of.hpp>
-#include <boost/bimap/multiset_of.hpp>
 
 // QT
 #include <QJsonDocument>
@@ -508,8 +506,8 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 	if (_reqFilterEdges2generateCF != "")
 		epg::tools::FilterTools::addAndConditions(filter, _reqFilterEdges2generateCF);
 
-	ign::feature::FeatureIteratorPtr eit = _fsEdge->getFeatures(filter);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsEdge, filter);
+	ign::feature::FeatureIteratorPtr eit = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filter);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filter);
 	if (numFeatures == 0)
 		return;
 	boost::progress_display display(numFeatures, std::cout, "[ CREATE CONNECTING LINES ]\n");
@@ -642,8 +640,8 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 	//on ne prend que les edes ayant un cc simple pour ne pas créer de CP là où il y a des CLs
 	epg::tools::FilterTools::addAndConditions(filterBuffBorder, "(" + countryCodeName + " = '" + _vCountriesCodeName[0] + "' or " + countryCodeName + " = '" + _vCountriesCodeName[1] + "')");
 
-	ign::feature::FeatureIteratorPtr eit = _fsEdge->getFeatures(filterBuffBorder);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsEdge, filterBuffBorder);
+	ign::feature::FeatureIteratorPtr eit = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterBuffBorder);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterBuffBorder);
 	boost::progress_display display(numFeatures, std::cout, "[ GET CONNECTING POINTS BY UNDERSHOOT LINES ]\n");
 
 	epg::tools::geometry::SegmentIndexedGeometry segIndexLsBorder(&lsBorder);
@@ -679,7 +677,7 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 		if (_reqFilterEdges2generateCF != "")
 			filterArroundPt.setPropertyConditions(_reqFilterEdges2generateCF);
 		filterArroundPt.setExtent(ptClosestBorder.getEnvelope().expandBy(1));
-		ign::feature::FeatureIteratorPtr eitArroundPt = _fsEdge->getFeatures(filterArroundPt);
+		ign::feature::FeatureIteratorPtr eitArroundPt = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterArroundPt);
 		bool isPtADangle = true;
 		while (eitArroundPt->hasNext()) {
 			ign::feature::Feature featArroundPt = eitArroundPt->next();
@@ -770,9 +768,9 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 		epg::tools::FilterTools::addAndConditions(filterFeaturesToMatch, _reqFilterEdges2generateCF);
 	//on ne prend que les edes ayant un cc simple pour ne pas créer de CP là où il y a des CLs
 	epg::tools::FilterTools::addAndConditions(filterFeaturesToMatch,"("+ countryCodeName+" = '" +_vCountriesCodeName[0]+"' or "+countryCodeName + " = '" + _vCountriesCodeName[1] +"')");
-	ign::feature::FeatureIteratorPtr itFeaturesToMatch = _fsEdge->getFeatures(filterFeaturesToMatch);
+	ign::feature::FeatureIteratorPtr itFeaturesToMatch = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterFeaturesToMatch);
 
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsEdge, filterFeaturesToMatch);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterFeaturesToMatch);
 	boost::progress_display display(numFeatures, std::cout, "[ CREATE CONNECTING POINTS ]\n");
 
 	while (itFeaturesToMatch->hasNext())
@@ -901,8 +899,8 @@ void app::calcul::CFeatGenerationOp::_snapCPNearBy(
 	for (size_t i = 0; i < _vCountriesCodeName.size(); ++i) {
 		epg::tools::FilterTools::addOrConditions(filterCP, countryCodeName + " = '" + _vCountriesCodeName[i] + "'");
 	}
-	ign::feature::FeatureIteratorPtr itCP = _fsCP->getFeatures(filterCP);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCP, filterCP);
+	ign::feature::FeatureIteratorPtr itCP = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCP);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCP, filterCP);
 	// boost::progress_display display(numFeatures, std::cout, "[ FUSION CONNECTING POINTS WITH #]\n");
 
 	std::set<std::string> sCP2Snap;
@@ -1054,7 +1052,7 @@ void app::calcul::CFeatGenerationOp::_snapCPNearBy(
 			filterBorderNearCP.setExtent(ptCentroidCP.getEnvelope().expandBy(maxDistMerge));
 			ign::geometry::LineString lsBorderClosest;
 			double distMinBorder = 2 * maxDistMerge;
-			ign::feature::FeatureIteratorPtr fitBorder = _fsBoundary->getFeatures(filterBorderNearCP);
+			ign::feature::FeatureIteratorPtr fitBorder = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsBoundary, filterBorderNearCP);
 			while (fitBorder->hasNext()) {
 				ign::geometry::LineString lsBorder = fitBorder->next().getGeometry().asLineString();
 				double dist = lsBorder.distance(ptCentroidCP);
@@ -1146,7 +1144,7 @@ bool app::calcul::CFeatGenerationOp::_isEdgeConnected2cl(
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	ign::feature::FeatureFilter filterArroundCp(countryCodeName + " = '" + _countryCodeDouble + "'");
 	filterArroundCp.setExtent(envArroundGeom);
-	ign::feature::FeatureIteratorPtr itClArround = _fsEdge->getFeatures(filterArroundCp);
+	ign::feature::FeatureIteratorPtr itClArround = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterArroundCp);
 
 	bool hasEdgConnected2Cl = false;
 	while (itClArround->hasNext())
@@ -1179,8 +1177,8 @@ void app::calcul::CFeatGenerationOp::_snapCpOnClNearBy(
 	for (size_t i = 0; i < _vCountriesCodeName.size(); ++i) {
 		epg::tools::FilterTools::addOrConditions(filterCp, countryCodeName + " = '" + _vCountriesCodeName[i] + "'");
 	}
-	ign::feature::FeatureIteratorPtr itCp = _fsCP->getFeatures(filterCp);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCP, filterCp);
+	ign::feature::FeatureIteratorPtr itCp = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCp);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCP, filterCp);
 	boost::progress_display display(numFeatures, std::cout, "[ SNAP CP ON CL]\n");
 	std::map<std::string, ign::feature::Feature> mSnappedCpOnCl;
 	while (itCp->hasNext())
@@ -1302,7 +1300,7 @@ bool app::calcul::CFeatGenerationOp::_getNearestCP(
 		epg::tools::FilterTools::addAndConditions(filterArroundCP, idName + " <> '" + mit->first + "'");	//(idName + " <> '" + fCP.getId() + "'");
 	}
 	filterArroundCP.setExtent(fCP.getGeometry().getEnvelope().expandBy(distMergeCP));
-	ign::feature::FeatureIteratorPtr itArroundCP = _fsCP->getFeatures(filterArroundCP);
+	ign::feature::FeatureIteratorPtr itArroundCP = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterArroundCP);
 	if (!itArroundCP->hasNext())
 		return false;
 	while (itArroundCP->hasNext())
@@ -1325,8 +1323,8 @@ void  app::calcul::CFeatGenerationOp::_snapCl2Cl(
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	ign::feature::FeatureFilter filterCL(countryCodeName + " = '" + _countryCodeDouble + "'");
 
-	ign::feature::FeatureIteratorPtr itCL = _fsCL->getFeatures(filterCL);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCL);
+	ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCL);
 	boost::progress_display displayLoad(numFeatures, std::cout, "[ SNAP CL 2 CL]\n");
 
 	GraphType graphCl;
@@ -1427,7 +1425,7 @@ bool  app::calcul::CFeatGenerationOp::_hasClExtremityClose(
 	ign::feature::FeatureFilter filterArroundCl (idName + " <> '" + fClCurr.getId() + "'");
 	epg::tools::FilterTools::addAndConditions(filterArroundCl, countryCodeName + " = '" + _countryCodeDouble + "'");
 	filterArroundCl.setExtent(ptClCurr.getEnvelope().expandBy(distMaxClClosest));
-	ign::feature::FeatureIteratorPtr itClArround = _fsCL->getFeatures(filterArroundCl);
+	ign::feature::FeatureIteratorPtr itClArround = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterArroundCl);
 	while (itClArround->hasNext()) {
 		ign::feature::Feature fClArround = itClArround->next();
 		ign::geometry::LineString lsClArround = fClArround.getGeometry().asLineString();
@@ -1476,8 +1474,9 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 	for (size_t i = 0; i < _vCountriesCodeName.size(); ++i) {
 		epg::tools::FilterTools::addOrConditions(filterCL, countryCodeName + " = '" + _vCountriesCodeName[i] + "'");
 	}
-	ign::feature::FeatureIteratorPtr itCL = _fsCL->getFeatures(filterCL);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCL);
+
+	ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCL);
 	boost::progress_display displayLoad(numFeatures, std::cout, "[ LOAD GRAPH PLANARIZE CL ]\n");
 	while (itCL->hasNext()) {
 		++displayLoad;
@@ -1647,8 +1646,8 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 		epg::tools::FilterTools::addOrConditions(filterCL, countryCodeName + " = '" + _vCountriesCodeName[i] + "'");
 	}
 	//std::string const natIdName = themeParameters->getValue(NATIONAL_IDENTIFIER).toString();
-	ign::feature::FeatureIteratorPtr itCL = _fsCL->getFeatures(filterCL);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCL);
+	ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCL);
 	boost::progress_display display(numFeatures, std::cout, "[ FUSION CONNECTING LINES WITH #]\n");
 
 	std::set<std::string> sCL2Merged;
@@ -1679,7 +1678,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 		ign::feature::FeatureFilter filterArroundCL;
 		filterArroundCL.setPropertyConditions(countryCodeName + " != '" + countryCodeCLCurr + "'");
 		filterArroundCL.setExtent(lsCurr.getEnvelope());
-		ign::feature::FeatureIteratorPtr itArroundCL = _fsCL->getFeatures(filterArroundCL);
+		ign::feature::FeatureIteratorPtr itArroundCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterArroundCL);
 		while (itArroundCL->hasNext())
 		{
 			ign::feature::Feature fCLArround = itArroundCL->next();
@@ -1851,8 +1850,9 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges(
 		std::set<std::string> sCl2delete;
 		GraphType graphCl;
 		_loadGraphCL(graphCl);
-		ign::feature::FeatureIteratorPtr it = _fsCL->getFeatures(filterCLCountryCode);
-		int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCLCountryCode);
+
+		ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
+		size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLCountryCode);
 		boost::progress_display display(numFeatures, std::cout, "[  DELETE CL BY ANGLE EDGES ]\n");
 		while (it->hasNext()) {
 			++display;
@@ -1970,7 +1970,7 @@ bool app::calcul::CFeatGenerationOp::_getCLToMerge(
 		epg::tools::FilterTools::addAndConditions(filterArroundCL, idName + " <> '" + mit->first + "'");
 	}
 	filterArroundCL.setExtent(fCL.getGeometry().getEnvelope());
-	ign::feature::FeatureIteratorPtr itArroundCL = _fsCL->getFeatures(filterArroundCL);
+	ign::feature::FeatureIteratorPtr itArroundCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterArroundCL);
 	if (!itArroundCL->hasNext())
 		return false;
 	while (itArroundCL->hasNext())
@@ -1995,7 +1995,7 @@ void app::calcul::CFeatGenerationOp::_getBorderFromEdge(
 ) const {
 	ign::feature::FeatureFilter filter;//(countryCodeName + " = 'be#fr'")
 	filter.setExtent(lsEdgeOnBorder.getEnvelope());
-	ign::feature::FeatureIteratorPtr itBoundary = _fsBoundary->getFeatures(filter);
+	ign::feature::FeatureIteratorPtr itBoundary = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsBoundary, filter);
 	while (itBoundary->hasNext()) {
 		ign::feature::Feature fBorder = itBoundary->next();
 		ign::geometry::LineString lsBorderTemp = fBorder.getGeometry().asLineString();
@@ -2029,7 +2029,7 @@ bool app::calcul::CFeatGenerationOp::_isNextEdgeInAntennas(
 
 	ign::feature::FeatureFilter filterArroundNdNext(idName + " <> '" + fEdgeCurr.getId() + "' and " + countryCodeName + " ='" + countryCodeCurr + "'");
 	filterArroundNdNext.setExtent(ptNext.getEnvelope().expandBy(0.01));
-	ign::feature::FeatureIteratorPtr itNextEdge= context->getFeatureStore(epg::EDGE)->getFeatures(filterArroundNdNext);
+	ign::feature::FeatureIteratorPtr itNextEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*context->getFeatureStore(epg::EDGE), filterArroundNdNext);
 	
 	if (!itNextEdge->hasNext()) //fin de l'antenne par un cul de sac
 		return false;
@@ -2068,8 +2068,8 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(double snapProjCl2edge) const
 	//_getGeomCountry(countryCode2, mPolyCountry2);
 
 	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + _countryCodeDouble + "'");
-	ign::feature::FeatureIteratorPtr it = _fsCL->getFeatures(filterCLCountryCode);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCLCountryCode);
+	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLCountryCode);
 	boost::progress_display display(numFeatures, std::cout, "[  UPDATE GEOM CL ]\n");
 
 	std::set<std::string> sCL2delete;
@@ -2255,8 +2255,8 @@ void app::calcul::CFeatGenerationOp::_deleteCLUnderThreshold() const
 
 	std::set<std::string> sCLToDelete;
 	ign::feature::FeatureFilter filterCLInf10m(ssconditionDeleteCLUnderThreshold.str());
-	ign::feature::FeatureIteratorPtr it = _fsCL->getFeatures(filterCLInf10m);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCLInf10m);
+	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLInf10m);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLInf10m);
 	boost::progress_display display(numFeatures, std::cout, "[ CLEAN CL UNDER THRESHOLD ]\n");
 
 	while (it->hasNext()) {
@@ -2264,7 +2264,7 @@ void app::calcul::CFeatGenerationOp::_deleteCLUnderThreshold() const
 		ign::feature::Feature fCL10m = it->next();
 		ign::feature::FeatureFilter filterNeighbor(idName + " <> '" + fCL10m.getId()+"'");
 		filterNeighbor.setExtent(fCL10m.getGeometry().getEnvelope());
-		ign::feature::FeatureIteratorPtr itArround = _fsCL->getFeatures(filterNeighbor);
+		ign::feature::FeatureIteratorPtr itArround = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterNeighbor);
 		bool hasNeithbor = false;
 		while (itArround->hasNext()) {
 			ign::feature::Feature fCLNeighbor = itArround->next();
@@ -2300,8 +2300,7 @@ void app::calcul::CFeatGenerationOp::_getGeomCountry(
 	std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE_NAME).toString();
 	std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
 
-
-	ign::feature::FeatureIteratorPtr itLandmask = _fsLandmask->getFeatures(ign::feature::FeatureFilter(landCoverTypeName + " = '" + landAreaValue + "' AND " + countryCodeName + " = '" + countryCodeSimple + "'"));
+	ign::feature::FeatureIteratorPtr itLandmask = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsLandmask, ign::feature::FeatureFilter(landCoverTypeName + " = '" + landAreaValue + "' AND " + countryCodeName + " = '" + countryCodeSimple + "'"));
 
 	while (itLandmask->hasNext()) {
 		ign::feature::Feature const& fLandmask = itLandmask->next();
@@ -2320,8 +2319,8 @@ void app::calcul::CFeatGenerationOp::_loadGraphCL(GraphType & graphCL) const
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + _countryCodeDouble + "'");
-	ign::feature::FeatureIteratorPtr it = _fsCL->getFeatures(filterCLCountryCode);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCLCountryCode);
+	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLCountryCode);
 	boost::progress_display display(numFeatures, std::cout, "[ LOAD GRAPH CL ]\n");
 	ign::geometry::graph::builder::SimpleGraphBuilder<GraphType> graphBuilder(graphCL, 0.01);
 	while (it->hasNext()) {
@@ -2341,8 +2340,8 @@ void app::calcul::CFeatGenerationOp::_loadGraphEdges(
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	ign::feature::FeatureFilter filterEdgeCountryCode(countryCodeName + " = '" + countryCodeSimple + "'");
-	ign::feature::FeatureIteratorPtr it = _fsEdge->getFeatures(filterEdgeCountryCode);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsEdge, filterEdgeCountryCode);
+	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterEdgeCountryCode);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterEdgeCountryCode);
 	boost::progress_display display(numFeatures, std::cout, "[ LOAD GRAPH EDGE " + countryCodeSimple+" ]\n");
 	ign::geometry::graph::builder::SimpleGraphBuilder<GraphType> graphBuilder(graphEdges, 0.01);
 	while (it->hasNext()) {
@@ -2586,8 +2585,8 @@ void app::calcul::CFeatGenerationOp::_getClDoublonGeom() const
 	GraphType graphClDoublon;
 	ign::geometry::graph::tools::SnapRoundPlanarizer< GraphType >  planarizerClDoublon(graphClDoublon,100);//scale =100 -> precision de 0.01
 	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + _countryCodeDouble + "'");
-	ign::feature::FeatureIteratorPtr it = _fsCL->getFeatures(filterCLCountryCode);
-	int numFeatures = context->getDataBaseManager().numFeatures(*_fsCL, filterCLCountryCode);
+	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLCountryCode);
 	boost::progress_display displayLoad(numFeatures, std::cout, "[ LOAD GRAPH PLANARIZE CL ]\n");
 	while (it->hasNext()) {
 		++displayLoad;

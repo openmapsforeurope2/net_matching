@@ -1,11 +1,11 @@
 #ifndef _APP_STEP_TOOLS_INITSTEPS_H_
 #define _APP_STEP_TOOLS_INITSTEPS_H_
 
-//EPG
+// EPG
 #include <epg/step/StepSuite.h>
 #include <epg/step/factoryNew.h>
 
-//APP
+// APP
 #include <app/step/201_FillFictitiousField.h>
 #include <app/step/202_JunctionMatching.h>
 #include <app/step/204_GenerateCLinArea.h>

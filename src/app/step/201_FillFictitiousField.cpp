@@ -1,11 +1,11 @@
 #include <app/step/201_FillFictitiousField.h>
 
-//EPG
+// EPG
 #include <epg/Context.h>
 #include <epg/log/ScopeLogger.h>
 #include <ome2/utils/CopyTableUtils.h>
 
-//APP
+// APP
  #include <app/calcul/FillFictitiousFieldOp.h>
 
 namespace app {

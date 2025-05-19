@@ -1,13 +1,13 @@
-//APP
+// APP
 #include <app/geometry/tools/LineStringSplitter.h>
 #include <app/geometry/tools/LengthIndexedLineString.h>
 
-//SOCLE
+// SOCLE
 #include <ign/geometry/Polygon.h>
 #include <ign/geometry/MultiPoint.h>
 #include <ign/data/all.h>
 
-//EPG
+// EPG
 #include <epg/tools/geometry/interpolate.h>
 #include <epg/tools/geometry/project.h>
 

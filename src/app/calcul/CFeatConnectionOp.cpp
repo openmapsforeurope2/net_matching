@@ -21,15 +21,15 @@
 #include <epg/tools/geometry/project.h>
 #include <epg/calcul/matching/detail/LineStringSimpleDampedDeformer.h>
 
-
 // SOCLE
 #include <ign/geometry/graph/builder/SimpleGraphBuilder.h>
 #include <ign/tools/stringtools.h>
 #include <ign/geometry/algorithm/LineMergerOpGeos.h>
 #include <ign/geometry/algorithm/HausdorffDistanceOp.h>
 
-//OME2
+// OME2
 #include <ome2/calcul/detail/ClMerger.h>
+#include <ome2/feature/sql/NotDestroyedTools.h>
 
 namespace app
 {
@@ -74,7 +74,7 @@ namespace app
 			epg::Context* context = epg::ContextS::getInstance();
 			std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 
-			ign::feature::FeatureIteratorPtr itCL = _fsCl->getFeatures(ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCode + "'"));
+            ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCl, ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCode + "'"));
 
 			while (itCL->hasNext())
 			{
@@ -262,14 +262,14 @@ namespace app
             ign::feature::FeatureFilter filterCl(countryCodeName + " LIKE '%" + country + "%'");
 
             // patience
-            int numFeatures = epg::sql::tools::numFeatures(*_fsCl, filterCl);
+            size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCl, filterCl);
             boost::progress_display display(numFeatures, std::cout, "[ cl_connection  % complete ]\n");
 
             // pour garder le lien entre les CL et les edges nouvellement créés
             bimap_t mParentChilds;
 
             std::set<std::string> sTreatedCl;
-            ign::feature::FeatureIteratorPtr itCl = _fsCl->getFeatures(filterCl);
+            ign::feature::FeatureIteratorPtr itCl = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCl, filterCl);
             while (itCl->hasNext())
             {
                 ++display;
@@ -567,13 +567,13 @@ namespace app
             ign::feature::FeatureFilter filterCp(countryCodeName + " LIKE '%" + country + "%'");
 
             // patience
-            int numFeatures = epg::sql::tools::numFeatures(*_fsCp, filterCp);
+            size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCp, filterCp);
             boost::progress_display display(numFeatures, std::cout, "[ cp_connection  % complete ]\n");
 
             // pour garder le lien entre les CP et les edges nouvellement créés
             bimap_t mParentChilds;
 
-            ign::feature::FeatureIteratorPtr itCp = _fsCp->getFeatures(filterCp);
+            ign::feature::FeatureIteratorPtr itCp =  ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCp, filterCp);
             while (itCp->hasNext())
             {
                 ++display;
@@ -710,7 +710,7 @@ namespace app
                 found = !fEdgeResult.getId().empty();
             } else {
                 double dMax = std::numeric_limits<double>::infinity();
-                ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(edgeIdName + " IN ('" + tools::StringTools::ToString(vCandidates, "','") + "')");
+                ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, ign::feature::FeatureFilter(edgeIdName + " IN ('" + tools::StringTools::ToString(vCandidates, "','") + "')"));
 
                 while (itEdge->hasNext())
                 {
@@ -782,9 +782,9 @@ namespace app
             }
 
             //--
-            ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filterEdge);
+            ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterEdge);
 
-            int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, filterEdge);
+            size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterEdge);
             boost::progress_display display(numFeatures, std::cout, "[ graph loading  % complete ]\n");
 
             while (itEdge->hasNext())

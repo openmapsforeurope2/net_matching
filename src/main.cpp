@@ -1,16 +1,16 @@
 
-//BOOST
+// BOOST
 #include <boost/program_options.hpp>
 
-//EPG
+// EPG
 #include <epg/Context.h>
 #include <epg/tools/TimeTools.h>
 #include <epg/params/tools/loadParameters.h>
 
-//OME2
+// OME2
 #include <ome2/utils/setTableName.h>
 
-//APP
+// APP
 #include <app/params/ThemeParameters.h>
 #include <app/step/tools/initSteps.h>
 #include <app/utils/createCpClTables.h>

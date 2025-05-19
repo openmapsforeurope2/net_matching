@@ -1,16 +1,16 @@
-//APP
+// APP
 #include <app/calcul/JunctionMatchingOp.h>
 #include <app/params/ThemeParameters.h>
 #include <app/geometry/tools/LineStringSplitter.h>
 
-//BOOST
+// BOOST
 #include <boost/timer.hpp>
 #include <boost/progress.hpp>
 
-//SOCLE
+// SOCLE
 #include <ign/geometry/graph/builder/SimpleGraphBuilder.h>
 
-//EPG
+// EPG
 #include <epg/Context.h>
 #include <epg/tools/TimeTools.h>
 #include <epg/tools/StringTools.h>
@@ -18,6 +18,9 @@
 #include <epg/tools/geometry/angle.h>
 #include <epg/sql/tools/numFeatures.h>
 #include <epg/tools/geometry/project.h>
+
+// OME2
+#include <ome2/feature/sql/NotDestroyedTools.h>
 
 
 ///
@@ -209,10 +212,10 @@ void app::calcul::JunctionMatchingOp::_loadGraph(
 	ign::feature::FeatureFilter filter(countryCodeName + " = '" + country + "'");
 
 	//--
-	int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, filter);
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filter);
 	boost::progress_display display(numFeatures, std::cout, "[ LOAD GRAPH EDGE " + country + " ]\n");
 
-	ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
+	ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filter);
 	while (itEdge->hasNext())
 	{
 		++display;

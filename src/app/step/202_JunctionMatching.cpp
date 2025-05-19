@@ -1,11 +1,11 @@
 #include <app/step/202_JunctionMatching.h>
 
-//EPG
+// EPG
 #include <epg/Context.h>
 #include <epg/log/ScopeLogger.h>
 #include <ome2/utils/CopyTableUtils.h>
 
-//APP
+// APP
 #include <app/calcul/JunctionMatchingOp.h>
 
 namespace app {

@@ -4,7 +4,7 @@
 //STL
 #include <string>
 
-//EPG
+// EPG
 #include <epg/params/ParametersT.h>
 #include <epg/SingletonT.h>
 

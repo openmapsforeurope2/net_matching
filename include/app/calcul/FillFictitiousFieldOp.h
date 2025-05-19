@@ -1,10 +1,10 @@
 #ifndef _APP_CALCUL_FILLFICTITIOUSFIELDOP_H_
 #define _APP_CALCUL_FILLFICTITIOUSFIELDOP_H_
 
-//SOCLE
+// SOCLE
 #include <ign/feature/sql/FeatureStorePostgis.h>
 
-//EPG
+// EPG
 #include <epg/log/EpgLogger.h>
 #include <epg/log/ShapeLogger.h>
 

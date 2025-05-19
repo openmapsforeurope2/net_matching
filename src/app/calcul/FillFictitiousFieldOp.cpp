@@ -1,16 +1,21 @@
-//APP
+// APP
 #include <app/calcul/FillFictitiousFieldOp.h>
 #include <app/params/ThemeParameters.h>
+#include <app/calcul/detail/LineStringAbsDampedDeformer.h>
 
-//BOOST
+// BOOST
 #include <boost/timer.hpp>
 #include <boost/progress.hpp>
 
-//EPG
+// EPG
 #include <epg/Context.h>
 #include <epg/tools/TimeTools.h>
 #include <epg/sql/tools/numFeatures.h>
 #include <epg/tools/FilterTools.h>
+
+// OME2
+#include <ome2/feature/sql/NotDestroyedTools.h>
+
 
 
 namespace app
@@ -106,10 +111,10 @@ namespace app
 
             //--
             ign::feature::FeatureFilter filter;
-            int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, filter);
+            size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filter);
             boost::progress_display display(numFeatures, std::cout, "[ filling fictitious field  % complete ]\n");
 
-            ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
+            ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filter);
             while (itEdge->hasNext())
             {
                 ++display;
@@ -154,7 +159,7 @@ namespace app
 
             ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + ls.toString() + "'),3035))");
             epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" LIKE '%"+country+"%'");
-            ign::feature::FeatureIteratorPtr itArea = _fsArea->getFeatures(filter);
+            ign::feature::FeatureIteratorPtr itArea = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsArea, filter);
             while (itArea->hasNext())
             {
                 ign::feature::Feature const& fArea = itArea->next();
@@ -162,7 +167,8 @@ namespace app
 
                 areaUnionPtr.reset(areaUnionPtr->Union(areaGeom));
             }
-            ign::feature::FeatureIteratorPtr itStand = _fsStanding->getFeatures(filter);
+
+            ign::feature::FeatureIteratorPtr itStand = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsStanding, filter);
             while (itStand->hasNext())
             {
                 ign::feature::Feature const& fStand = itStand->next();

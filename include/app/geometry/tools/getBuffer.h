@@ -2,7 +2,7 @@
 #define _APP_GEOMETRY_TOOLS_GETBUFFER_H_
 
 
-//SOCLE
+// SOCLE
 #include <ign/geometry/algorithm/BufferOpGeos.h>
 
 

@@ -1,8 +1,8 @@
 
-//APP
+// APP
 #include <app/params/ThemeParameters.h>
 
-//SOCLE
+// SOCLE
 #include <ign/Exception.h>
 
 

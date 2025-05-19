@@ -21,6 +21,7 @@
 // OME2
 #include <ome2/geometry/tools/GetEndingPointsOp.h>
 #include <ome2/geometry/tools/lineStringTools.h>
+#include <ome2/feature/sql/NotDestroyedTools.h>
 
 // SOCLE
 #include <ign/geometry/graph/detail/NextEdge.h>
@@ -115,7 +116,7 @@ namespace app
             // on recupere un buffer autour de la frontiere
             ign::geometry::GeometryPtr boundBuffPtr(new ign::geometry::Polygon());
             ign::feature::sql::FeatureStorePostgis* fsBoundary = context->getDataBaseManager().getFeatureStore(boundaryTableName, idName, geomName);
-            ign::feature::FeatureIteratorPtr itBoundary = fsBoundary->getFeatures(ign::feature::FeatureFilter(countryCodeName +" = '"+_countryCode+"'"));
+            ign::feature::FeatureIteratorPtr itBoundary = ome2::feature::sql::NotDestroyedTools::GetFeatures(*fsBoundary,ign::feature::FeatureFilter(countryCodeName +" = '"+_countryCode+"'"));
             while (itBoundary->hasNext())
             {
                 ign::feature::Feature const& fBoundary = itBoundary->next();
@@ -133,7 +134,7 @@ namespace app
             for (std::vector<std::string>::iterator vit = vCountry.begin() ; vit != vCountry.end() ; ++vit) {
                 ign::geometry::MultiPolygon mpLandmask;
                 ign::feature::sql::FeatureStorePostgis* fsLandmask = context->getDataBaseManager().getFeatureStore(landmaskTableName, idName, geomName);
-                ign::feature::FeatureIteratorPtr itLandmask = fsLandmask->getFeatures(ign::feature::FeatureFilter(landCoverTypeName + " = '" + landAreaValue + "' AND " + countryCodeName + " = '" + *vit + "'"));
+                ign::feature::FeatureIteratorPtr itLandmask = ome2::feature::sql::NotDestroyedTools::GetFeatures(*fsLandmask, ign::feature::FeatureFilter(landCoverTypeName + " = '" + landAreaValue + "' AND " + countryCodeName + " = '" + *vit + "'"));
                 while (itLandmask->hasNext())
                 {
                     ign::feature::Feature const& fLandmask = itLandmask->next();
@@ -181,10 +182,10 @@ namespace app
 
             // chargement des edges
             // patience
-            int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, filter);
+            size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filter);
             boost::progress_display display(numFeatures, std::cout, "[ edge_loading  % complete ]\n");
 
-            ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
+            ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filter);
             while (itEdge->hasNext())
             {
                 ++display;
@@ -697,7 +698,8 @@ namespace app
             ign::feature::FeatureFilter filter = filter_;
             epg::tools::FilterTools::addAndConditions(filter, wTagName +" = '"+_tag+"'");
 
-            ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
+            ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filter);
+
             while (itEdge->hasNext())
             {
                 ign::feature::Feature const& fEdge = itEdge->next();
@@ -1336,7 +1338,7 @@ namespace app
 
             // ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + ign::geometry::GeometryPtr(vGeom.buffer(threshold))->toString() + "'),3035))");
             ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_GeomFromText('" + ign::geometry::GeometryPtr(vGeom.buffer(threshold))->toString() + "'))");
-            ign::feature::FeatureIteratorPtr itCp = _fsCp->getFeatures(filter);
+            ign::feature::FeatureIteratorPtr itCp = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCp, filter);
 
             double dMax = threshold;
             ign::geometry::Point closestCpGeom;

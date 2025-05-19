@@ -1,15 +1,15 @@
 #ifndef _APP_CALCUL_EDGECLEANINGOP_H_
 #define _APP_CALCUL_EDGECLEANINGOP_H_
 
-//SOCLE
+// SOCLE
 #include <ign/feature/sql/FeatureStorePostgis.h>
 #include <ign/tools/stringtools.h>
 
-//EPG
+// EPG
 #include <epg/log/EpgLogger.h>
 #include <epg/log/ShapeLogger.h>
 
-//APP
+// APP
 #include <app/calcul/detail/EdgeCleaningGraphManager.h>
 #include <app/tools/StringTools.h>
 

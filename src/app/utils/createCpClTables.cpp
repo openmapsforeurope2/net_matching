@@ -1,8 +1,8 @@
-//APP
+// APP
 #include <app/utils/createCpClTables.h>
 #include <app/params/ThemeParameters.h>
 
-//EPG
+// EPG
 #include <epg/Context.h>
 
 

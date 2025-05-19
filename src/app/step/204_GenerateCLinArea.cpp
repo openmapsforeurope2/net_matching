@@ -1,11 +1,11 @@
 #include <app/step/204_GenerateCLinArea.h>
 
-//EPG
+// EPG
 #include <epg/Context.h>
 #include <epg/log/ScopeLogger.h>
 #include <ome2/utils/CopyTableUtils.h>
 
-//APP
+// APP
 #include <app/calcul/CLInAreaGenerationOp.h>
 
 namespace app {

@@ -1,21 +1,24 @@
-//APP
+// APP
 #include <app/calcul/CLInAreaGenerationOp.h>
 #include <app/params/ThemeParameters.h>
 #include <app/geometry/tools/LengthIndexedLineString.h>
 #include <app/calcul/detail/graph/concept/EdgeCleaningGraphSpecializations.h>
 
-//BOOST
+// BOOST
 #include <boost/timer.hpp>
 #include <boost/progress.hpp>
 
-//EPG
+// EPG
 #include <epg/Context.h>
 #include <epg/tools/TimeTools.h>
 #include <epg/sql/tools/numFeatures.h>
 #include <epg/tools/geometry/project.h>
 #include <epg/graph/tools/reverse.h>
 
-//SOCLE
+// OME2
+#include <ome2/feature/sql/NotDestroyedTools.h>
+
+// SOCLE
 #include <ign/geometry/algorithm/HausdorffDistanceOp.h>
 #include <ign/geometry/algorithm/AreaOp.h>
 #include <ign/geometry/graph/detail/NextEdge.h>
@@ -1154,10 +1157,10 @@ namespace app
 			std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
 
             // chargement des edges
-            int numFeatures = epg::sql::tools::numFeatures(*_fsEdge, filter);
+            size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filter);
             boost::progress_display display(numFeatures, std::cout, "[ edge_loading  % complete ]\n");
 
-            ign::feature::FeatureIteratorPtr itEdge = _fsEdge->getFeatures(filter);
+            ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filter);
             while (itEdge->hasNext())
             {
                 ++display;

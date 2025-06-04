@@ -820,9 +820,6 @@ namespace app
 			{
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
-                //DEBUG
-                _logger->log(epg::log::DEBUG, faceGeom.toString());
-
                 ign::geometry::Point const * p1 = 0;
                 ign::geometry::Point const * p2 = 0;
 

@@ -820,6 +820,9 @@ namespace app
 			{
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
+                //DEBUG
+                _logger->log(epg::log::DEBUG, faceGeom.toString());
+
                 ign::geometry::Point const * p1 = 0;
                 ign::geometry::Point const * p2 = 0;
 
@@ -1752,8 +1755,12 @@ namespace app
 
                 ign::geometry::LineString edgeGeom = graph.getGeometry(*lit);
 
-                if( edgeGeom.length() > maxLength ) continue; 
+                if( edgeGeom.length() > maxLength ) continue;
 
+                //remove tiny edge
+                _fsEdge->deleteFeature(graph.origins(*lit)[0]);
+                graph.removeEdge(*lit);
+                
                 vertex_descriptor vRef = graph.degree(graph.target(*lit)) > graph.degree(graph.source(*lit)) ? graph.target(*lit) : graph.source(*lit);
                 vertex_descriptor v2Merge = graph.degree(graph.target(*lit)) > graph.degree(graph.source(*lit)) ? graph.source(*lit) : graph.target(*lit);
 

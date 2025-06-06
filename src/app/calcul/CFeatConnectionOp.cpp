@@ -120,8 +120,9 @@ namespace app
             bool verbose
         ) {
             CFeatConnectionOp op(countryCode, verbose);
-            op.computeClByCountry();
+            // op.computeClByCountry();
             //todo a remplacer par op.computeCl() si confirmation qu'il n'y a pas d'impact négatif
+            op.computeCl();
         }
 
         ///

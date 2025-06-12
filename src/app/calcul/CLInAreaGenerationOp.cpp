@@ -36,7 +36,7 @@ namespace app
             bool verbose
         ) {
             CLInAreaGenerationOp cLInAreaGenerationOp(verbose);
-            cLInAreaGenerationOp._compute();
+            cLInAreaGenerationOp._computeByIteration();
         }
 
 		///
@@ -96,7 +96,7 @@ namespace app
         ///
         ///
         ///
-        bool CLInAreaGenerationOp::_isFaceToTreat(
+        double CLInAreaGenerationOp::_isFaceToTreat(
             detail::EdgeCleaningGraphManager const& graphManager,
             face_descriptor f,
             std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges,
@@ -108,10 +108,10 @@ namespace app
             ign::geometry::Polygon faceGeom = graph.getGeometry( f );
 
             if (!_getFacePaths(graphManager, f, vpCountryEdges))
-                return false;
+                return -1;
 
             if (vpCountryEdges.size() < 2) 
-                return false;
+                return -1;
 
             bool foundCl = false;
             for (std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>::const_iterator vpit = vpCountryEdges.begin() ; vpit != vpCountryEdges.end() ; ++vpit) {
@@ -121,19 +121,19 @@ namespace app
                 }
             }
             if( foundCl )
-                return false;
+                return -1;
 
             std::set<std::string> sFaceCountries;
             for (std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>::const_iterator vpit = vpCountryEdges.begin() ; vpit != vpCountryEdges.end() ; ++vpit)
                 sFaceCountries.insert(vpit->first);
 
             if (sFaceCountries.size() != 2) 
-                return false;
+                return -1;
 
             _mergeFacePaths(vpCountryEdges);
             
             if (vpCountryEdges.size() != 2)
-                return false;
+                return -1;
 
             // mettre les 2 chemins dans le meme sens
             if (graph.source(*vpCountryEdges.front().second.begin()) != graph.source(*vpCountryEdges.back().second.begin()))
@@ -148,24 +148,14 @@ namespace app
         ///
         ///
         ///
-        bool CLInAreaGenerationOp::_isFaceToTreat(
-            detail::EdgeCleaningGraphManager const& graphManager,
-            face_descriptor f,
-            double slimSurfaceWidth
-        ) const {
-            std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
-            std::vector<ign::geometry::LineString> vPathsGeom;
-            return _isFaceToTreat(graphManager, f, vpCountryEdges, vPathsGeom, slimSurfaceWidth);
-        }
-
-        ///
-        ///
-        ///
-        void CLInAreaGenerationOp::_createCLOnFaces(
+        bool CLInAreaGenerationOp::_createCLOnFaces(
             detail::EdgeCleaningGraphManager & graphManager,
             std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
-            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
+            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures,
+            std::set<edge_descriptor> & sTreatedEdges
         ) const {
+            bool hasCreatedCl = false;
+
             //--
 			epg::Context *context = epg::ContextS::getInstance();
 
@@ -180,28 +170,49 @@ namespace app
 
             //--
             GraphType const& graph = graphManager.getGraph();
-
-            //--
-            boost::progress_display display(graph.numFaces(), std::cout, "[ generating CL in area  % complete ]\n");
+            
+            // get faces to treate ordered by width
+            std::multimap< double, face_descriptor> mWidthFace;
+            std::map<face_descriptor, std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>> mvpCountryEdges;
+            std::map<face_descriptor, std::vector<ign::geometry::LineString>> mvPathsGeom;
             face_iterator fit, fend;
             for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
+			{
+                std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
+                std::vector<ign::geometry::LineString> vPathsGeom;
+                double width = _isFaceToTreat(graphManager, *fit, vpCountryEdges, vPathsGeom, slimSurfaceWidth);
+
+                if (width < 0) continue;
+
+                mWidthFace.insert( std::make_pair(width, *fit));
+                mvpCountryEdges.insert( std::make_pair(*fit, vpCountryEdges));
+                mvPathsGeom.insert( std::make_pair(*fit, vPathsGeom));
+            }
+
+            //--
+            boost::progress_display display(mWidthFace.size(), std::cout, "[ generating CL in area  % complete ]\n");
+            for( std::multimap< double, face_descriptor>::const_iterator mmit = mWidthFace.begin() ; mmit != mWidthFace.end() ; ++mmit )
 			{
                 ++display;
 
                 //DEBUG
-                ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
-                if(faceGeom.intersects(ign::geometry::Point(3903622.15,3018794.50))) {
-                    bool test = true;
-                }
-                if(faceGeom.intersects(ign::geometry::Point(3903615.19,3018774.33))) {
-                    bool test = true;
-                }
+                // ign::geometry::Polygon faceGeom = graph.getGeometry( mmit->second );
+                // if(faceGeom.intersects(ign::geometry::Point(3947747.359,2997702.844))) {
+                //     bool test = true;
+                // }
+                // if(faceGeom.intersects(ign::geometry::Point(3903615.19,3018774.33))) {
+                //     bool test = true;
+                // }
 
-                std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
-                std::vector<ign::geometry::LineString> vPathsGeom;
-                if (!_isFaceToTreat(graphManager, *fit, vpCountryEdges, vPathsGeom, slimSurfaceWidth))
+                //--
+                std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> const& vpCountryEdges = mvpCountryEdges[mmit->second] ;
+                std::vector<ign::geometry::LineString> const& vPathsGeom = mvPathsGeom[mmit->second] ;
+
+                //--
+                if ( _hasTreatedEdge(graph,vpCountryEdges.front().second, sTreatedEdges) || _hasTreatedEdge(graph,vpCountryEdges.back().second, sTreatedEdges) )
                     continue;
 
+                //--
                 bool isFictitiousFront = _isFictitious(graph, vpCountryEdges.front().first, vpCountryEdges.front().second);
                 bool isFictitiousBack = _isFictitious(graph, vpCountryEdges.back().first, vpCountryEdges.back().second);
 
@@ -271,9 +282,13 @@ namespace app
                     fRef->setAttribute(wTagName, ign::data::String(fRef->getId()+"#"+f2Merge->getId()));
 
                     if( lsNew.isEmpty() || lsNew.isNull() || !lsNew.isValid()) {
-                        _logger->log(epg::log::ERROR, "Resulting inconsistent geometry [face geom]: "+graph.getGeometry( *fit ).toString());
+                        _logger->log(epg::log::ERROR, "Resulting inconsistent geometry [face geom]: "+graph.getGeometry( mmit->second ).toString());
                         continue;
                     }
+
+                    hasCreatedCl = true;
+                    _recordTreatedEdge(graph, vpCountryEdges.front().second, sTreatedEdges);
+                    _recordTreatedEdge(graph, vpCountryEdges.back().second, sTreatedEdges);
 
                     fRef->setGeometry(lsNew);
 
@@ -281,16 +296,87 @@ namespace app
                     sStart = sTarget;
                 } while(sAbsEdgeFront.size() > 0 && sAbsEdgeBack.size() > 0);
 			}
+
+            return hasCreatedCl;
         }
 
         ///
         ///
         ///
-        void CLInAreaGenerationOp::_createCLOnOverlappingEdges(
+        bool CLInAreaGenerationOp::_hasTreatedEdge(
+			GraphType const& graph,
+			std::list<oriented_edge_descriptor> const& path,
+            std::set<edge_descriptor> const& sTreatedEdges
+		) const {
+            std::list<oriented_edge_descriptor>::const_iterator lit = path.begin();
+            edge_descriptor previousEdge = lit->descriptor;
+			for ( ; lit != path.end() ; ++lit) {
+                edge_descriptor currentEdge = lit->descriptor;
+
+				if ( sTreatedEdges.find(currentEdge) != sTreatedEdges.end() ) {
+                    return true;
+                }
+
+                if ( currentEdge == previousEdge ) continue;
+
+                if (graph.degree(graph.source(*lit)) > 2) {
+                    std::vector< edge_descriptor > vIncidentEdges = graph.incidentEdges( graph.source(*lit) );
+                    for( size_t i = 0 ; i < vIncidentEdges.size() ; ++i )  {
+                        if(vIncidentEdges[i] != currentEdge && vIncidentEdges[i] != previousEdge ) {
+                            if ( sTreatedEdges.find(vIncidentEdges[i]) != sTreatedEdges.end() ) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                previousEdge = currentEdge;
+            }
+
+            return false;
+        }
+
+        ///
+        ///
+        ///
+        void CLInAreaGenerationOp::_recordTreatedEdge(
+			GraphType const& graph,
+			std::list<oriented_edge_descriptor> const& path,
+            std::set<edge_descriptor> & sTreatedEdges
+		) const {
+            std::list<oriented_edge_descriptor>::const_iterator lit = path.begin();
+            edge_descriptor previousEdge = lit->descriptor;
+			for ( ; lit != path.end() ; ++lit) {
+				edge_descriptor currentEdge = lit->descriptor;
+
+                sTreatedEdges.insert(currentEdge);
+                    
+                if ( currentEdge == previousEdge ) continue;
+
+                if (graph.degree(graph.source(*lit)) > 2) {
+                    std::vector< edge_descriptor > vIncidentEdges = graph.incidentEdges( graph.source(*lit) );
+                    for( size_t i = 0 ; i < vIncidentEdges.size() ; ++i )  {
+                        if(vIncidentEdges[i] != currentEdge && vIncidentEdges[i] != previousEdge ) {
+                            sTreatedEdges.insert(vIncidentEdges[i]);
+                        }
+                    }
+                }
+
+                previousEdge = currentEdge;
+            }
+        }
+
+        ///
+        ///
+        ///
+        bool CLInAreaGenerationOp::_createCLOnOverlappingEdges(
             GraphType const& graph,
             std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
-            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
+            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures,
+            std::set<edge_descriptor> & sTreatedEdges
         ) const {
+            bool hasCreatedCl = false;
+
             //--
 			epg::Context *context = epg::ContextS::getInstance();
 
@@ -308,6 +394,9 @@ namespace app
             for (graph.edges(eit, eend); eit != eend; ++eit)
             {
                 ++display;
+
+                if (sTreatedEdges.find(*eit) != sTreatedEdges.end())
+                    continue;
 
                 std::vector<std::string> vOrigins = graph.origins(*eit);
                 if( vOrigins.size() != 2 ) continue;
@@ -331,6 +420,9 @@ namespace app
 					_logger->log(epg::log::WARN, " fusion impossible de deux troncons d'un même pays pour la geom : " +featFront.getGeometry().asText() + " et la geom : " + featBack.getGeometry().asText());
 					continue;
 				}
+
+                hasCreatedCl = true;
+                sTreatedEdges.insert(*eit);
 
 
                 //--
@@ -405,6 +497,8 @@ namespace app
                 
 				_fsEdge->createFeature(*fRef);
             }
+
+            return hasCreatedCl;
         }
 
         ///
@@ -472,11 +566,19 @@ namespace app
                 }
             }
         }
+
+        ///
+        ///
+        ///
+        void CLInAreaGenerationOp::_computeByIteration() const
+        {
+            while (_compute()) {}
+        }
         
 		///
         ///
         ///
-        void CLInAreaGenerationOp::_compute() const
+        bool CLInAreaGenerationOp::_compute() const
         {
 			//--
 			epg::Context *context = epg::ContextS::getInstance();
@@ -500,10 +602,15 @@ namespace app
             std::multimap<std::string, detail::IncidentFeature> mmIncidentFeatures;
             std::map<std::string, std::set<edge_descriptor>> mFeatMergedEdges;
 
+            std::set<edge_descriptor> sTreatedEdges;
             //--
-            _createCLOnOverlappingEdges(graph, mFeatMergedEdges, mmIncidentFeatures);
+            bool hasCreatedCl1 = _createCLOnOverlappingEdges(graph, mFeatMergedEdges, mmIncidentFeatures, sTreatedEdges);
             //--
-            _createCLOnFaces(graphManager, mFeatMergedEdges, mmIncidentFeatures);
+            bool hasCreatedCl2 = _createCLOnFaces(graphManager, mFeatMergedEdges, mmIncidentFeatures, sTreatedEdges);
+
+            //--
+            if( !hasCreatedCl1 && !hasCreatedCl2 )
+                return false;
 
             // on parcours tous les features qui ont des edges induits mergés : on les split si nécessaire
             boost::progress_display display2(mFeatMergedEdges.size(), std::cout, "[ splitting features  % complete ]\n");
@@ -613,6 +720,8 @@ namespace app
 
             //--
             _mergeByWTag();
+
+            return true;
 		}
 
         ///
@@ -1186,7 +1295,7 @@ namespace app
 		///
         ///
         ///
-        bool CLInAreaGenerationOp::_pathsGeomAreEqual(
+        double CLInAreaGenerationOp::_pathsGeomAreEqual(
             ign::geometry::Polygon const& poly,
             ign::geometry::LineString & path1geom,
             ign::geometry::LineString & path2geom,
@@ -1202,7 +1311,10 @@ namespace app
             }
 
             if (useHausdorff) {
-                return hausdorffDist >= 0 && hausdorffDist < maxWidth;
+                if( hausdorffDist >= 0 && hausdorffDist < maxWidth )
+                    return 1;
+                else
+                    return -1;
             }
 
             //--
@@ -1215,7 +1327,10 @@ namespace app
             double meanWidth = 2 * ( poly.area() / poly.exteriorRing().length() );
             bool bHausdorff = hausdorffDist >= 0 && (hausdorffDist < 3*maxWidth);
 
-            return meanWidth < maxWidth && bHausdorff && bLength;
+            if( meanWidth < maxWidth && bHausdorff && bLength)
+                return meanWidth;
+            else
+                return -1;
         }
 
 		///

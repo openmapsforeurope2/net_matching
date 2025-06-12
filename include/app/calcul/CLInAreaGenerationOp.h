@@ -103,10 +103,13 @@ namespace calcul{
 		void _init();
 
 		//--
-		void _compute() const;
+		void _computeByIteration() const;
 
 		//--
-		bool _isFaceToTreat(
+		bool _compute() const;
+
+		//--
+		double _isFaceToTreat(
             detail::EdgeCleaningGraphManager const& graphManager,
             face_descriptor f,
             std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges,
@@ -115,24 +118,33 @@ namespace calcul{
         ) const;
 
 		//--
-		bool _isFaceToTreat(
-            detail::EdgeCleaningGraphManager const& graphManager,
-            face_descriptor f,
-            double slimSurfaceWidth
-        ) const;
+		bool _hasTreatedEdge(
+			GraphType const& graph,
+			std::list<oriented_edge_descriptor> const& path,
+			std::set<edge_descriptor> const& sTreatedEdges
+		) const;
 
 		//--
-		void _createCLOnFaces(
+		void _recordTreatedEdge(
+			GraphType const& graph,
+			std::list<oriented_edge_descriptor> const& path,
+			std::set<edge_descriptor> & sTreatedEdges
+		) const;
+
+		//--
+		bool _createCLOnFaces(
             detail::EdgeCleaningGraphManager & graphManager,
             std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
-            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
+            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures,
+			std::set<edge_descriptor> & sTreatedEdges
         ) const;
 
 		//--
-		void _createCLOnOverlappingEdges(
+		bool _createCLOnOverlappingEdges(
             GraphType const& graph,
             std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
-            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
+            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures,
+			std::set<edge_descriptor> & sTreatedEdges
         ) const;
 
 		//--
@@ -170,7 +182,7 @@ namespace calcul{
 		void _mergeByWTag() const;
 
 		//--
-		bool _pathsGeomAreEqual(
+		double _pathsGeomAreEqual(
 			ign::geometry::Polygon const& poly,
             ign::geometry::LineString & path1geom,
             ign::geometry::LineString & path2geom,

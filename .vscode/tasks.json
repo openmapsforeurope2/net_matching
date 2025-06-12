@@ -82,7 +82,7 @@
         {
             "label": "run the code",
             "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching ./bin/net_matching --c /usr/local/src/net_matching/config/epg_parameters.ini --T hy --cc es#fr --sp 280",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching ./bin/net_matching --c /usr/local/src/net_matching/config/epg_parameters.ini --T hy --cc be#fr --sp 204",
             "group": "build",
             "problemMatcher": []
         },

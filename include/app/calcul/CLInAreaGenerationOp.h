@@ -103,13 +103,10 @@ namespace calcul{
 		void _init();
 
 		//--
-		void _computeByIteration() const;
+		void _compute() const;
 
 		//--
-		bool _compute() const;
-
-		//--
-		double _isFaceToTreat(
+		bool _isFaceToTreat(
             detail::EdgeCleaningGraphManager const& graphManager,
             face_descriptor f,
             std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges,
@@ -118,33 +115,24 @@ namespace calcul{
         ) const;
 
 		//--
-		bool _hasTreatedEdge(
-			GraphType const& graph,
-			std::list<oriented_edge_descriptor> const& path,
-			std::set<edge_descriptor> const& sTreatedEdges
-		) const;
-
-		//--
-		void _recordTreatedEdge(
-			GraphType const& graph,
-			std::list<oriented_edge_descriptor> const& path,
-			std::set<edge_descriptor> & sTreatedEdges
-		) const;
-
-		//--
-		bool _createCLOnFaces(
-            detail::EdgeCleaningGraphManager & graphManager,
-            std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
-            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures,
-			std::set<edge_descriptor> & sTreatedEdges
+		bool _isFaceToTreat(
+            detail::EdgeCleaningGraphManager const& graphManager,
+            face_descriptor f,
+            double slimSurfaceWidth
         ) const;
 
 		//--
-		bool _createCLOnOverlappingEdges(
+		void _createCLOnFaces(
+            detail::EdgeCleaningGraphManager & graphManager,
+            std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
+            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
+        ) const;
+
+		//--
+		void _createCLOnOverlappingEdges(
             GraphType const& graph,
             std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
-            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures,
-			std::set<edge_descriptor> & sTreatedEdges
+            std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures
         ) const;
 
 		//--
@@ -182,7 +170,7 @@ namespace calcul{
 		void _mergeByWTag() const;
 
 		//--
-		double _pathsGeomAreEqual(
+		bool _pathsGeomAreEqual(
 			ign::geometry::Polygon const& poly,
             ign::geometry::LineString & path1geom,
             ign::geometry::LineString & path2geom,

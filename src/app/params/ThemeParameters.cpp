@@ -18,23 +18,26 @@ namespace params{
 		_initParameter( DB_CONF_FILE, "DB_CONF_FILE" );
 		_initParameter( WORKING_SCHEMA, "WORKING_SCHEMA" );
 		_initParameter( EDGE_TABLE_INIT, "EDGE_TABLE_INIT" );
-		_initParameter( COUNTRY_CODE_W, "COUNTRY_CODE_W" );
-		_initParameter( EDGE_FICTITIOUS_NAME, "EDGE_FICTITIOUS_NAME" );
 		_initParameter( W_TAG_NAME, "W_TAG_NAME" );
-
+		_initParameter( EDGE_FICTITIOUS_NAME, "EDGE_FICTITIOUS_NAME" );
 		_initParameter( WATERCOURSE_AREA_TABLE, "WATERCOURSE_AREA_TABLE" );
 		_initParameter( STANDING_WATER_TABLE, "STANDING_WATER_TABLE" );
-
-		_initParameter( FFF_RATIO, "FFF_RATIO" );
-		
 		_initParameter( BOUNDARY_SMOOTHED_TABLE, "BOUNDARY_SMOOTHED_TABLE");
 		_initParameter( LANDMASK_TABLE, "LANDMASK_TABLE" );
 		_initParameter( LAND_COVER_TYPE_NAME, "LAND_COVER_TYPE_NAME" );
 		_initParameter( TYPE_LAND_AREA, "TYPE_LAND_AREA" );
 		_initParameter( FORM_OF_WAY_NAME, "FORM_OF_WAY_NAME" );
-		_initParameter( CFC_SNAP_DIST, "CFC_SNAP_DIST");
-		_initParameter( CFG_BOUNDARY_ANGLE_THRESHOLD, "CFG_BOUNDARY_ANGLE_THRESHOLD" );
+		_initParameter( COUNTRY_CODE_W, "COUNTRY_CODE_W" );
 
+		_initParameter( CC_DIST_THRESHOLD, "CC_DIST_THRESHOLD" );
+
+		_initParameter( CFC_SNAP_DIST, "CFC_SNAP_DIST");
+
+		_initParameter( FFF_RATIO, "FFF_RATIO" );
+		
+		_initParameter( JM_MAX_DIST, "JM_MAX_DIST");
+		_initParameter( JM_MAX_ANGLE, "JM_MAX_ANGLE");
+		
 		_initParameter( CLA_SURFACE_WIDTH, "CLA_SURFACE_WIDTH" );
 		_initParameter( CLA_FICTITIOUS_RATIO_THRESHOLD, "CLA_FICTITIOUS_RATIO_THRESHOLD" );
 		_initParameter( CLA_FICTITIOUS_LENGTH_THRESHOLD, "CLA_FICTITIOUS_LENGTH_THRESHOLD" );
@@ -44,6 +47,8 @@ namespace params{
 		_initParameter( CP_TABLE_SUFFIX, "CP_TABLE_SUFFIX");
 		_initParameter( CL_TABLE_SUFFIX, "CL_TABLE_SUFFIX");
 		_initParameter( CF_STATUS, "CF_STATUS");
+
+		_initParameter( CFG_BOUNDARY_ANGLE_THRESHOLD, "CFG_BOUNDARY_ANGLE_THRESHOLD" );
 
 		_initParameter( CP_MERGE_DIST_CP, "CP_MERGE_DIST_CP");
 		_initParameter( CP_MERGE_DIST_TRACTOR_CP, "CP_MERGE_DIST_TRACTOR_CP");
@@ -69,6 +74,7 @@ namespace params{
 
 		_initParameter( LIST_ATTR_JSON, "LIST_ATTR_JSON");
 		_initParameter( LIST_ATTR_W, "LIST_ATTR_W");
+
 		_initParameter( SQL_FILTER_EDGES_2_GENERATE_CF, "SQL_FILTER_EDGES_2_GENERATE_CF");
 
 		_initParameter( EC_LANDMASK_BUFFER, "EC_LANDMASK_BUFFER");
@@ -88,10 +94,6 @@ namespace params{
 		_initParameter( ECL_PARALELLE_EDGE_MAX_DIST, "ECL_PARALELLE_EDGE_MAX_DIST");
 		_initParameter( ECL_ANTENNA_MIN_DIST_2_NEIGHBOR, "ECL_ANTENNA_MIN_DIST_2_NEIGHBOR");
 		_initParameter( ECL_TINY_EDGE_MAX_LENGTH, "ECL_TINY_EDGE_MAX_LENGTH");
-
-		_initParameter( JM_MAX_DIST, "JM_MAX_DIST");
-		_initParameter( JM_MAX_ANGLE, "JM_MAX_ANGLE");
-	
 	}
 
 	///

@@ -1,4 +1,4 @@
-#include <app/step/201_FillFictitiousField.h>
+#include <app/step/201_CorrectCountryConnectivity.h>
 
 // EPG
 #include <epg/Context.h>
@@ -6,7 +6,7 @@
 #include <ome2/utils/CopyTableUtils.h>
 
 // APP
- #include <app/calcul/FillFictitiousFieldOp.h>
+ #include <app/calcul/ConnectivityCorrectorOp.h>
 
 namespace app {
 	namespace step {
@@ -14,7 +14,7 @@ namespace app {
 		///
 		///
 		///
-		void FillFictitiousField::init()
+		void CorrectCountryConnectivity::init()
 		{
 			addWorkingEntity(EDGE_TABLE_INIT);
 		}
@@ -22,16 +22,17 @@ namespace app {
 		///
 		///
 		///
-		void FillFictitiousField::onCompute(bool verbose = false)
+		void CorrectCountryConnectivity::onCompute(bool verbose = false)
 		{
-			//--
-			std::string clRefTableName = _themeParams.getParameter(CL_TABLE).getValue().toString();
-
 			//--
 			_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));
 			ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true, true);
 
-			app::calcul::FillFictitiousFieldOp::Compute(verbose);
+			//--
+			std::string countryCodeW = _themeParams.getParameter(COUNTRY_CODE_W).getValue().toString();
+
+			//--
+			app::calcul::ConnectivityCorrectorOp::Compute(countryCodeW, verbose);
 		}
 
 	}

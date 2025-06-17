@@ -21,6 +21,7 @@ namespace po = boost::program_options;
 int main(int argc, char *argv[])
 {
     // ign::geometry::PrecisionModel::SetDefaultPrecisionModel(ign::geometry::PrecisionModel(ign::geometry::PrecisionModel::FIXED, 1.0e5, 1.0e7) );
+
     epg::Context* context = epg::ContextS::getInstance();
 
     std::string     logDirectory = "";

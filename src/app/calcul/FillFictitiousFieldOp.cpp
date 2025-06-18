@@ -126,7 +126,7 @@ namespace app
 
                 double ratio = _getRatio(ls, country);
 
-                if (ratio >= minRatio && fictitious == "false") {
+                if (ratio >= minRatio && fictitious != "true") {
                     ign::feature::Feature fEdge_ = fEdge;
                     fEdge_.setAttribute(fictitiousFieldName, ign::data::String("true"));
 
@@ -134,7 +134,7 @@ namespace app
                     fEdge_.setAttribute(wTagName, ign::data::String("debug_201_to_true"));
                     
                     _fsEdge->modifyFeature(fEdge_);
-                } else if (ratio < minRatio && fictitious == "true") {
+                } else if (ratio < minRatio && fictitious != "false") {
                     ign::feature::Feature fEdge_ = fEdge;
                     fEdge_.setAttribute(fictitiousFieldName, ign::data::String("false"));
 

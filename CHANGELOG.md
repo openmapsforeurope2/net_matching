@@ -13,6 +13,7 @@
 ### Fixed
 - [CLInAreaGenerationOp] correction not to merged edges from same country
 - [EdgeCleaningOp] added deletion instruction that was missing in method _cleanTinyEdges
+- [FillFictitiousFieldOp] management of not boolean values for the field 'fictitious'
 
 
 ## [1.0.0] - 2025-03-24

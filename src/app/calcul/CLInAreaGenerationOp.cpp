@@ -23,6 +23,9 @@
 #include <ign/geometry/algorithm/AreaOp.h>
 #include <ign/geometry/graph/detail/NextEdge.h>
 
+// STL
+#include <queue>
+
 
 namespace app
 {
@@ -96,11 +99,82 @@ namespace app
         ///
         ///
         ///
+        std::pair<bool, std::pair<std::string, std::string>> CLInAreaGenerationOp::_findClEdgeAssociation(
+            detail::EdgeCleaningGraphManager const& graphManager,
+            face_descriptor f,
+            edge_descriptor eCl
+        ) const {
+            std::string assEdgeId = "";
+
+            //--
+            GraphType const& graph = graphManager.getGraph();
+
+            //--
+            app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
+            std::string const natIdName = themeParameters->getParameter(NATIONAL_IDENTIFIER_NAME).getValue().toString();
+
+            //--
+            std::string clNatId = graphManager.getNatId(eCl);
+
+            if( graph.degree(graph.source(eCl)) == 3 ) {
+                std::vector<edge_descriptor> vEdges = graph.incidentEdges(graph.source(eCl));
+                for (size_t i = 0 ; i < vEdges.size() ; ++i ) {
+                    if( vEdges[i] == eCl ) continue;
+                    if( _belongToFace(graph, f, vEdges[i]) ) {
+                        std::string edgeNatId = graphManager.getNatId(vEdges[i]);
+                        if (clNatId.find(edgeNatId) != std::string::npos) {
+                            assEdgeId = graph.origins(vEdges[i])[0];
+                        }
+                    }
+                }
+            }
+
+            if( graph.degree(graph.target(eCl)) == 3 ) {
+                std::vector<edge_descriptor> vEdges = graph.incidentEdges(graph.target(eCl));
+                for (size_t i = 0 ; i < vEdges.size() ; ++i ) {
+                    if( vEdges[i] == eCl ) continue;
+                    if( _belongToFace(graph, f, vEdges[i]) ) {
+                        std::string edgeNatId = graphManager.getNatId(vEdges[i]);
+                        if (clNatId.find(edgeNatId) != std::string::npos) {
+                            if (assEdgeId != "") {
+                                return std::make_pair(false, std::make_pair("",""));
+                            }
+                            assEdgeId = graph.origins(vEdges[i])[0];
+                        }
+                    }
+                }
+            }
+            if(assEdgeId == "")
+                return std::make_pair(false, std::make_pair("",""));
+
+            std::string clId = graph.origins(eCl)[0];
+            return std::make_pair(true, std::make_pair(clId,assEdgeId));
+        }
+
+        ///
+        ///
+        ///
+        bool CLInAreaGenerationOp::_belongToFace(
+            GraphType const& graph,
+            face_descriptor f,
+            edge_descriptor e
+        ) const {
+            std::list<oriented_edge_descriptor> lEdges = _getExteriorRingEdges(graph, f);
+            for( std::list<oriented_edge_descriptor>::const_iterator lit = lEdges.begin() ; lit != lEdges.end() ; ++lit ) {
+                if( lit->descriptor == e ) return true;
+            }
+            return false;
+        }
+
+        ///
+        ///
+        ///
         double CLInAreaGenerationOp::_isFaceToTreat(
             detail::EdgeCleaningGraphManager const& graphManager,
             face_descriptor f,
             std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges,
             std::vector<ign::geometry::LineString> & vPathsGeom,
+            std::map<std::string, std::string> & mClToConvert,
             double slimSurfaceWidth
         ) const {
             GraphType const& graph = graphManager.getGraph();
@@ -114,10 +188,21 @@ namespace app
                 return -1;
 
             bool foundCl = false;
-            for (std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>::const_iterator vpit = vpCountryEdges.begin() ; vpit != vpCountryEdges.end() ; ++vpit) {
-                if (vpit->first.find("#") != std::string::npos) {
-                    foundCl = true;
-                    break;
+            for (size_t i = 0 ; i < vpCountryEdges.size() ; ++i ) {
+                if (vpCountryEdges[i].first.find("#") != std::string::npos) {
+                    if( vpCountryEdges[i].second.size() == 1 ) {
+                        std::pair<bool, std::pair<std::string, std::string>> foundClEdgeAss = _findClEdgeAssociation(graphManager, f, vpCountryEdges[i].second.begin()->descriptor);
+                        if( foundClEdgeAss.first ) {
+                            mClToConvert.insert(foundClEdgeAss.second);
+                            vpCountryEdges[i] = std::make_pair(graphManager.getCountry(foundClEdgeAss.second.second), vpCountryEdges[i].second );
+                        } else {
+                            foundCl = true;
+                            break;
+                        }
+                    } else {
+                        foundCl = true;
+                        break;
+                    }
                 }
             }
             if( foundCl )
@@ -143,6 +228,21 @@ namespace app
             vPathsGeom.push_back(_convertPathToLineString(graph, vpCountryEdges.back().first, vpCountryEdges.back().second));
 
             return _pathsGeomAreEqual(faceGeom, vPathsGeom.front(), vPathsGeom.back(), slimSurfaceWidth);
+        }
+
+        ///
+        ///
+        ///
+        void CLInAreaGenerationOp::_replaceClByAssociatedEdge(
+            std::map<size_t, std::string> & mMeanIndexEdge,
+            std::map<std::string, std::string> const& mClToConvert
+        ) const {
+            std::map<size_t, std::string>::iterator mit = mMeanIndexEdge.begin();
+            for ( ; mit != mMeanIndexEdge.end() ; ++mit ) {
+                std::map<std::string, std::string>::const_iterator mit2 = mClToConvert.find(mit->second);
+                if ( mit2 == mClToConvert.end() ) continue;
+                mit->second = mit2->second;
+            }
         }
 
         ///
@@ -175,18 +275,30 @@ namespace app
             std::multimap< double, face_descriptor> mWidthFace;
             std::map<face_descriptor, std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>> mvpCountryEdges;
             std::map<face_descriptor, std::vector<ign::geometry::LineString>> mvPathsGeom;
+            std::map<face_descriptor, std::map<std::string, std::string>> mmClToConvert;
             face_iterator fit, fend;
             for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
 			{
+                //DEBUG
+                // ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
+                // if(faceGeom.intersects(ign::geometry::Point(3370768.386,2318558.186))) {
+                //     bool test = true;
+                // }
+                // if(faceGeom.intersects(ign::geometry::Point(3370775.604,2318549.250))) {
+                //     bool test = true;
+                // }
+
                 std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
                 std::vector<ign::geometry::LineString> vPathsGeom;
-                double width = _isFaceToTreat(graphManager, *fit, vpCountryEdges, vPathsGeom, slimSurfaceWidth);
+                std::map<std::string, std::string> mClToConvert;
+                double width = _isFaceToTreat(graphManager, *fit, vpCountryEdges, vPathsGeom, mClToConvert, slimSurfaceWidth);
 
                 if (width < 0) continue;
 
                 mWidthFace.insert( std::make_pair(width, *fit));
                 mvpCountryEdges.insert( std::make_pair(*fit, vpCountryEdges));
                 mvPathsGeom.insert( std::make_pair(*fit, vPathsGeom));
+                mmClToConvert.insert( std::make_pair(*fit, mClToConvert));
             }
 
             //--
@@ -197,10 +309,10 @@ namespace app
 
                 //DEBUG
                 // ign::geometry::Polygon faceGeom = graph.getGeometry( mmit->second );
-                // if(faceGeom.intersects(ign::geometry::Point(3947747.359,2997702.844))) {
+                // if(faceGeom.intersects(ign::geometry::Point(3370768.386,2318558.186))) {
                 //     bool test = true;
                 // }
-                // if(faceGeom.intersects(ign::geometry::Point(3903615.19,3018774.33))) {
+                // if(faceGeom.intersects(ign::geometry::Point(3370775.604,2318549.250))) {
                 //     bool test = true;
                 // }
 
@@ -216,54 +328,79 @@ namespace app
                 bool isFictitiousFront = _isFictitious(graph, vpCountryEdges.front().first, vpCountryEdges.front().second);
                 bool isFictitiousBack = _isFictitious(graph, vpCountryEdges.back().first, vpCountryEdges.back().second);
 
+                std::vector<int> pathFrontgeomMeanGeomLink;
+                std::vector<int> pathBackgeomMeanGeomLink;
                 ign::geometry::LineString meanGeom;
                 if(isFictitiousFront && !isFictitiousBack) {
-                    meanGeom = vPathsGeom.front();
+                    meanGeom = _addInterMeaningFullPoint(
+                        graph, 
+                        vpCountryEdges.back().second,
+                        vPathsGeom.front(),
+                        vPathsGeom.back(),
+                        pathFrontgeomMeanGeomLink,
+                        pathBackgeomMeanGeomLink
+                    );
                 } else if (!isFictitiousFront && isFictitiousBack) {
-                    meanGeom = vPathsGeom.back();
+                    meanGeom = _addInterMeaningFullPoint(
+                        graph, 
+                        vpCountryEdges.front().second,
+                        vPathsGeom.back(),
+                        vPathsGeom.front(),
+                        pathBackgeomMeanGeomLink,
+                        pathFrontgeomMeanGeomLink
+                    );
                 } else {
-                    meanGeom = _computeMeanPath(vPathsGeom.front(), vPathsGeom.back());
+                    meanGeom = _computeMeanPath(
+                        vPathsGeom.front(),
+                        vPathsGeom.back(),
+                        pathFrontgeomMeanGeomLink,
+                        pathBackgeomMeanGeomLink
+                    );
                 }
-                geometry::tools::LengthIndexedLineString lsIndexMean(meanGeom);
-                double meanLength = meanGeom.length();
+                // geometry::tools::LengthIndexedLineString lsIndexMean(meanGeom);
+                // double meanLength = meanGeom.length();
 
                 //todo recupérer tous les edges des chemins
-                std::map<double, std::vector<detail::IncidentFeature>> mAbsIncidentFeatures;
-                std::map<double, std::string> sAbsEdgeFront = _getOriginEdges(graph, vpCountryEdges.front().first, vpCountryEdges.front().second, mFeatMergedEdges, mAbsIncidentFeatures); 
-                std::map<double, std::string> sAbsEdgeBack = _getOriginEdges(graph, vpCountryEdges.back().first,vpCountryEdges.back().second, mFeatMergedEdges, mAbsIncidentFeatures);
+                std::map<size_t, std::vector<detail::IncidentFeature>> mMeanIndexIncidentFeatures;
+                std::map<size_t, std::string> mMeanIndexEdgeFront = _getOriginEdges(graph, vpCountryEdges.front().first, vpCountryEdges.front().second, pathFrontgeomMeanGeomLink, mFeatMergedEdges, mMeanIndexIncidentFeatures); 
+                std::map<size_t, std::string> mMeanIndexEdgeBack = _getOriginEdges(graph, vpCountryEdges.back().first,vpCountryEdges.back().second, pathBackgeomMeanGeomLink, mFeatMergedEdges, mMeanIndexIncidentFeatures);
 
-                double sStart = 0;
+                _replaceClByAssociatedEdge(mMeanIndexEdgeFront, mmClToConvert[mmit->second]);
+                _replaceClByAssociatedEdge(mMeanIndexEdgeBack, mmClToConvert[mmit->second]);
+
+                size_t meanIndexStart = 0;
                 do {
-                    double absFront = sAbsEdgeFront.begin()->first;
-                    double absBack = sAbsEdgeBack.begin()->first;
+                    size_t meanIndexFront = mMeanIndexEdgeFront.begin()->first;
+                    size_t meanIndexBack = mMeanIndexEdgeBack.begin()->first;
                     ign::feature::Feature featFront;
-                    _fsEdge->getFeatureById(sAbsEdgeFront.begin()->second, featFront);
+                    _fsEdge->getFeatureById(mMeanIndexEdgeFront.begin()->second, featFront);
                     ign::feature::Feature featBack;
-                    _fsEdge->getFeatureById(sAbsEdgeBack.begin()->second, featBack);
+                    _fsEdge->getFeatureById(mMeanIndexEdgeBack.begin()->second, featBack);
 
                     ign::geometry::LineString newFeatGeom;
-                    double sTarget;
-                    if( absFront < absBack ) {
-                        sAbsEdgeFront.erase(sAbsEdgeFront.begin());
-                        sTarget = absFront;
-                    } else if ( absFront > absBack ) {
-                        sAbsEdgeBack.erase(sAbsEdgeBack.begin());
-                        sTarget = absBack;
+                    size_t meanIndexTarget;
+                    if( meanIndexFront < meanIndexBack ) {
+                        mMeanIndexEdgeFront.erase(mMeanIndexEdgeFront.begin());
+                        meanIndexTarget = meanIndexFront;
+                    } else if ( meanIndexFront > meanIndexBack ) {
+                        mMeanIndexEdgeBack.erase(mMeanIndexEdgeBack.begin());
+                        meanIndexTarget = meanIndexBack;
                     } else {
-                        sAbsEdgeFront.erase(sAbsEdgeFront.begin());
-                        sAbsEdgeBack.erase(sAbsEdgeBack.begin());
-                        sTarget = absFront;
+                        mMeanIndexEdgeFront.erase(mMeanIndexEdgeFront.begin());
+                        mMeanIndexEdgeBack.erase(mMeanIndexEdgeBack.begin());
+                        meanIndexTarget = meanIndexFront;
                     }
 
                     //pour eviter pbls de précision entre meanLength et dernier index de lsIndexMean
-                    double indexTarget = sTarget >= 1 ? lsIndexMean.getPointAbscisses().back() : sTarget*meanLength;
+                    // double indexTarget = sTarget >= 1 ? lsIndexMean.getPointAbscisses().back() : sTarget*meanLength;
 
-                    ign::geometry::LineString lsNew = lsIndexMean.getSubLineString(sStart*meanLength, indexTarget);
+                    // ign::geometry::LineString lsNew = lsIndexMean.getSubLineString(sStart*meanLength, indexTarget);
+                    ign::geometry::LineString lsNew = _getSubLineString(meanGeom, meanIndexStart, meanIndexTarget);
 
                     //--
-                    if (sStart != 0) {
-                        std::map<double, std::vector<detail::IncidentFeature>>::iterator mit = mAbsIncidentFeatures.find(sStart);
-                        if ( mit != mAbsIncidentFeatures.end() ) {
+                    if (meanIndexStart != 0) {
+                        std::map<size_t, std::vector<detail::IncidentFeature>>::iterator mit = mMeanIndexIncidentFeatures.find(meanIndexStart);
+                        if ( mit != mMeanIndexIncidentFeatures.end() ) {
                             for( std::vector<detail::IncidentFeature>::iterator vit = mit->second.begin() ; vit != mit->second.end() ; ++vit ) {
                                 vit->ptTarget = lsNew.startPoint();
                                 mmIncidentFeatures.insert(std::make_pair(vit->originId, *vit));
@@ -293,11 +430,89 @@ namespace app
                     fRef->setGeometry(lsNew);
 
                     _fsEdge->createFeature(*fRef);
-                    sStart = sTarget;
-                } while(sAbsEdgeFront.size() > 0 && sAbsEdgeBack.size() > 0);
+                    meanIndexStart = meanIndexTarget;
+                } while(mMeanIndexEdgeFront.size() > 0 && mMeanIndexEdgeBack.size() > 0);
 			}
 
             return hasCreatedCl;
+        }
+
+
+        ign::geometry::LineString CLInAreaGenerationOp::_addInterMeaningFullPoint(
+            GraphType const& graph,
+            std::list<oriented_edge_descriptor> const& pathOther,
+            ign::geometry::LineString const& lsRef,
+            ign::geometry::LineString const& lsOther,
+            std::vector<int> & geomRefgeomMeanLink,
+            std::vector<int> & geomOthergeomMeanLink
+        ) const {
+            double snapDist = 1;
+
+            geomRefgeomMeanLink.resize(lsRef.numPoints(), -1);
+            geomOthergeomMeanLink.resize(lsOther.numPoints(), -1);
+
+            double lengthOther = lsOther.length();
+            geometry::tools::LengthIndexedLineString lsIndexOther(lsOther);
+            
+            std::queue<std::pair<double, size_t>> fifoQueueNewInterPt;
+            std::list<oriented_edge_descriptor>::const_iterator lit = pathOther.begin();
+			for ( ++lit ; lit != pathOther.end() ; ++lit) {
+                ign::geometry::Point sourcePoint = graph.getGeometry(graph.source(*lit));
+                int i = _getIndex(lsOther, sourcePoint);
+                double abs = lsIndexOther.getPointLocation(i)/lengthOther;
+
+                fifoQueueNewInterPt.push(std::make_pair(abs, i));
+            }
+
+            double lengthRef = lsRef.length();
+            geometry::tools::LengthIndexedLineString lsIndexRef(lsRef);
+
+            std::vector<double> vAbsRef = lsIndexRef.getPointAbscisses();
+
+            ign::geometry::LineString lsMean;
+            for ( size_t i = 1 ; i < vAbsRef.size() ; ++i ) {
+
+                lsMean.addPoint(lsRef.pointN(i-1));
+                geomRefgeomMeanLink[i-1] = lsMean.numPoints()-1;
+
+                if (fifoQueueNewInterPt.empty()) 
+                    continue;
+
+                double nextAbs = fifoQueueNewInterPt.front().first*lengthRef;
+
+                if( nextAbs < vAbsRef[i] + snapDist ) {
+                    geomOthergeomMeanLink[fifoQueueNewInterPt.front().second] = lsMean.numPoints();
+                    fifoQueueNewInterPt.pop();
+
+                    if( nextAbs < vAbsRef[i] - snapDist ) {
+                        ign::geometry::Point newPt = lsIndexRef.locateAlong(nextAbs);
+                        lsMean.addPoint(newPt);
+                    }
+                }
+            }
+            lsMean.addPoint(lsRef.endPoint());
+            geomRefgeomMeanLink.back() = lsMean.numPoints()-1;
+            geomOthergeomMeanLink.back() = lsMean.numPoints()-1;
+
+            return lsMean;
+        }
+
+        ///
+        ///
+        ///
+        ign::geometry::LineString CLInAreaGenerationOp::_getSubLineString(
+            ign::geometry::LineString const& ls,
+            size_t indexStart,
+            size_t indexEnd
+        ) const {
+            ign::geometry::LineString subLs;
+
+            if( indexStart >= indexEnd || indexEnd > ls.numPoints()-1 ) return subLs;
+
+            for ( size_t i = indexStart ; i <= indexEnd ; ++i )
+                subLs.addPoint(ls.pointN(i));
+
+            return subLs;
         }
 
         ///
@@ -573,8 +788,116 @@ namespace app
         void CLInAreaGenerationOp::_computeByIteration() const
         {
             while (_compute()) {}
+            _clean();
         }
-        
+
+        ///
+        ///
+        ///
+        void CLInAreaGenerationOp::_clean() const
+        {
+            ign::feature::FeatureFilter filter;
+            detail::EdgeCleaningGraphManager graphManager;
+
+            _loadGraph(graphManager, filter);
+
+            GraphType const& graph = graphManager.getGraph();
+
+            vertex_iterator vit, vend;
+            for( graph.vertices( vit, vend ) ; vit != vend ; ++vit )
+            {
+                if (graph.degree(*vit) < 3)
+                    continue;
+
+                std::vector<edge_descriptor> vCls;
+                std::vector<edge_descriptor> vEdges = graph.incidentEdges(*vit);
+                for( size_t i = 0 ; i < vEdges.size() ; ++i ) {
+                    if( graphManager.isCl(vEdges[i]) )
+                        vCls.push_back(vEdges[i]);
+                }
+
+                if( vCls.size() != 2 )
+                    continue;
+
+                std::string idNatFront = graphManager.getNatId(vCls.front());
+                std::string idNatBack = graphManager.getNatId(vCls.back());
+
+                if( idNatFront != idNatBack )
+                    continue;
+                
+                ign::geometry::LineString lsFront = graph.getGeometry(vCls.front());
+                ign::geometry::LineString lsBack = graph.getGeometry(vCls.back());
+
+                edge_descriptor* eToMergePtr = lsFront.length() < lsBack.length() ? &vCls.front() : &vCls.back();
+
+                vertex_descriptor vConn = graph.source(*eToMergePtr) == *vit ? graph.target(*eToMergePtr) : graph.source(*eToMergePtr);
+
+                if( graph.degree(vConn) != 2 )
+                    continue;
+                
+                std::vector<edge_descriptor> vEdges2 = graph.incidentEdges(vConn);
+                edge_descriptor eRef = vEdges2.front() == *eToMergePtr ? vEdges2.back() : vEdges2.front();
+
+                if ( !graphManager.isCl(eRef) )
+                    continue;
+
+                //--
+                std::string idFeatRef = graph.origins(eRef)[0];
+                std::string idFeatToMerge = graph.origins(*eToMergePtr)[0];
+
+                //--
+                ign::feature::Feature fRef, fToMerge;
+                _fsEdge->getFeatureById(idFeatRef, fRef);
+                _fsEdge->getFeatureById(idFeatToMerge, fToMerge);
+
+                //--
+                ign::geometry::LineString const& featRefGeom = fRef.getGeometry().asLineString();
+                ign::geometry::LineString const& fToMergeGeom = fToMerge.getGeometry().asLineString();
+
+                ign::geometry::LineString mergedGeom = _merge(featRefGeom, fToMergeGeom);
+
+                //--
+                fRef.setGeometry(mergedGeom);
+                _fsEdge->modifyFeature(fRef);
+
+                //--
+                _fsEdge->deleteFeature(idFeatToMerge);
+            }
+        }
+
+        ///
+        ///
+        ///
+        ign::geometry::LineString CLInAreaGenerationOp::_merge(
+            ign::geometry::LineString const& lsRef,
+            ign::geometry::LineString const& lsToMerge
+        ) const {
+            ign::geometry::LineString lsMerged;
+            double distEndStart = lsRef.endPoint().distance(lsToMerge.startPoint());
+            double distEndEnd = lsRef.endPoint().distance(lsToMerge.endPoint());
+            if( distEndStart < 1e-5 || distEndEnd < 1e-5 ) {
+                lsMerged = lsRef;
+                lsMerged.removePointN(lsMerged.numPoints()-1);
+
+                if( distEndStart < 1e-5 )
+                    for ( size_t i = 1 ; i < lsToMerge.numPoints() ; ++i ) 
+                        lsMerged.addPoint(lsToMerge.pointN(i));
+                else
+                    for ( int i = lsToMerge.numPoints()-2 ; i >= 0 ; --i ) 
+                        lsMerged.addPoint(lsToMerge.pointN(i));
+            } else {
+                double distStartStart = lsRef.startPoint().distance(lsRef.startPoint());
+
+                lsMerged = distStartStart < 1e-5 ? lsToMerge.getReversed() : lsToMerge;
+                lsMerged.removePointN(lsToMerge.numPoints()-1);
+
+                for ( size_t i = 1 ; i < lsRef.numPoints() ; ++i ) 
+                        lsMerged.addPoint(lsRef.pointN(i));
+
+            }
+            return lsMerged;
+        }
+
 		///
         ///
         ///
@@ -592,9 +915,19 @@ namespace app
 			std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
 
             //--
-            detail::EdgeCleaningGraphManager graphManager;
             // ign::feature::FeatureFilter filter(countryCodeName+" NOT LIKE '%#%'");
             ign::feature::FeatureFilter filter;
+            detail::EdgeCleaningGraphManager graphManager;
+
+            //--
+            // ign::feature::FeatureFilter filterCountCl(countryCodeName+" LIKE '%#%'");
+            // size_t numCls = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterCountCl);
+            // if( numCls > 0 ) {
+            //     _loadGraph(graphManager, filter, false);
+            //     _mergeCl(graphManager);
+            // }
+            
+            //--
             _loadGraph(graphManager, filter);
             GraphType const& graph = graphManager.getGraph();
 
@@ -712,11 +1045,11 @@ namespace app
             }
 
             //--
-            _cleanOverLappingCl();
-
-            //--
             for( std::map<std::string, std::set<edge_descriptor>>::const_iterator mit = mFeatMergedEdges.begin() ; mit != mFeatMergedEdges.end() ; ++mit )
                 _fsEdge->deleteFeature(mit->first);
+
+            //--
+            _cleanOverLappingCl();
 
             //--
             _mergeByWTag();
@@ -1155,18 +1488,19 @@ namespace app
 		///
 		///
 		///
-		std::map<double, std::string> CLInAreaGenerationOp::_getOriginEdges(
+		std::map<size_t, std::string> CLInAreaGenerationOp::_getOriginEdges(
 			GraphType const& graph,
             std::string const& country,
 			std::list<oriented_edge_descriptor> const& path,
+            std::vector<int> const& pathgeomMeanGeomLink,
 			std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
-            std::map<double, std::vector<detail::IncidentFeature>> & mIncidentFeatures
+            std::map<size_t, std::vector<detail::IncidentFeature>> & mIncidentFeatures
 		) const {
-            std::map<double, std::string> sAbsEdge;
+            std::map<size_t, std::string> sMeanIndexEdge;
 
             ign::geometry::LineString ls = _convertPathToLineString(graph, country, path);
-            double length = ls.length();
-            geometry::tools::LengthIndexedLineString lsIndex(ls);
+            // double length = ls.length();
+            // geometry::tools::LengthIndexedLineString lsIndex(ls);
 
             std::list<oriented_edge_descriptor>::const_iterator lit = path.begin();
             std::string previousFeat = graph.origins(lit->descriptor)[0];
@@ -1182,9 +1516,10 @@ namespace app
 
                     ign::geometry::Point ptStart = graph.getGeometry(graph.source(*lit));
                     int i = _getIndex(ls, ptStart);
-                    double abs = lsIndex.getPointLocation(i)/length;
+                    size_t meanIndex = pathgeomMeanGeomLink[i];
+                    // double abs = lsIndex.getPointLocation(i)/length;
 
-                    sAbsEdge.insert(std::make_pair(abs, previousFeat));
+                    sMeanIndexEdge.insert(std::make_pair(meanIndex, previousFeat));
 
                     //on recupere les edges incidents
                     if( graph.degree(graph.source(*lit)) > 2 ) {
@@ -1196,9 +1531,9 @@ namespace app
                             std::string incidentFeatId = graph.origins(*vit)[0];
                             if (incidentFeatId == currentFeat || incidentFeatId == previousFeat) continue;
 
-                            std::map<double, std::vector<detail::IncidentFeature>>::iterator mit = mIncidentFeatures.find(abs);
+                            std::map<size_t, std::vector<detail::IncidentFeature>>::iterator mit = mIncidentFeatures.find(meanIndex);
                             if( mit == mIncidentFeatures.end() )
-                                mit = mIncidentFeatures.insert(std::make_pair(abs, std::vector<detail::IncidentFeature>())).first;
+                                mit = mIncidentFeatures.insert(std::make_pair(meanIndex, std::vector<detail::IncidentFeature>())).first;
 
                             ign::feature::Feature incidentFeat;
                             _fsEdge->getFeatureById(incidentFeatId, incidentFeat);
@@ -1221,9 +1556,9 @@ namespace app
                 
                 previousFeat = currentFeat;
 			}
-            sAbsEdge.insert(std::make_pair(1., previousFeat));
+            sMeanIndexEdge.insert(std::make_pair(pathgeomMeanGeomLink.back(), previousFeat));
 
-			return sAbsEdge;
+			return sMeanIndexEdge;
 		}
 
         ///
@@ -1264,6 +1599,7 @@ namespace app
             //--
             app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
 			std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
+            std::string const natIdName = themeParameters->getParameter(NATIONAL_IDENTIFIER_NAME).getValue().toString();
 
             // chargement des edges
             size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filter);
@@ -1279,11 +1615,13 @@ namespace app
                 std::string country = fEdge.getAttribute(countryCodeName).toString();
                 bool isCl = country.find("#") != std::string::npos;
 
+                OriginEdgeProperties edgeProp(country, isCl);
                 if (planarize) {
-                    graphManager.addEdge(ls, edgeId, OriginEdgeProperties(country, isCl));
+                    edgeProp.natId = fEdge.getAttribute(natIdName).toString();
+                    graphManager.addEdge(ls, edgeId, edgeProp);
                 } else {
-                    std::string wTag = fEdge.getAttribute(wTagName).toString();
-                    graphManager.addEdgeSimple(ls, edgeId, OriginEdgeProperties(country, wTag, isCl));
+                    edgeProp.wTag = fEdge.getAttribute(wTagName).toString();
+                    graphManager.addEdgeSimple(ls, edgeId, edgeProp);
                 }
             }
             if (planarize) {
@@ -1338,27 +1676,42 @@ namespace app
         ///
         ign::geometry::LineString CLInAreaGenerationOp::_computeMeanPath(
             ign::geometry::LineString const& path1geom,
-            ign::geometry::LineString const& path2geom
+            ign::geometry::LineString const& path2geom,
+            std::vector<int> & path1geomMeanGeomLink,
+            std::vector<int> & path2geomMeanGeomLink
 		) const {
+            path1geomMeanGeomLink.resize(path1geom.numPoints());
+            path2geomMeanGeomLink.resize(path2geom.numPoints());
 
 			ign::geometry::LineString meanGeom;
 
-			std::set<double> sAbsCurv;
 			geometry::tools::LengthIndexedLineString lsIndex1(path1geom);
 			geometry::tools::LengthIndexedLineString lsIndex2(path2geom);
 
+            std::set<double> sAbsCurv1;
 			double l1 = path1geom.length();
 			for (size_t i = 0; i < path1geom.numPoints(); ++i) {
 				double abscurv = lsIndex1.getPointLocation(i)/l1;
-				sAbsCurv.insert(abscurv);
+				sAbsCurv1.insert(abscurv);
 			}
+            std::set<double> sAbsCurv2;
 			double l2 = path2geom.length();
 			for (size_t i = 0; i < path2geom.numPoints(); ++i) {
 				double abscurv = lsIndex2.getPointLocation(i)/l2;
-				sAbsCurv.insert(abscurv);
+				sAbsCurv2.insert(abscurv);
 			}
 
+            std::set<double> sAbsCurv = sAbsCurv1;
+            sAbsCurv.insert(sAbsCurv2.begin(), sAbsCurv2.end());
 			for (std::set<double>::iterator sit = sAbsCurv.begin(); sit != sAbsCurv.end(); ++sit) {
+                std::set<double>::const_iterator sit1 = sAbsCurv1.find(*sit);
+                if( sit1 != sAbsCurv1.end() )
+                    path1geomMeanGeomLink[std::distance(sAbsCurv1.begin(), sit1)]= std::distance(sAbsCurv.begin(), sit);
+
+                std::set<double>::const_iterator sit2 = sAbsCurv2.find(*sit);
+                if( sit2 != sAbsCurv2.end() )
+                    path2geomMeanGeomLink[std::distance(sAbsCurv2.begin(), sit2)]= std::distance(sAbsCurv.begin(), sit);
+
 				ign::geometry::Point pt1 = lsIndex1.locateAlong(*sit*l1);
 				ign::geometry::Point pt2 = lsIndex2.locateAlong(*sit*l2);
 				ign::geometry::Point meanPt((pt1.x()+pt2.x())/2, (pt1.y()+pt2.y())/2, (pt1.z()+pt2.z())/2);
@@ -1367,6 +1720,120 @@ namespace app
 
 			 return meanGeom;
 		}
+
+        ///
+        ///
+        ///
+        // void CLInAreaGenerationOp::_mergeCl(
+        //     detail::EdgeCleaningGraphManager & graphManager
+        // ) const {
+        //      GraphType & graph = graphManager.getGraph();
+
+        //     bool mergingOccured = false;
+        //     do{
+        //         edge_iterator eit, eend ;
+        //         for( graph.edges( eit, eend ) ; eit != eend ; ++eit )
+        //         {
+        //             if( !graphManager.isCl(*eit) ) continue;
+
+        //             std::string clNatId = graphManager.getNatId(*eit);
+
+        //             std::vector<edge_descriptor> vEdgeToMerge;
+        //             vertex_descriptor vConnect;
+
+        //             // on regarde si edge mergeable cote source
+        //             std::string incidentNatIdSource = "";
+        //             if( graph.degree(graph.source(*eit)) == 2 ) {
+        //                 std::vector< edge_descriptor > vEdges = graph.incidentEdges(graph.source(*eit));
+        //                 edge_descriptor incidentEdge = vEdges.front() == *eit ? vEdges.back() : vEdges.front();
+        //                 if ( !graphManager.isCl(incidentEdge) ) {
+        //                     std::string incidentNatIdSource = graphManager.getNatId(incidentEdge);
+        //                     if (clNatId.find(incidentNatIdSource) != std::string::npos) {
+        //                         vEdgeToMerge.push_back(incidentEdge);
+        //                         vConnect = graph.source(*eit);
+        //                     }
+        //                 }
+        //             }
+
+        //             // on regarde si edge mergeable cote target
+        //             std::string incidentNatIdTarget = "";
+        //             if( graph.degree(graph.target(*eit)) == 2 ) {
+        //                 std::vector< edge_descriptor > vEdges = graph.incidentEdges(graph.target(*eit));
+        //                 edge_descriptor incidentEdge = vEdges.front() == *eit ? vEdges.back() : vEdges.front();
+        //                 if ( !graphManager.isCl(incidentEdge) ) {
+        //                     std::string incidentNatIdTarget = graphManager.getNatId(incidentEdge);
+        //                     if (clNatId.find(incidentNatIdTarget) != std::string::npos) {
+        //                         vEdgeToMerge.push_back(incidentEdge);
+        //                         vConnect = graph.target(*eit);
+        //                     }
+        //                 }
+        //             }
+
+        //             if( vEdgeToMerge.size() != 1 ) continue;
+        //             //todo : voir si on merge si (vEdgeToMerge.size() ==2 && incidentNatIdSource == incidentNatIdTarget)
+
+        //             mergingOccured = true;
+
+        //             edge_descriptor eIncident = vEdgeToMerge.front();
+
+        //             //fusion des geometries
+        //             ign::geometry::LineString clGeom = graph.getGeometry(*eit);
+        //             ign::geometry::LineString incidentGeom = graph.getGeometry(eIncident);
+                    
+        //             ign::graph::EdgeDirection incidentDirection = graph.source(eIncident) == vConnect ? ign::graph::DIRECT : ign::graph::REVERSE;
+        //             ign::graph::EdgeDirection clDirection = graph.source(*eit) == vConnect ? ign::graph::DIRECT : ign::graph::REVERSE;
+
+        //             if( incidentDirection == clDirection )
+        //                 clGeom.reverse();
+
+        //             //suppression cl
+        //             graphManager.removeEdge(*eit);
+
+        //             //remplacement edge incident
+        //             vertex_descriptor vNewConnect = clDirection == ign::graph::DIRECT ? graph.target(*eit) : graph.source(*eit);
+
+        //             vertex_descriptor vSource = incidentDirection == ign::graph::DIRECT ? vNewConnect : graph.source(eIncident);
+        //             vertex_descriptor vTarget = incidentDirection == ign::graph::DIRECT ? graph.target(eIncident) : vNewConnect;
+
+        //             std::vector<ign::geometry::Point> intermediatePoints = incidentDirection == ign::graph::DIRECT ? _getIntermediatePoints(clGeom, incidentGeom) : _getIntermediatePoints(incidentGeom, clGeom);
+
+        //             std::vector<std::string> vOrigins = graph.origins(eIncident);
+        //             oriented_edge_descriptor oeNewIncident = graph.addEdge(vSource, vTarget, intermediatePoints);
+
+        //             for (std::vector<std::string>::const_iterator vit = vOrigins.begin() ; vit != vOrigins.end() ; ++vit) {
+        //                 std::pair<bool, std::vector<oriented_edge_descriptor>> foundInducedEdges = graph.getInducedEdges(*vit);
+        //                 if (foundInducedEdges.first) {
+        //                     for (typename std::vector<oriented_edge_descriptor>::iterator vit2 = foundInducedEdges.second.begin() ; vit2 != foundInducedEdges.second.end() ; ++vit2) {
+        //                         if (vit2->descriptor == eIncident) {
+        //                             vit2->descriptor = oeNewIncident.descriptor;
+        //                         }
+        //                     }
+        //                     graph.setInducedEdges(*vit, foundInducedEdges.second);
+        //                     graph.addOrigin( oeNewIncident.descriptor , *vit );
+        //                 }
+        //             }
+        //             graph.setOrigins( eIncident , std::vector<std::string>() );
+        //             graph.removeEdge( eIncident, true );
+        //         }
+        //     } while ( mergingOccured );
+        // }
+
+        ///
+        ///
+        ///
+        // std::vector<ign::geometry::Point> CLInAreaGenerationOp::_getIntermediatePoints(
+        //     ign::geometry::LineString const& lsFront, 
+        //     ign::geometry::LineString const& lsBack
+        // ) const {
+        //     std::vector<ign::geometry::Point> vPoints;
+        //     for( size_t i = 1 ; i < lsFront.numPoints() ; ++i ) {
+        //         vPoints.push_back(lsFront.pointN(i));
+        //     }
+        //     for( size_t i = 1 ; i < lsBack.numPoints()-1 ; ++i ) {
+        //         vPoints.push_back(lsBack.pointN(i));
+        //     }
+        //     return vPoints;
+        // }
 
 		///
         ///

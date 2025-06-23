@@ -18,6 +18,9 @@
 // OME2
 #include <ome2/feature/sql/NotDestroyedTools.h>
 
+// STL
+#include <sstream>
+
 
 namespace app
 {
@@ -113,6 +116,7 @@ namespace app
             //--
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
             double const distThreshold = themeParameters->getValue(CC_DIST_THRESHOLD).toDouble();
+            std::string const natIdName = themeParameters->getParameter(NATIONAL_IDENTIFIER_NAME).getValue().toString();
 
             //--
             ign::geometry::index::QuadTree< std::string > qTreeEdges;
@@ -175,6 +179,7 @@ namespace app
                 ign::feature::Feature fEdge;
                 _fsEdge->getFeatureById(mit->first, fEdge);
                 ign::geometry::LineString const& ls = fEdge.getGeometry().asLineString();
+                std::string const natId = fEdge.getAttribute(natIdName).toString();
 
                 app::geometry::tools::LineStringSplitter lsSplitter(ls);
                 for (size_t i = 0 ; i < mit->second.size() ; ++i) {
@@ -183,6 +188,7 @@ namespace app
                 }
                 std::vector<ign::geometry::LineString> subEdges = lsSplitter.getSubLineStringsZ();
 
+                size_t count = 1;
                 for (size_t i = 0 ; i < subEdges.size() ; ++i) {
                     if ( i != 0 ) {
                         subEdges[i].startPoint() = _getClosest(subEdges[i].startPoint(), mit->second);
@@ -191,6 +197,10 @@ namespace app
                         subEdges[i].endPoint() = _getClosest(subEdges[i].endPoint(), mit->second);
                     }
 
+                    std::ostringstream ss;
+                    ss << natId << "_" << count++;
+
+                    fEdge.setAttribute(natIdName, ign::data::String(ss.str()) );
                     fEdge.setGeometry(subEdges[i]);
                     _fsEdge->createFeature(fEdge);
                 }

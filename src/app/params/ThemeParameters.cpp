@@ -28,6 +28,7 @@ namespace params{
 		_initParameter( TYPE_LAND_AREA, "TYPE_LAND_AREA" );
 		_initParameter( FORM_OF_WAY_NAME, "FORM_OF_WAY_NAME" );
 		_initParameter( COUNTRY_CODE_W, "COUNTRY_CODE_W" );
+		_initParameter( NATIONAL_IDENTIFIER_NAME, "NATIONAL_IDENTIFIER_NAME" );
 
 		_initParameter( CC_DIST_THRESHOLD, "CC_DIST_THRESHOLD" );
 

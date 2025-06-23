@@ -20,10 +20,13 @@ namespace detail{
     struct OriginEdgeProperties {
 
         /// \brief
-        OriginEdgeProperties(std::string country_, bool isCl_ = false):isCl(isCl_), country(country_), wTag(""){};
+        OriginEdgeProperties(std::string country_, bool isCl_ = false):isCl(isCl_), country(country_), wTag(""), natId(""){};
 
         /// \brief
-        OriginEdgeProperties(std::string country_, std::string wTag_, bool isCl_ = false):isCl(isCl_), country(country_), wTag(wTag_){};
+        OriginEdgeProperties(std::string country_, std::string wTag_, bool isCl_ = false):isCl(isCl_), country(country_), wTag(wTag_), natId(""){};
+
+        /// \brief
+        OriginEdgeProperties(std::string country_, std::string wTag_, std::string natId_, bool isCl_ = false):isCl(isCl_), country(country_), wTag(wTag_), natId(natId_){};
 
         /// \brief
         ~OriginEdgeProperties(){};
@@ -32,6 +35,7 @@ namespace detail{
         bool		  isCl;
         std::string   country;
         std::string   wTag;
+        std::string   natId;
     };
 
     /// @brief Classe utilitaire facilitant la manipulation du graph de travail
@@ -97,6 +101,22 @@ namespace detail{
             if ( !_builder ) _builder = new ign::geometry::graph::tools::SnapRoundPlanarizer<GraphType>(_graph);
             _mEdges.insert(std::make_pair(idOrigin, edgeProperties));
             return _builder->addEdge(ls, idOrigin);
+        };
+
+        /// @brief supprime un arc du graph
+        /// @param e arc à supprimer
+        void removeEdge( 
+            edge_descriptor e
+        ) {
+            std::vector< std::string > const& vOrigins = _graph.origins(e);
+
+            _graph.removeEdge(e, true);
+
+            for (std::vector< std::string >::const_iterator vit = vOrigins.begin() ; vit != vOrigins.end() ; ++vit){
+                if( _graph.isLinearOrigin(*vit) ) continue; //not removed
+                
+                _mEdges.erase(*vit);
+            }
         };
 
         /// @brief Ajoute un arc au graph
@@ -196,12 +216,31 @@ namespace detail{
             return "";
         };
 
+        /// @brief Retourne la valeur du champ de travail W_NATIONAL_IDENTIFIER_NAME de l'arc
+        /// @param e Identifiant de l'arc
+        /// @return Valeur du champ W_NATIONAL_IDENTIFIER_NAME
+        std::string getNatId(edge_descriptor e) const {
+            std::vector< std::string > const& vOrigins = _graph.origins(e);
+            std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(vOrigins.front());
+            if ( mit != _mEdges.end() ) return mit->second.natId;
+            return "";
+        };
+
         /// @brief Retourne un code pays de l'arc
         /// @param e Identifiant de l'arc
         /// @return Code pays
         std::string getCountry(edge_descriptor e) const {
             std::vector< std::string > const& vOrigins = _graph.origins(e);
             std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(vOrigins.front());
+            if ( mit != _mEdges.end() ) return mit->second.country;
+            return "";
+        };
+
+        /// @brief Retourne un code pays du linéaire
+        /// @param id Identifiant du linéaire
+        /// @return Code pays
+        std::string getCountry(std::string const& id) const {
+            std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(id);
             if ( mit != _mEdges.end() ) return mit->second.country;
             return "";
         };

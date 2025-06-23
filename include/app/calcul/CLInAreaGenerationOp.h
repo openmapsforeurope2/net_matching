@@ -106,7 +106,30 @@ namespace calcul{
 		void _computeByIteration() const;
 
 		//--
+		void _clean() const;
+
+		//--
+		ign::geometry::LineString _merge(
+            ign::geometry::LineString const& lsRef,
+            ign::geometry::LineString const& lsToMerge
+        ) const;
+
+		//--
 		bool _compute() const;
+
+		//--
+		std::pair<bool, std::pair<std::string, std::string>> _findClEdgeAssociation(
+            detail::EdgeCleaningGraphManager const& graphManager,
+            face_descriptor f,
+            edge_descriptor eCl
+        ) const;
+
+		//--
+		bool _belongToFace(
+            GraphType const& graph,
+            face_descriptor f,
+            edge_descriptor e
+        ) const;
 
 		//--
 		double _isFaceToTreat(
@@ -114,7 +137,25 @@ namespace calcul{
             face_descriptor f,
             std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges,
             std::vector<ign::geometry::LineString> & vPathsGeom,
+			std::map<std::string, std::string> & mClToConvert,
             double slimSurfaceWidth
+        ) const;
+
+		//--
+		ign::geometry::LineString _addInterMeaningFullPoint(
+            GraphType const& graph,
+            std::list<oriented_edge_descriptor> const& pathOther,
+            ign::geometry::LineString const& lsRef,
+            ign::geometry::LineString const& lsOther,
+            std::vector<int> & geomRefgeomMeanLink,
+            std::vector<int> & geomOthergeomMeanLink
+        ) const;
+
+		//--
+		ign::geometry::LineString _getSubLineString(
+            ign::geometry::LineString const& ls,
+            size_t indexStart,
+            size_t indexEnd
         ) const;
 
 		//--
@@ -130,6 +171,12 @@ namespace calcul{
 			std::list<oriented_edge_descriptor> const& path,
 			std::set<edge_descriptor> & sTreatedEdges
 		) const;
+
+		//--
+		void _replaceClByAssociatedEdge(
+            std::map<size_t, std::string> & mMeanIndexEdge,
+            std::map<std::string, std::string> const& mClToConvert
+        ) const;
 
 		//--
 		bool _createCLOnFaces(
@@ -193,17 +240,31 @@ namespace calcul{
 		//--
 		ign::geometry::LineString _computeMeanPath(
             ign::geometry::LineString const& path1geom,
-            ign::geometry::LineString const& path2geom
+            ign::geometry::LineString const& path2geom,
+			std::vector<int> & path1geomMeanGeomLink,
+            std::vector<int> & path2geomMeanGeomLink
 		) const;
 
 		//--
-		std::map<double, std::string> _getOriginEdges(
+		std::map<size_t, std::string> _getOriginEdges(
 			GraphType const& graph,
 			std::string const& country,
 			std::list<oriented_edge_descriptor> const& path,
+			std::vector<int> const& pathgeomMeanGeomLink,
 			std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
-			std::map<double, std::vector<detail::IncidentFeature>> & mIncidentFeatures
+			std::map<size_t, std::vector<detail::IncidentFeature>> & mIncidentFeatures
 		) const;
+
+		//--
+		// void _mergeCl(
+        //     detail::EdgeCleaningGraphManager & graphManager
+        // ) const;
+
+		//--
+		// std::vector<ign::geometry::Point> _getIntermediatePoints(
+        //     ign::geometry::LineString const& lsFront, 
+        //     ign::geometry::LineString const& lsBack
+        // ) const;
 
 		//--
 		std::set<std::string> _mergeFacePaths(

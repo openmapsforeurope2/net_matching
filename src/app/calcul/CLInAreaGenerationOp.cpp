@@ -281,7 +281,7 @@ namespace app
 			{
                 //DEBUG
                 // ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
-                // if(faceGeom.intersects(ign::geometry::Point(3370768.386,2318558.186))) {
+                // if(faceGeom.intersects(ign::geometry::Point(3563628.7,2240903.2))) {
                 //     bool test = true;
                 // }
                 // if(faceGeom.intersects(ign::geometry::Point(3370775.604,2318549.250))) {
@@ -309,7 +309,7 @@ namespace app
 
                 //DEBUG
                 // ign::geometry::Polygon faceGeom = graph.getGeometry( mmit->second );
-                // if(faceGeom.intersects(ign::geometry::Point(3370768.386,2318558.186))) {
+                // if(faceGeom.intersects(ign::geometry::Point(3563628.7,2240903.2))) {
                 //     bool test = true;
                 // }
                 // if(faceGeom.intersects(ign::geometry::Point(3370775.604,2318549.250))) {
@@ -1052,7 +1052,9 @@ namespace app
             _cleanOverLappingCl();
 
             //--
-            _mergeByWTag();
+            // std::string const attRef = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
+            std::string const mergingAttName = themeParameters->getParameter(NATIONAL_IDENTIFIER_NAME).getValue().toString();
+            _mergeByAtt(mergingAttName);
 
             return true;
 		}
@@ -1242,7 +1244,107 @@ namespace app
         ///
         ///
         ///
-        void CLInAreaGenerationOp::_mergeByWTag() const {
+        // void CLInAreaGenerationOp::_mergeByWTag() const {
+        //     //--
+        //     app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
+		// 	std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
+
+        //     //--
+        //     detail::EdgeCleaningGraphManager graphManager;
+        //     ign::feature::FeatureFilter filter(wTagName+" IS NOT NULL");
+        //     _loadGraph(graphManager, filter, false);
+        //     GraphType const& graph = graphManager.getGraph();
+
+        //     //patience
+        //     boost::progress_display display( graph.numEdges() , std::cout, "[ merging CL % complete ]\n") ;
+
+        //     std::set< edge_descriptor > sMergedEdges;
+
+        //     edge_iterator eit, eend ;
+        //     for( graph.edges( eit, eend ) ; eit != eend ; ++eit )
+        //     {
+        //         ++display;
+        //         // if( !graphManager.isCl(*eit)) continue;
+        //         if( graph.target(*eit) == graph.source(*eit) ) continue;
+        //         if( sMergedEdges.find(*eit) != sMergedEdges.end() ) continue ;
+
+        //         edge_descriptor edgePivot = *eit ;
+
+        //         oriented_edge_descriptor tPivot[] = { 
+        //             oriented_edge_descriptor( *eit, ign::graph::DIRECT ), 
+        //             oriented_edge_descriptor( *eit, ign::graph::REVERSE ) 
+        //         } ;
+
+        //         ign::feature::Feature featPivot;
+        //         _fsEdge->getFeatureById(graph.origins(*eit)[0], featPivot);
+        //         std::string wTagPivot = featPivot.getAttribute(wTagName).toString();
+
+        //         //liste des arcs a fusionner
+        //         edges_path path;
+        //         path.push_back(tPivot[0]);
+                
+        //         for( size_t  i = 0 ; i < 2 ; ++i)
+        //         {
+        //             oriented_edge_descriptor nextEdge = tPivot[i] ;
+
+        //             vertex_descriptor vTarget = graph.target( nextEdge );
+        //             vertex_descriptor vStart = graph.source( nextEdge );
+
+        //             if( graph.degree( vTarget ) != 2 ) continue ;
+
+        //             bool isLoop = false;
+                            
+        //             while( true ) {
+
+        //                 if( vTarget == vStart ) {
+        //                     isLoop = true;
+        //                     break;
+        //                 }
+
+        //                 std::vector< oriented_edge_descriptor > vIncidentEdges ;
+        //                 graph.incidentEdges( vTarget, vIncidentEdges);
+        //                 nextEdge = (vIncidentEdges.front().descriptor == nextEdge.descriptor )? vIncidentEdges.back() : vIncidentEdges.front() ;
+
+        //                 ign::feature::Feature featNext;
+        //                 _fsEdge->getFeatureById(graph.origins(nextEdge.descriptor)[0], featNext);
+        //                 std::string wTagNext = featNext.getAttribute(wTagName).toString();
+
+        //                 if( wTagNext != wTagPivot ) break;
+
+        //                 if( i == 0 )
+        //                     path.push_back( nextEdge );
+        //                 else
+        //                     path.push_front( epg::graph::tools::reverse( nextEdge ) );
+
+		// 			    vTarget = graph.target( nextEdge );
+
+		// 			    if( graph.degree( vTarget ) != 2 ) break;
+        //             }
+        //             if (isLoop) break;
+        //         }
+
+        //         if (path.size() > 1) {
+        //             ign::geometry::LineString pathGeom = _convertPathToLineString(graph, "", path);
+
+        //             ign::feature::Feature featRef;
+        //             _fsEdge->getFeatureById(graph.origins(path.begin()->descriptor)[0], featRef);
+        //             featRef.setGeometry(pathGeom);
+        //             _fsEdge->createFeature(featRef);
+
+        //             for (edges_path_const_iterator pit = path.begin() ; pit != path.end() ; ++pit)
+        //                 sMergedEdges.insert(pit->descriptor);
+                        
+        //         }
+        //     }
+        //     for( std::set<edge_descriptor>::const_iterator sit = sMergedEdges.begin() ; sit != sMergedEdges.end() ; ++sit ) {
+        //         _fsEdge->deleteFeature(graph.origins(*sit)[0]);
+        //     }
+        // }
+
+        ///
+        ///
+        ///
+        void CLInAreaGenerationOp::_mergeByAtt(std::string const& attName) const {
             //--
             app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
 			std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
@@ -1275,7 +1377,7 @@ namespace app
 
                 ign::feature::Feature featPivot;
                 _fsEdge->getFeatureById(graph.origins(*eit)[0], featPivot);
-                std::string wTagPivot = featPivot.getAttribute(wTagName).toString();
+                std::string attPivot = featPivot.getAttribute(attName).toString();
 
                 //liste des arcs a fusionner
                 edges_path path;
@@ -1305,9 +1407,9 @@ namespace app
 
                         ign::feature::Feature featNext;
                         _fsEdge->getFeatureById(graph.origins(nextEdge.descriptor)[0], featNext);
-                        std::string wTagNext = featNext.getAttribute(wTagName).toString();
+                        std::string attPivotNext = featNext.getAttribute(attName).toString();
 
-                        if( wTagNext != wTagPivot ) break;
+                        if( attPivotNext != attPivot ) break;
 
                         if( i == 0 )
                             path.push_back( nextEdge );

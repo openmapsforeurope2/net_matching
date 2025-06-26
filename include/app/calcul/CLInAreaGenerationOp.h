@@ -226,7 +226,10 @@ namespace calcul{
 		) const;
 
 		//--
-		void _mergeByWTag() const;
+		// void _mergeByWTag() const;
+
+		//--
+		void _mergeByAtt(std::string const& attName) const;
 
 		//--
 		double _pathsGeomAreEqual(

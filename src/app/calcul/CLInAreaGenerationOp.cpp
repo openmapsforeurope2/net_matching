@@ -281,7 +281,7 @@ namespace app
 			{
                 //DEBUG
                 // ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
-                // if(faceGeom.intersects(ign::geometry::Point(3563628.7,2240903.2))) {
+                // if(faceGeom.intersects(ign::geometry::Point(3456543.30,2250739.23))) {
                 //     bool test = true;
                 // }
                 // if(faceGeom.intersects(ign::geometry::Point(3370775.604,2318549.250))) {
@@ -309,7 +309,7 @@ namespace app
 
                 //DEBUG
                 // ign::geometry::Polygon faceGeom = graph.getGeometry( mmit->second );
-                // if(faceGeom.intersects(ign::geometry::Point(3563628.7,2240903.2))) {
+                // if(faceGeom.intersects(ign::geometry::Point(3456543.30,2250739.23))) {
                 //     bool test = true;
                 // }
                 // if(faceGeom.intersects(ign::geometry::Point(3370775.604,2318549.250))) {
@@ -872,29 +872,68 @@ namespace app
             ign::geometry::LineString const& lsRef,
             ign::geometry::LineString const& lsToMerge
         ) const {
+
+            //DEBUG
+            bool debugActivated = lsRef.distance(ign::geometry::Point(3456955.76,2250773.08)) < 1.5;
+            if( debugActivated ) {
+                _logger->log(epg::log::DEBUG, lsRef.toString());
+                _logger->log(epg::log::DEBUG, lsToMerge.toString());
+            }
+
+
             ign::geometry::LineString lsMerged;
             double distEndStart = lsRef.endPoint().distance(lsToMerge.startPoint());
             double distEndEnd = lsRef.endPoint().distance(lsToMerge.endPoint());
             if( distEndStart < 1e-5 || distEndEnd < 1e-5 ) {
+                //DEBUG
+                if( debugActivated ) {
+
+                }
+
                 lsMerged = lsRef;
                 lsMerged.removePointN(lsMerged.numPoints()-1);
 
-                if( distEndStart < 1e-5 )
+                if( distEndStart < 1e-5 ) {
+                    //DEBUG
+                    if( debugActivated ) {
+                        _logger->log(epg::log::DEBUG, "POUET1");
+                        _logger->log(epg::log::DEBUG, lsMerged.toString());
+                    }
                     for ( size_t i = 1 ; i < lsToMerge.numPoints() ; ++i ) 
                         lsMerged.addPoint(lsToMerge.pointN(i));
-                else
+                } else {
+                    //DEBUG
+                    if( debugActivated ) {
+                        _logger->log(epg::log::DEBUG, "POUET2");
+                        _logger->log(epg::log::DEBUG, lsMerged.toString());
+                    }
                     for ( int i = lsToMerge.numPoints()-2 ; i >= 0 ; --i ) 
                         lsMerged.addPoint(lsToMerge.pointN(i));
+                }
             } else {
                 double distStartStart = lsRef.startPoint().distance(lsRef.startPoint());
 
                 lsMerged = distStartStart < 1e-5 ? lsToMerge.getReversed() : lsToMerge;
                 lsMerged.removePointN(lsToMerge.numPoints()-1);
 
+                //DEBUG
+                if( debugActivated ) {
+                    _logger->log(epg::log::DEBUG, "POUET3");
+                    _logger->log(epg::log::DEBUG, lsMerged.toString());
+                    _logger->log(epg::log::DEBUG, ign::data::Integer(lsMerged.numPoints()).toString());
+                    _logger->log(epg::log::DEBUG, ign::data::Integer(lsToMerge.numPoints()).toString());
+                }
+
                 for ( size_t i = 1 ; i < lsRef.numPoints() ; ++i ) 
                         lsMerged.addPoint(lsRef.pointN(i));
-
             }
+
+            //DEBUG
+            if( debugActivated ) {
+                _logger->log(epg::log::DEBUG, "POUET4");
+                _logger->log(epg::log::DEBUG, lsMerged.toString());
+            }
+
             return lsMerged;
         }
 

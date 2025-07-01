@@ -769,10 +769,20 @@ namespace app
                     bool touchStart = incidentFeatGeom.startPoint().distance(vertexGeom) < 1e-5;
                     bool touchEnd = incidentFeatGeom.endPoint().distance(vertexGeom) < 1e-5;
 
-                    if (touchStart)
-                        mmIncidentFeatures.insert(std::make_pair(incidentFeatId, detail::IncidentFeature(incidentFeatId, detail::START)));
-                    if (touchEnd)
-                        mmIncidentFeatures.insert(std::make_pair(incidentFeatId, detail::IncidentFeature(incidentFeatId, detail::END)));
+                    detail::IncidentFeature incidentObj(incidentFeatId);
+                    incidentObj.ptTarget = graph.getGeometry(v);
+
+                    if (touchStart) {
+                        incidentObj.ending = detail::START;
+                        if( !_hasIncident( mmIncidentFeatures, incidentObj ) )
+                            mmIncidentFeatures.insert(std::make_pair(incidentFeatId, incidentObj));
+                    }
+                       
+                    if (touchEnd) {
+                        incidentObj.ending = detail::END;
+                        if( !_hasIncident( mmIncidentFeatures, incidentObj ) )
+                            mmIncidentFeatures.insert(std::make_pair(incidentFeatId, incidentObj));
+                    }
 
                     if (!touchStart && !touchEnd) {
                         _logger->log(epg::log::ERROR, "Error in incident feature computation : "+vertexGeom.toString());
@@ -780,6 +790,22 @@ namespace app
 
                 }
             }
+        }
+
+        ///
+        ///
+        ///
+        bool CLInAreaGenerationOp::_hasIncident(
+            std::multimap<std::string, detail::IncidentFeature> const& mmIncidentFeatures,
+            detail::IncidentFeature const& incidentObj
+        ) const {
+            std::pair<m_iterator, m_iterator> bounds = mmIncidentFeatures.equal_range( incidentObj.originId );
+            for ( m_iterator it = bounds.first ; it != bounds.second ; ++it )
+            {
+                if( it->second.ending == incidentObj.ending ) 
+                    return true;
+            }
+            return false;
         }
 
         ///

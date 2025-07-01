@@ -26,6 +26,14 @@ namespace detail{
     /// @brief Structure décrivant un edge incident
     struct IncidentFeature {
 
+		/// @brief Constructeur
+        /// @param originId_ 
+        IncidentFeature(
+			std::string originId_
+		):
+			originId(originId_)
+		{};
+
         /// @brief Constructeur
         /// @param originId_ 
         /// @param ending_ 
@@ -101,6 +109,12 @@ namespace calcul{
 
 		//--
 		void _init();
+
+		//--
+		bool _hasIncident(
+            std::multimap<std::string, detail::IncidentFeature> const& mmIncidentFeatures,
+            detail::IncidentFeature const& incidentObj
+        ) const;
 
 		//--
 		void _computeByIteration() const;

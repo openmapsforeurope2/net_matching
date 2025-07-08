@@ -247,11 +247,31 @@ namespace app
             }
         }
 
+         ///
+        ///
+        ///
+        bool CLInAreaGenerationOp::_collapseClByIteration() const {
+            bool hasCollapsed = false;
+            bool hasNotTreatedCl = false;
+            do {
+                std::pair<bool, bool> result = _collapseCl();
+
+                if( result.first ) 
+                    hasCollapsed = true;
+
+                hasNotTreatedCl = result.second;
+
+            } while( hasNotTreatedCl );
+
+            return hasCollapsed;
+        }
+
         ///
         ///
         ///
-        bool CLInAreaGenerationOp::_collapseCl() const {
+        std::pair<bool, bool> CLInAreaGenerationOp::_collapseCl() const {
             bool hasCollapsedCl = false;
+            bool hasNotTreatedEdgeToTreat = false;
 
             //--
 			epg::Context *context = epg::ContextS::getInstance();
@@ -259,8 +279,8 @@ namespace app
             //--
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
             double const slimSurfaceWidth = themeParameters->getValue( CLA_SURFACE_WIDTH ).toDouble();
-            double const clMinLength = themeParameters->getValue( CLA_CL_MIN_LENGTH ).toDouble();
-            double const clMinRatio = themeParameters->getValue( CLA_CL_MIN_RATIO ).toDouble();
+            double const clMinLength = themeParameters->getValue( CLA_CL_LENGTH_THRESHOLD ).toDouble();
+            double const clMinRatio = themeParameters->getValue( CLA_CL_MIN_RATIO_IN_AREA ).toDouble();
 
             //--
             ign::feature::FeatureFilter filter;
@@ -270,10 +290,10 @@ namespace app
             _loadGraph(graphManager, filter);
             GraphType const& graph = graphManager.getGraph();
 
-            boost::progress_display display(graph.numFaces(), std::cout, "[collapsing CL % complete ]\n");
-
+            // get faces to treate ordered by width
+            std::multimap< double, face_descriptor> mWidthFace;
             face_iterator fit, fend;
-            for( graph.faces( fit, fend ) ; fit != fend ; ++fit, ++display )
+            for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
 			{
                 ign::geometry::Polygon faceGeom = graph.getGeometry(*fit);
                 double faceMeanWidth = 2 * ( faceGeom.area() / faceGeom.exteriorRing().length() );
@@ -281,8 +301,25 @@ namespace app
                 if( faceMeanWidth > slimSurfaceWidth )
                     continue;
 
+                mWidthFace.insert( std::make_pair(faceMeanWidth, *fit));
+            }
+
+            //--
+            std::set<edge_descriptor> sTreatedEdges;
+            
+            boost::progress_display display(mWidthFace.size(), std::cout, "[ collapsing CL  % complete ]\n");
+            for( std::multimap< double, face_descriptor>::const_iterator mmit = mWidthFace.begin() ; mmit != mWidthFace.end() ; ++mmit, ++display )
+			{
+                if ( _hasTreatedEdge(graph, mmit->second, sTreatedEdges) ) {
+                    hasNotTreatedEdgeToTreat = true;
+                    continue;  
+                }
+
                 std::vector<std::list<oriented_edge_descriptor>> vPathCl;
-                double clRatio = _getClRatio(graphManager, *fit, vPathCl);
+                double clRatio = _getClRatio(graphManager, mmit->second, vPathCl);
+
+                if( clRatio == 0 || vPathCl.empty() )
+                    continue;
 
                 if( clRatio > clMinRatio )
                     continue;
@@ -295,11 +332,13 @@ namespace app
                     continue;
 
                 hasCollapsedCl = true;
+                for( std::list<oriented_edge_descriptor>::const_iterator lit = clPathPtr->begin() ; lit != clPathPtr->end() ; ++lit )
+                    sTreatedEdges.insert(lit->descriptor);
                 
                 std::pair<ign::geometry::LineString, ign::geometry::LineString> pClParts = _split(clPathGeom);
 
-                _displaceIncidentEdges(graph, pClParts, *clPathPtr, ign::graph::DIRECT);
-                _displaceIncidentEdges(graph, pClParts, *clPathPtr, ign::graph::REVERSE);
+                _displaceIncidentEdges(graph, pClParts, *clPathPtr, ign::graph::DIRECT, sTreatedEdges);
+                _displaceIncidentEdges(graph, pClParts, *clPathPtr, ign::graph::REVERSE, sTreatedEdges);
 
                 for ( std::list<oriented_edge_descriptor>::const_iterator lit = clPathPtr->begin() ; lit != clPathPtr->end() ; ++lit ) {
                     std::string clId = graph.origins(lit->descriptor)[0];
@@ -307,7 +346,7 @@ namespace app
                 }
             }
 
-            return hasCollapsedCl;
+            return std::make_pair(hasCollapsedCl, hasNotTreatedEdgeToTreat);
         }
 
         ///
@@ -369,10 +408,22 @@ namespace app
             ign::geometry::LineString const& ls,
             double snapDist
         ) const {
+            double lsLength = ls.length();
+
+            // cas particulier
+            if( lsLength <= 2*snapDist ) {
+                ign::geometry::Point middlePt((ls.startPoint().x()+ls.endPoint().x())/2, (ls.startPoint().y()+ls.endPoint().y())/2);
+                if (ls.startPoint().is3D() && ls.endPoint().is3D()) {
+                    middlePt.z() = (ls.startPoint().z()+ls.endPoint().z())/2;
+                }
+                return std::make_pair(ign::geometry::LineString(ls.startPoint(), middlePt), ign::geometry::LineString(middlePt, ls.endPoint()));
+            }
+
+            // cas general
             std::pair<ign::geometry::LineString, ign::geometry::LineString> pParts = std::make_pair(ign::geometry::LineString(), ign::geometry::LineString());
 
-            double lowerBound = ls.length()/2 - snapDist;
-            double higherBound = ls.length()/2 + snapDist;
+            double lowerBound = lsLength/2 - snapDist;
+            double higherBound = lsLength/2 + snapDist;
 
             ign::geometry::Point middlePt;
 
@@ -386,7 +437,7 @@ namespace app
                     pParts.first.addPoint(ls.pointN(i));
                 } else if (abs > higherBound) {
                     if( pParts.second.isEmpty() ) {
-                        double norm = std::abs(ls.length()/2 - abs);
+                        double norm = std::abs(lsLength/2 - abs);
                         ign::math::Vec2d source = ls.pointN(i).toVec2d();
                         ign::math::Vec2d target = ls.pointN(i-1).toVec2d();
                         ign::math::Vec2d vDiff = target - source;
@@ -425,7 +476,8 @@ namespace app
             GraphType const& graph,
             std::pair<ign::geometry::LineString, ign::geometry::LineString> const& pClParts,
             std::list<oriented_edge_descriptor> const& clPath,
-            ign::graph::EdgeDirection clDirection
+            ign::graph::EdgeDirection clDirection,
+            std::set<edge_descriptor> & sTreatedEdges
         ) const {
             oriented_edge_descriptor oeEnding = clDirection == ign::graph::DIRECT ? *clPath.begin() : *clPath.rbegin();
             vertex_descriptor vEnding = clDirection == ign::graph::DIRECT ? graph.source(oeEnding) : graph.target(oeEnding);
@@ -455,6 +507,8 @@ namespace app
             for ( size_t i = 0 ; i < vIncidentEdges.size() ; ++i ) {
                 if( vIncidentEdges[i].descriptor == oeEnding.descriptor )
                     continue;
+
+                sTreatedEdges.insert(vIncidentEdges[i].descriptor);
 
                 //--
                 std::string idIncidentFeat = graph.origins(vIncidentEdges[i].descriptor)[0];
@@ -783,6 +837,18 @@ namespace app
         ///
         bool CLInAreaGenerationOp::_hasTreatedEdge(
 			GraphType const& graph,
+			face_descriptor f,
+            std::set<edge_descriptor> const& sTreatedEdges
+		) const {
+            std::list<oriented_edge_descriptor> lEdges = _getExteriorRingEdges(graph, f);
+            return _hasTreatedEdge(graph, lEdges, sTreatedEdges);
+        }
+        
+        ///
+        ///
+        ///
+        bool CLInAreaGenerationOp::_hasTreatedEdge(
+			GraphType const& graph,
 			std::list<oriented_edge_descriptor> const& path,
             std::set<edge_descriptor> const& sTreatedEdges
 		) const {
@@ -1079,7 +1145,7 @@ namespace app
             do{
                 while (_compute()) {}
                 _clean();
-            } while(_collapseCl());
+            } while(_collapseClByIteration());
             
         }
 

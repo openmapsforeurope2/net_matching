@@ -175,6 +175,13 @@ namespace calcul{
 		//--
 		bool _hasTreatedEdge(
 			GraphType const& graph,
+			face_descriptor f,
+            std::set<edge_descriptor> const& sTreatedEdges
+		) const;
+
+		//--
+		bool _hasTreatedEdge(
+			GraphType const& graph,
 			std::list<oriented_edge_descriptor> const& path,
 			std::set<edge_descriptor> const& sTreatedEdges
 		) const;
@@ -193,7 +200,10 @@ namespace calcul{
         ) const;
 
 		//--
-        bool _collapseCl() const;
+		bool _collapseClByIteration() const;
+
+		//--
+        std::pair<bool, bool> _collapseCl() const;
 
 		//--
 		double _getClRatio(
@@ -213,7 +223,8 @@ namespace calcul{
             GraphType const& graph,
             std::pair<ign::geometry::LineString, ign::geometry::LineString> const& pClParts,
             std::list<oriented_edge_descriptor> const& clPath,
-            ign::graph::EdgeDirection clDirection
+            ign::graph::EdgeDirection clDirection,
+			std::set<edge_descriptor> & sTreatedEdges
         ) const;
 
 		//--

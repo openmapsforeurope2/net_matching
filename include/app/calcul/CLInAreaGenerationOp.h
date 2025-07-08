@@ -193,6 +193,37 @@ namespace calcul{
         ) const;
 
 		//--
+        bool _collapseCl() const;
+
+		//--
+		double _getClRatio(
+            detail::EdgeCleaningGraphManager const& graphManager,
+            face_descriptor f,
+            std::vector<std::list<oriented_edge_descriptor>> & vPathCl
+        ) const;
+
+		//--
+		std::pair<ign::geometry::LineString, ign::geometry::LineString> _split(
+            ign::geometry::LineString const& ls,
+            double snapDist = 2
+        ) const;
+
+		//--
+		void _displaceIncidentEdges(
+            GraphType const& graph,
+            std::pair<ign::geometry::LineString, ign::geometry::LineString> const& pClParts,
+            std::list<oriented_edge_descriptor> const& clPath,
+            ign::graph::EdgeDirection clDirection
+        ) const;
+
+		//--
+		double _getAngle(
+            ign::geometry::Point const& ptSommet,
+            ign::geometry::Point const& pt1,
+            ign::geometry::Point const& pt2
+        ) const;
+
+		//--
 		bool _createCLOnFaces(
             detail::EdgeCleaningGraphManager & graphManager,
             std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,

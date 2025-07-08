@@ -121,7 +121,7 @@ namespace app
             //--
             ign::geometry::index::QuadTree< std::string > qTreeEdges;
             std::map<std::string, ign::geometry::LineString> mEdges;
-            std::map<ign::geometry::Point, std::list<std::string>, PointCompare> mVertices;
+            std::map<ign::geometry::Point, std::set<std::string>, PointCompare> mVertices;
 
             //--
             ign::feature::FeatureFilter filterEdge(countryCodeName + " = '" + countryCode + "'");
@@ -141,25 +141,22 @@ namespace app
                 mEdges.insert(std::make_pair(edgeId, ls));
 
                 if ( mVertices.find(ls.startPoint()) == mVertices.end() )
-                    mVertices.insert(std::make_pair(ls.startPoint(), std::list<std::string>()));
-                mVertices[ls.startPoint()].push_back(edgeId);
+                    mVertices.insert(std::make_pair(ls.startPoint(), std::set<std::string>()));
+                mVertices[ls.startPoint()].insert(edgeId);
 
                 if ( mVertices.find(ls.endPoint()) == mVertices.end() )
-                    mVertices.insert(std::make_pair(ls.endPoint(), std::list<std::string>()));
-                mVertices[ls.endPoint()].push_back(edgeId);
+                    mVertices.insert(std::make_pair(ls.endPoint(), std::set<std::string>()));
+                mVertices[ls.endPoint()].insert(edgeId);
             }
 
             std::map<std::string, std::vector<ign::geometry::Point>> mEdgeSplittingPoints;
-            for( std::map<ign::geometry::Point, std::list<std::string>>::const_iterator mit = mVertices.begin() ; mit != mVertices.end() ; ++mit) {
-                
-                if( mit->second.size() > 1 ) //not dangle
-                    continue;
-                
+            for( std::map<ign::geometry::Point, std::set<std::string>>::const_iterator mit = mVertices.begin() ; mit != mVertices.end() ; ++mit) {
+
                 std::set<std::string> sEdges;
 		        qTreeEdges.query( mit->first.getEnvelope().expandBy(distThreshold), sEdges );
 
                 for( std::set<std::string>::const_iterator sit = sEdges.begin() ; sit != sEdges.end() ; ++sit ) {
-                    if( *sit == *mit->second.begin() ) 
+                    if( mit->second.find(*sit) != mit->second.end() ) 
                         continue;
 
                     if( mEdges[*sit].distance(mit->first) < distThreshold) {

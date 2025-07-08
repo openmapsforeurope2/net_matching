@@ -3,6 +3,7 @@
 #include <app/params/ThemeParameters.h>
 #include <app/geometry/tools/LengthIndexedLineString.h>
 #include <app/calcul/detail/graph/concept/EdgeCleaningGraphSpecializations.h>
+#include <app/calcul/detail/LineStringAbsDampedDeformer.h>
 
 // BOOST
 #include <boost/timer.hpp>
@@ -14,6 +15,7 @@
 #include <epg/sql/tools/numFeatures.h>
 #include <epg/tools/geometry/project.h>
 #include <epg/graph/tools/reverse.h>
+#include <epg/tools/geometry/angle.h>
 
 // OME2
 #include <ome2/feature/sql/NotDestroyedTools.h>
@@ -248,6 +250,267 @@ namespace app
         ///
         ///
         ///
+        bool CLInAreaGenerationOp::_collapseCl() const {
+            bool hasCollapsedCl = false;
+
+            //--
+			epg::Context *context = epg::ContextS::getInstance();
+
+            //--
+            params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+            double const slimSurfaceWidth = themeParameters->getValue( CLA_SURFACE_WIDTH ).toDouble();
+            double const clMinLength = themeParameters->getValue( CLA_CL_MIN_LENGTH ).toDouble();
+            double const clMinRatio = themeParameters->getValue( CLA_CL_MIN_RATIO ).toDouble();
+
+            //--
+            ign::feature::FeatureFilter filter;
+            detail::EdgeCleaningGraphManager graphManager;
+            
+            //--
+            _loadGraph(graphManager, filter);
+            GraphType const& graph = graphManager.getGraph();
+
+            boost::progress_display display(graph.numFaces(), std::cout, "[collapsing CL % complete ]\n");
+
+            face_iterator fit, fend;
+            for( graph.faces( fit, fend ) ; fit != fend ; ++fit, ++display )
+			{
+                ign::geometry::Polygon faceGeom = graph.getGeometry(*fit);
+                double faceMeanWidth = 2 * ( faceGeom.area() / faceGeom.exteriorRing().length() );
+
+                if( faceMeanWidth > slimSurfaceWidth )
+                    continue;
+
+                std::vector<std::list<oriented_edge_descriptor>> vPathCl;
+                double clRatio = _getClRatio(graphManager, *fit, vPathCl);
+
+                if( clRatio > clMinRatio )
+                    continue;
+
+                std::list<oriented_edge_descriptor>* clPathPtr = &vPathCl.front();
+
+                ign::geometry::LineString clPathGeom = _convertPathToLineString(graph, "", *clPathPtr);
+
+                if(clPathGeom.length() > clMinLength)
+                    continue;
+
+                hasCollapsedCl = true;
+                
+                std::pair<ign::geometry::LineString, ign::geometry::LineString> pClParts = _split(clPathGeom);
+
+                _displaceIncidentEdges(graph, pClParts, *clPathPtr, ign::graph::DIRECT);
+                _displaceIncidentEdges(graph, pClParts, *clPathPtr, ign::graph::REVERSE);
+
+                for ( std::list<oriented_edge_descriptor>::const_iterator lit = clPathPtr->begin() ; lit != clPathPtr->end() ; ++lit ) {
+                    std::string clId = graph.origins(lit->descriptor)[0];
+                    _fsEdge->deleteFeature(clId);
+                }
+            }
+
+            return hasCollapsedCl;
+        }
+
+        ///
+        ///
+        ///
+        double CLInAreaGenerationOp::_getClRatio(
+            detail::EdgeCleaningGraphManager const& graphManager,
+            face_descriptor f,
+            std::vector<std::list<oriented_edge_descriptor>> & vPathCl
+        ) const {
+            double lengthCl = 0;
+            double fullLength = 0;
+
+            //--
+            GraphType const& graph = graphManager.getGraph();
+
+            //--
+            std::list<oriented_edge_descriptor> lEdges = _getExteriorRingEdges(graph, f);
+
+            std::list<oriented_edge_descriptor>::const_iterator lit = lEdges.begin();
+            bool previousIsCl =  false;
+            for ( ; lit != lEdges.end() ; ++lit ) {
+                bool currentIsCl = graphManager.isCl(lit->descriptor);
+                double currentLength = graph.getGeometry(lit->descriptor).length();
+                fullLength += currentLength;
+
+                if ( !currentIsCl )
+                    continue;
+
+                if( !previousIsCl || graph.degree(graph.source(*lit)) > 2 ) {
+                    vPathCl.push_back(std::list<oriented_edge_descriptor>());
+                }
+                
+                vPathCl.back().push_back(*lit);
+                lengthCl += currentLength;
+
+                previousIsCl = currentIsCl;
+            }
+
+            if (vPathCl.size() > 1) {
+                vertex_descriptor vStart = graph.source(*vPathCl.front().begin());
+                vertex_descriptor vEnd = graph.target(*vPathCl.back().rbegin());
+
+                if( vStart == vEnd && graph.degree(vStart) == 2 ) {
+                    for (std::list<oriented_edge_descriptor>::const_reverse_iterator rlit = vPathCl.back().rbegin() ; rlit != vPathCl.back().rend() ; ++rlit) {
+                        vPathCl.front().push_front(*rlit);
+                    }
+                    vPathCl.pop_back();
+                }
+            }
+
+            return lengthCl/fullLength;
+        }
+
+        ///
+        ///
+        ///
+        std::pair<ign::geometry::LineString, ign::geometry::LineString> CLInAreaGenerationOp::_split(
+            ign::geometry::LineString const& ls,
+            double snapDist
+        ) const {
+            std::pair<ign::geometry::LineString, ign::geometry::LineString> pParts = std::make_pair(ign::geometry::LineString(), ign::geometry::LineString());
+
+            double lowerBound = ls.length()/2 - snapDist;
+            double higherBound = ls.length()/2 + snapDist;
+
+            ign::geometry::Point middlePt;
+
+            std::vector<ign::geometry::Point> vSnappedPoint;
+            double abs = 0;
+            pParts.first.addPoint(ls.startPoint());
+            for( size_t i = 1 ; i < ls.numPoints() ; ++i ) {
+                abs += ls.pointN(i-1).distance(ls.pointN(i));
+
+                if (abs < lowerBound) {
+                    pParts.first.addPoint(ls.pointN(i));
+                } else if (abs > higherBound) {
+                    if( pParts.second.isEmpty() ) {
+                        double norm = std::abs(ls.length()/2 - abs);
+                        ign::math::Vec2d source = ls.pointN(i).toVec2d();
+                        ign::math::Vec2d target = ls.pointN(i-1).toVec2d();
+                        ign::math::Vec2d vDiff = target - source;
+                        vDiff.normalize();
+                        vDiff *= norm;
+                        ign::math::Vec2d vMiddle = source + vDiff;
+                        middlePt.x() = vMiddle.x();
+                        middlePt.y() = vMiddle.y();
+
+                        if (ls.pointN(i).is3D() && ls.pointN(i-1).is3D()) {
+                            double ratio = ls.pointN(i-1).distance(middlePt) / ls.pointN(i-1).distance(ls.pointN(i)) ;
+                            middlePt.z() = ( ls.pointN(i).z()-ls.pointN(i-1).z() ) * ratio + ls.pointN(i-1).z();
+                        }
+
+                        pParts.second.addPoint(ign::geometry::Point()); //point bidon qui sera remplacé par middlePoint à la fin
+                    }
+                    pParts.second.addPoint(ls.pointN(i));
+                } else {
+                    vSnappedPoint.push_back(ls.pointN(i));
+                }
+            }
+
+            if( !vSnappedPoint.empty() ) 
+                middlePt = vSnappedPoint.front(); //version simple
+
+            pParts.first.addPoint(middlePt);
+            pParts.second.startPoint() = middlePt; //remplacement point bidon
+
+            return pParts;
+        }
+
+        ///
+        ///
+        ///
+        void CLInAreaGenerationOp::_displaceIncidentEdges(
+            GraphType const& graph,
+            std::pair<ign::geometry::LineString, ign::geometry::LineString> const& pClParts,
+            std::list<oriented_edge_descriptor> const& clPath,
+            ign::graph::EdgeDirection clDirection
+        ) const {
+            oriented_edge_descriptor oeEnding = clDirection == ign::graph::DIRECT ? *clPath.begin() : *clPath.rbegin();
+            vertex_descriptor vEnding = clDirection == ign::graph::DIRECT ? graph.source(oeEnding) : graph.target(oeEnding);
+            ign::geometry::LineString const* clGeomPartPtr = clDirection == ign::graph::DIRECT ? &pClParts.first : &pClParts.second;
+            ign::geometry::Point const* clNextPointPtr = clDirection == ign::graph::DIRECT ? &clGeomPartPtr->pointN(1) : &clGeomPartPtr->pointN(clGeomPartPtr->numPoints()-2);
+
+            std::vector<oriented_edge_descriptor> vIncidentEdges;
+            graph.incidentEdges(vEnding, vIncidentEdges);
+
+            double maxAngle = -1;
+            int maxIndex = -1;
+            for ( size_t i = 0 ; i < vIncidentEdges.size() ; ++i ) {
+                if( vIncidentEdges[i].descriptor == oeEnding.descriptor )
+                    continue;
+
+                ign::geometry::LineString incidentEdgeGeom = graph.getGeometry(vIncidentEdges[i].descriptor);
+                ign::geometry::Point const* incidentEdgeNextPointPtr = vIncidentEdges[i].direction == ign::graph::DIRECT ? &incidentEdgeGeom.pointN(1) : &incidentEdgeGeom.pointN(incidentEdgeGeom.numPoints()-2);
+
+                double angle = _getAngle(graph.getGeometry(vEnding), *clNextPointPtr, *incidentEdgeNextPointPtr);
+
+                if( angle > maxAngle ) {
+                    maxIndex = i;
+                    maxAngle = angle;
+                }
+            }
+
+            for ( size_t i = 0 ; i < vIncidentEdges.size() ; ++i ) {
+                if( vIncidentEdges[i].descriptor == oeEnding.descriptor )
+                    continue;
+
+                //--
+                std::string idIncidentFeat = graph.origins(vIncidentEdges[i].descriptor)[0];
+
+                //--
+                ign::feature::Feature fIncident;
+                _fsEdge->getFeatureById(idIncidentFeat, fIncident);
+
+                ign::geometry::LineString newIncidentEdgeGeom = fIncident.getGeometry().asLineString();
+
+                if( i == maxIndex ) {
+                    newIncidentEdgeGeom = _merge(newIncidentEdgeGeom, *clGeomPartPtr);
+                } else {
+                    double absThreshold = 30;
+                    double influenceFactor = 5;
+                    double snapDist = 1;
+                    epg::calcul::matching::detail::LineStringAbsDampedDeformer deformer(absThreshold, influenceFactor, snapDist);
+
+                    if( vIncidentEdges[i].direction == ign::graph::DIRECT ) {
+                        ign::math::Vec2d vectSource = pClParts.first.endPoint().toVec2d()-newIncidentEdgeGeom.startPoint().toVec2d();
+                        ign::math::Vec2d vectTarget = ign::math::Vec2d();
+                        deformer.deform(vectSource, vectTarget, newIncidentEdgeGeom);
+
+                        newIncidentEdgeGeom.startPoint() = pClParts.first.endPoint();
+                    } else {
+                        ign::math::Vec2d vectSource = ign::math::Vec2d();
+                        ign::math::Vec2d vectTarget = pClParts.first.endPoint().toVec2d()-newIncidentEdgeGeom.endPoint().toVec2d();
+                        deformer.deform(vectSource, vectTarget, newIncidentEdgeGeom);
+
+                        newIncidentEdgeGeom.endPoint() = pClParts.first.endPoint();
+                    }
+                }
+
+                //--
+                fIncident.setGeometry(newIncidentEdgeGeom);
+                _fsEdge->modifyFeature(fIncident);
+            }
+        }
+
+        ///
+        ///
+        ///
+        double CLInAreaGenerationOp::_getAngle(
+            ign::geometry::Point const& ptSommet,
+            ign::geometry::Point const& pt1,
+            ign::geometry::Point const& pt2
+        ) const {
+            ign::math::Vec2d v1(pt1.x() - ptSommet.x(), pt1.y() - ptSommet.y());
+            ign::math::Vec2d v2(pt2.x() - ptSommet.x(), pt2.y() - ptSommet.y());
+
+            return epg::tools::geometry::angle(v1, v2);
+        }
+
+        ///
+        ///
+        ///
         bool CLInAreaGenerationOp::_createCLOnFaces(
             detail::EdgeCleaningGraphManager & graphManager,
             std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
@@ -309,7 +572,7 @@ namespace app
 
                 //DEBUG
                 // ign::geometry::Polygon faceGeom = graph.getGeometry( mmit->second );
-                // if(faceGeom.intersects(ign::geometry::Point(3456543.30,2250739.23))) {
+                // if(faceGeom.intersects(ign::geometry::Point(3644514.535,2199130.775))) {
                 //     bool test = true;
                 // }
                 // if(faceGeom.intersects(ign::geometry::Point(3370775.604,2318549.250))) {
@@ -813,8 +1076,11 @@ namespace app
         ///
         void CLInAreaGenerationOp::_computeByIteration() const
         {
-            while (_compute()) {}
-            _clean();
+            do{
+                while (_compute()) {}
+                _clean();
+            } while(_collapseCl());
+            
         }
 
         ///

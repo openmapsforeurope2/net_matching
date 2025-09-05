@@ -135,6 +135,7 @@ namespace app
                 ign::geometry::MultiPolygon mpLandmask;
                 ign::feature::sql::FeatureStorePostgis* fsLandmask = context->getDataBaseManager().getFeatureStore(landmaskTableName, idName, geomName);
                 ign::feature::FeatureIteratorPtr itLandmask = ome2::feature::sql::NotDestroyedTools::GetFeatures(*fsLandmask, ign::feature::FeatureFilter(landCoverTypeName + " = '" + landAreaValue + "' AND " + countryCodeName + " = '" + *vit + "'"));
+                
                 while (itLandmask->hasNext())
                 {
                     ign::feature::Feature const& fLandmask = itLandmask->next();
@@ -144,6 +145,9 @@ namespace app
                         mpLandmask.addGeometry(mp.polygonN(i));
                     }
                 }
+
+                if( mpLandmask.isEmpty() )
+                    IGN_THROW_EXCEPTION("No landmask found for country "+*vit);
 
                 //on calcul la geometry de travail
                 _mCountryGeomPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(boundBuffPtr->Intersection(mpLandmask)) ));
@@ -1506,10 +1510,8 @@ namespace app
 
             boost::progress_display display(graph.numVertices(), std::cout, "[ cleaning graph antennas (1) % complete ]\n");
             vertex_iterator vit, vend;
-            for( graph.vertices( vit, vend ) ; vit != vend ; ++vit )
+            for( graph.vertices( vit, vend ) ; vit != vend ; ++vit, ++display )
             {
-                ++display;
-
                 if( graph.degree( *vit ) != 1 ) continue;
 
                 if( _vertexIsCp(graph, *vit) ) continue;
@@ -1533,10 +1535,8 @@ namespace app
 
             boost::progress_display display2(mVertexAntennas.size(), std::cout, "[ cleaning graph antennas (2) % complete ]\n");
             std::map<vertex_descriptor, std::vector<std::list<oriented_edge_descriptor>>>::iterator mit;
-            for (mit = mVertexAntennas.begin() ; mit != mVertexAntennas.end() ; mit++) 
+            for (mit = mVertexAntennas.begin() ; mit != mVertexAntennas.end() ; mit++, ++display2) 
             {
-                ++display2;
-
                 bool bConnected2CF = sVerticesConnected2CF.find(mit->first) != sVerticesConnected2CF.end() || _vertexIsConnected2Cl(graphManager, mit->first);
 
                 std::vector<std::list<oriented_edge_descriptor>>::const_iterator minVit;

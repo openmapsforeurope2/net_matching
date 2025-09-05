@@ -10,7 +10,7 @@
 
 
 
-	enum TN_PARAMETERS{
+	enum TH_PARAMETERS{
 		DB_CONF_FILE,
 		WORKING_SCHEMA,
 		EDGE_TABLE_INIT,
@@ -40,6 +40,8 @@
 		CLA_FICTITIOUS_LENGTH_THRESHOLD,
 		CLA_CL_LENGTH_THRESHOLD,
 		CLA_CL_MIN_RATIO_IN_AREA,
+		CLA_CL_LENGTH_THRESHOLD_2,
+		CLA_CL_MIN_RATIO_IN_AREA_2,
 
 		CP_TABLE,
 		CL_TABLE,
@@ -98,9 +100,9 @@
 namespace app{
 namespace params{
 
-	class ThemeParameters : public epg::params::ParametersT< TN_PARAMETERS >
+	class ThemeParameters : public epg::params::ParametersT< TH_PARAMETERS >
 	{
-		typedef  epg::params::ParametersT< TN_PARAMETERS > Base;
+		typedef  epg::params::ParametersT< TH_PARAMETERS > Base;
 
 		public:
 

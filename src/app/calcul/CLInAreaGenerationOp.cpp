@@ -38,9 +38,11 @@ namespace app
         ///
         ///
         void CLInAreaGenerationOp::Compute(
+            double clMinRatio,
+            double clMinLength,
             bool verbose
         ) {
-            CLInAreaGenerationOp cLInAreaGenerationOp(verbose);
+            CLInAreaGenerationOp cLInAreaGenerationOp(clMinRatio, clMinLength, verbose);
             cLInAreaGenerationOp._computeByIteration();
         }
 
@@ -48,8 +50,12 @@ namespace app
         ///
         ///
         CLInAreaGenerationOp::CLInAreaGenerationOp(
+            double clMinRatio,
+            double clMinLength,
             bool verbose
-        ) : _verbose(verbose)
+        ) : _verbose(verbose),
+            _clMinRatio(clMinRatio),
+            _clMinLength(clMinLength)
         {
             _init();
         }
@@ -183,32 +189,37 @@ namespace app
 
             ign::geometry::Polygon faceGeom = graph.getGeometry( f );
 
+            //DEBUG
+            // if( faceGeom.intersects(ign::geometry::Point(3968239.78,3155414.74)) ) {
+            //     bool test =true;
+            // }
+
             if (!_getFacePaths(graphManager, f, vpCountryEdges))
                 return -1;
 
             if (vpCountryEdges.size() < 2) 
                 return -1;
 
-            bool foundCl = false;
             for (size_t i = 0 ; i < vpCountryEdges.size() ; ++i ) {
                 if (vpCountryEdges[i].first.find("#") != std::string::npos) {
                     if( vpCountryEdges[i].second.size() == 1 ) {
                         std::pair<bool, std::pair<std::string, std::string>> foundClEdgeAss = _findClEdgeAssociation(graphManager, f, vpCountryEdges[i].second.begin()->descriptor);
                         if( foundClEdgeAss.first ) {
                             mClToConvert.insert(foundClEdgeAss.second);
-                            vpCountryEdges[i] = std::make_pair(graphManager.getCountry(foundClEdgeAss.second.second), vpCountryEdges[i].second );
+
+                            std::string assEdgeCountry = graphManager.getCountry(foundClEdgeAss.second.second);
+                            if ( assEdgeCountry.find("#") != std::string::npos )
+                                return -1;
+
+                            vpCountryEdges[i] = std::make_pair(assEdgeCountry, vpCountryEdges[i].second );
                         } else {
-                            foundCl = true;
-                            break;
+                            return -1;
                         }
                     } else {
-                        foundCl = true;
-                        break;
+                        return -1;
                     }
                 }
             }
-            if( foundCl )
-                return -1;
 
             std::set<std::string> sFaceCountries;
             for (std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>::const_iterator vpit = vpCountryEdges.begin() ; vpit != vpCountryEdges.end() ; ++vpit)
@@ -279,8 +290,6 @@ namespace app
             //--
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
             double const slimSurfaceWidth = themeParameters->getValue( CLA_SURFACE_WIDTH ).toDouble();
-            double const clMinLength = themeParameters->getValue( CLA_CL_LENGTH_THRESHOLD ).toDouble();
-            double const clMinRatio = themeParameters->getValue( CLA_CL_MIN_RATIO_IN_AREA ).toDouble();
 
             //--
             ign::feature::FeatureFilter filter;
@@ -315,32 +324,26 @@ namespace app
                     continue;  
                 }
 
-                std::vector<std::list<oriented_edge_descriptor>> vPathCl;
-                double clRatio = _getClRatio(graphManager, mmit->second, vPathCl);
+                std::pair<bool, std::list<oriented_edge_descriptor>> foundPath = _getClPathToTreat(graphManager, mmit->second);
 
-                if( clRatio == 0 || vPathCl.empty() )
-                    continue;
-
-                if( clRatio > clMinRatio )
-                    continue;
-
-                std::list<oriented_edge_descriptor>* clPathPtr = &vPathCl.front();
-
-                ign::geometry::LineString clPathGeom = _convertPathToLineString(graph, "", *clPathPtr);
-
-                if(clPathGeom.length() > clMinLength)
+                if( !foundPath.first )
                     continue;
 
                 hasCollapsedCl = true;
-                for( std::list<oriented_edge_descriptor>::const_iterator lit = clPathPtr->begin() ; lit != clPathPtr->end() ; ++lit )
+
+                std::list<oriented_edge_descriptor> clPath = foundPath.second;
+
+                ign::geometry::LineString clPathGeom = _convertPathToLineString(graph, "", clPath);
+
+                for( std::list<oriented_edge_descriptor>::const_iterator lit = clPath.begin() ; lit != clPath.end() ; ++lit )
                     sTreatedEdges.insert(lit->descriptor);
                 
                 std::pair<ign::geometry::LineString, ign::geometry::LineString> pClParts = _split(clPathGeom);
 
-                _displaceIncidentEdges(graph, pClParts, *clPathPtr, ign::graph::DIRECT, sTreatedEdges);
-                _displaceIncidentEdges(graph, pClParts, *clPathPtr, ign::graph::REVERSE, sTreatedEdges);
+                _displaceIncidentEdges(graph, pClParts, clPath, ign::graph::DIRECT, sTreatedEdges);
+                _displaceIncidentEdges(graph, pClParts, clPath, ign::graph::REVERSE, sTreatedEdges);
 
-                for ( std::list<oriented_edge_descriptor>::const_iterator lit = clPathPtr->begin() ; lit != clPathPtr->end() ; ++lit ) {
+                for ( std::list<oriented_edge_descriptor>::const_iterator lit = clPath.begin() ; lit != clPath.end() ; ++lit ) {
                     std::string clId = graph.origins(lit->descriptor)[0];
                     _fsEdge->deleteFeature(clId);
                 }
@@ -352,13 +355,16 @@ namespace app
         ///
         ///
         ///
-        double CLInAreaGenerationOp::_getClRatio(
+        std::pair<bool, std::list<detail::EdgeCleaningGraphManager::GraphType::oriented_edge_descriptor>> CLInAreaGenerationOp::_getClPathToTreat(
             detail::EdgeCleaningGraphManager const& graphManager,
-            face_descriptor f,
-            std::vector<std::list<oriented_edge_descriptor>> & vPathCl
+            face_descriptor f
         ) const {
             double lengthCl = 0;
             double fullLength = 0;
+
+            //--
+            std::vector<std::list<oriented_edge_descriptor>> vPathCl;
+            std::map<std::string, double> mCountryPathLength;
 
             //--
             GraphType const& graph = graphManager.getGraph();
@@ -373,9 +379,16 @@ namespace app
                 double currentLength = graph.getGeometry(lit->descriptor).length();
                 fullLength += currentLength;
 
-                if ( !currentIsCl )
-                    continue;
+                if ( !currentIsCl ) {
+                    std::string country = graphManager.getCountry(lit->descriptor);
+                    std::map<std::string, double>::iterator mit = mCountryPathLength.find(country);
+                    if( mit == mCountryPathLength.end() )
+                        mit = mCountryPathLength.insert(std::make_pair(country, 0)).first;
+                    mit->second += currentLength;
 
+                    continue;
+                }
+                    
                 if( !previousIsCl || graph.degree(graph.source(*lit)) > 2 ) {
                     vPathCl.push_back(std::list<oriented_edge_descriptor>());
                 }
@@ -398,7 +411,28 @@ namespace app
                 }
             }
 
-            return lengthCl/fullLength;
+            double clRatio = lengthCl/fullLength;
+
+            if( clRatio == 0 || vPathCl.empty() || clRatio > _clMinRatio )
+                return std::make_pair(false, std::list<oriented_edge_descriptor>());
+
+            for( size_t i = 0 ; i < vPathCl.size() ; ++i ) {
+                ign::geometry::LineString clPathGeom = _convertPathToLineString(graph, "", vPathCl[i]);
+
+                if(clPathGeom.length() > _clMinLength)
+                    return std::make_pair(false, std::list<oriented_edge_descriptor>());
+            }
+
+            if ( mCountryPathLength.size() != 2 )
+                return std::make_pair(false, std::list<oriented_edge_descriptor>());
+
+            double lengthRatio = 0.66666;
+            double length1 = mCountryPathLength.begin()->second;
+            double length2 = mCountryPathLength.rbegin()->second;
+            if( length1 < lengthRatio*length2 || length2 < lengthRatio*length1 )
+                return std::make_pair(false, std::list<oriented_edge_descriptor>());
+
+            return std::make_pair(true, vPathCl.front());
         }
 
         ///

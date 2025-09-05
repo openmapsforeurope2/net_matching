@@ -80,11 +80,18 @@ namespace calcul{
 		typedef typename GraphType::edges_path_const_iterator              edges_path_const_iterator;
 
 		typedef std::multimap<std::string, detail::IncidentFeature>::const_iterator  m_iterator;
-
 		/// @brief Calcul des connecting lines
 		/// @param verbose Mode verbeux
+
+		
+		/// @brief Calcul des connecting lines
+		/// @param clMinRatio Maximum ratio of connecting line in face exterior ring to enable cl collapsing
+		/// @param clMinLength Maximum length for collapsable connecting line
+		/// @param verbose Mode verbeux
 		static void Compute(
-			bool verbose
+			double clMinRatio,
+            double clMinLength,
+			bool verbose = false
 		);
 
 	private:
@@ -98,11 +105,19 @@ namespace calcul{
 		bool                                               _verbose;
 		//--
 		ome2::calcul::utils::AttributeMerger               _attrMerger;
+		//--
+		double                                             _clMinRatio;
+		//--
+		double                                             _clMinLength;
 
 	private:
 
 		//--
-		CLInAreaGenerationOp(bool verbose = false);
+		CLInAreaGenerationOp(
+			double clMinRatio,
+            double clMinLength,
+			bool verbose = false
+		);
 
 		//--
 		~CLInAreaGenerationOp();
@@ -206,10 +221,9 @@ namespace calcul{
         std::pair<bool, bool> _collapseCl() const;
 
 		//--
-		double _getClRatio(
+		std::pair<bool, std::list<detail::EdgeCleaningGraphManager::GraphType::oriented_edge_descriptor>> _getClPathToTreat(
             detail::EdgeCleaningGraphManager const& graphManager,
-            face_descriptor f,
-            std::vector<std::list<oriented_edge_descriptor>> & vPathCl
+            face_descriptor f
         ) const;
 
 		//--

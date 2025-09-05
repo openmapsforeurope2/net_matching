@@ -44,6 +44,8 @@ namespace params{
 		_initParameter( CLA_FICTITIOUS_LENGTH_THRESHOLD, "CLA_FICTITIOUS_LENGTH_THRESHOLD" );
 		_initParameter( CLA_CL_LENGTH_THRESHOLD, "CLA_CL_LENGTH_THRESHOLD" );
 		_initParameter( CLA_CL_MIN_RATIO_IN_AREA, "CLA_CL_MIN_RATIO_IN_AREA" );
+		_initParameter( CLA_CL_LENGTH_THRESHOLD_2, "CLA_CL_LENGTH_THRESHOLD_2" );
+		_initParameter( CLA_CL_MIN_RATIO_IN_AREA_2, "CLA_CL_MIN_RATIO_IN_AREA_2" );
 
 		_initParameter( CP_TABLE, "CP_TABLE");
 		_initParameter( CL_TABLE, "CL_TABLE");

@@ -8,7 +8,7 @@
         "request": "launch",
         "program": "/usr/local/src/net_matching/bin/net_matchingd",
         "cwd": "/usr/local/src/net_matching",
-        "args": ["--c", "/usr/local/src/net_matching/config/epg_parameters.ini", "--T", "hy", "--cc", "es#fr", "--sp", "204"],
+        "args": ["--c", "/usr/local/src/net_matching/config/epg_parameters.ini", "--T", "hy", "--cc", "be#fr", "--sp", "203"],
         "stopAtEntry": true,
         "environment": [{ "name": "config", "value": "Debug" }],
         "externalConsole": true,

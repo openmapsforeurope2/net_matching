@@ -115,10 +115,6 @@ int main(int argc, char *argv[])
         epg::log::EpgLogger* logger = epg::log::EpgLoggerS::getInstance();
         // logger->setProdOfstream( logDirectory+"/net_matching.log" );
         logger->setDevOfstream( context->getLogDirectory()+"/net_matching.log" );
-
-        //shape logger
-        epg::log::ShapeLogger* shapeLogger = epg::log::ShapeLoggerS::getInstance();
-	    shapeLogger->setDataDirectory( context->getLogDirectory()+"/shape" );
         
         //theme parameters
         themeParametersFile = context->getConfigParameters().getValue( THEME_PARAMETER_FILE ).toString();

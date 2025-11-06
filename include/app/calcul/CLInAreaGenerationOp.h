@@ -98,6 +98,10 @@ namespace calcul{
 		//--
 		ign::feature::sql::FeatureStorePostgis*            _fsEdge;
 		//--
+		ign::feature::sql::FeatureStorePostgis*            _fsArea;
+		//--
+		ign::feature::sql::FeatureStorePostgis*            _fsStanding;
+		//--
 		epg::log::EpgLogger*                               _logger;
 		//--
 		epg::log::ShapeLogger*                             _shapeLogger;
@@ -403,6 +407,21 @@ namespace calcul{
 
             return reversedPath;
         }
+
+		//--
+		std::string _getBorderCode(
+            std::string const& country1,
+            std::string const& country2
+        ) const;
+
+		//--
+        double _getRatio(
+			ign::geometry::LineString const& ls,
+			std::string const& country
+		) const;
+
+		//--
+    	double _getLength(ign::geometry::Geometry const& geom) const;
 
 	};
 

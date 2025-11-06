@@ -16,6 +16,7 @@
 #include <epg/tools/geometry/project.h>
 #include <epg/graph/tools/reverse.h>
 #include <epg/tools/geometry/angle.h>
+#include <epg/tools/FilterTools.h>
 
 // OME2
 #include <ome2/feature/sql/NotDestroyedTools.h>
@@ -85,11 +86,19 @@ namespace app
             std::string const idName = epgParams.getValue(ID).toString();
             std::string const geomName = epgParams.getValue(GEOM).toString();
 
-            //--
-            params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+            // app parameters
+            params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
+            std::string areaTableName = themeParameters->getValue(WATERCOURSE_AREA_TABLE).toString();
+            std::string standingTableName = themeParameters->getValue(STANDING_WATER_TABLE).toString();
 
-			//--
+            //--
             _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTableName, idName, geomName);
+
+            //--
+            _fsArea = context->getDataBaseManager().getFeatureStore(areaTableName, idName, geomName);
+
+            //--
+            _fsStanding = context->getDataBaseManager().getFeatureStore(standingTableName, idName, geomName);
 
             //--
             std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
@@ -707,6 +716,11 @@ namespace app
                         pathFrontgeomMeanGeomLink,
                         pathBackgeomMeanGeomLink
                     );
+
+                    // on verifie que l'edge fusionné fictif est entièrement inclus dans une surface fusionnée (sinon on annule la fusion)
+                    double ratio = _getRatio(meanGeom, _getBorderCode(vpCountryEdges.front().first, vpCountryEdges.back().first));
+                    if( ratio < 1 )
+                        continue;
                 }
                 // geometry::tools::LengthIndexedLineString lsIndexMean(meanGeom);
                 // double meanLength = meanGeom.length();
@@ -2497,6 +2511,109 @@ namespace app
             }
 
             return true;
+        }
+
+        ///
+        ///
+        ///
+        std::string CLInAreaGenerationOp::_getBorderCode(
+            std::string const& country1,
+            std::string const& country2
+        ) const {
+            if (country1 == country2)
+                return "";
+            if (country1 < country2)
+                return country1+"#"+country2;
+            return country2+"#"+country1;
+        }
+
+        ///
+        ///
+        ///
+        double CLInAreaGenerationOp::_getRatio(
+            ign::geometry::LineString const& ls,
+            std::string const& country
+        ) const {
+            epg::Context *context = epg::ContextS::getInstance();
+            epg::params::EpgParameters const& epgParams = context->getEpgParameters();
+            std::string const geomName = epgParams.getValue(GEOM).toString();
+            std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
+
+            ign::geometry::GeometryPtr areaUnionPtr(new ign::geometry::Polygon());
+
+            ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + ls.toString() + "'),3035))");
+            epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" LIKE '%"+country+"%'");
+            ign::feature::FeatureIteratorPtr itArea = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsArea, filter);
+            while (itArea->hasNext())
+            {
+                ign::feature::Feature const& fArea = itArea->next();
+                ign::geometry::MultiPolygon const& areaGeom = fArea.getGeometry().asMultiPolygon();
+
+                areaUnionPtr.reset(areaUnionPtr->Union(areaGeom));
+            }
+
+            ign::feature::FeatureIteratorPtr itStand = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsStanding, filter);
+            while (itStand->hasNext())
+            {
+                ign::feature::Feature const& fStand = itStand->next();
+                ign::geometry::MultiPolygon const& standGeom = fStand.getGeometry().asMultiPolygon();
+                
+                areaUnionPtr.reset(areaUnionPtr->Union(standGeom));
+            }
+
+            if(areaUnionPtr->isEmpty() || areaUnionPtr->isNull()) return 0;
+
+            ign::geometry::GeometryPtr resultPtr(areaUnionPtr->Intersection(ls));
+
+            double lengthInter = _getLength(*resultPtr);
+
+            return lengthInter / ls.length();
+        }
+
+        ///
+        ///
+        ///
+        double CLInAreaGenerationOp::_getLength( ign::geometry::Geometry const& geom ) const
+        {
+            double length = 0;
+
+            ign::geometry::Geometry::GeometryType geomType = geom.getGeometryType();
+            switch( geomType )
+            {
+                case ign::geometry::Geometry::GeometryTypeNull :
+                case ign::geometry::Geometry::GeometryTypePoint :
+                case ign::geometry::Geometry::GeometryTypeMultiPoint :
+                case ign::geometry::Geometry::GeometryTypeTriangle :
+                case ign::geometry::Geometry::GeometryTypeTriangulatedSurface :
+                case ign::geometry::Geometry::GeometryTypePolyhedralSurface :
+                case ign::geometry::Geometry::GeometryTypePolygon :
+                case ign::geometry::Geometry::GeometryTypeMultiPolygon :
+                    return 0;
+                case ign::geometry::Geometry::GeometryTypeLineString :
+                    {
+                        return geom.asLineString().length();
+                    }
+                    
+                case ign::geometry::Geometry::GeometryTypeMultiLineString : 
+                    {
+                        ign::geometry::MultiLineString const& mls = geom.asMultiLineString();
+                        for( size_t i = 0 ; i < mls.numGeometries() ; ++i ) {
+                            length += mls.lineStringN(i).length();
+                        }
+                        return length;
+                    }
+                
+                case ign::geometry::Geometry::GeometryTypeGeometryCollection :
+                    {
+                        ign::geometry::GeometryCollection const& collection = geom.asGeometryCollection();
+                        for( size_t i = 0 ; i < collection.numGeometries() ; ++i ) {
+                            length += _getLength(collection.geometryN(i));
+                        }
+                        return length;
+                    }
+                default :
+                    IGN_THROW_EXCEPTION( "Geometry type not allowed" );
+            }
         }
 	}
 }

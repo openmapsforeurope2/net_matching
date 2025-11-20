@@ -33,7 +33,7 @@ namespace step {
 
 		//--
 		_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));
-		ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true, true);
+		ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true);
 
 		//--
 		_themeParams.setParameter(CP_TABLE, ign::data::String(getLastWorkingTableName(CP_TABLE)));

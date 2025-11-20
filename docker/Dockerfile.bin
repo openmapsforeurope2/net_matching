@@ -1,15 +1,18 @@
-FROM debian:11
+FROM debian:10
 
-RUN apt-get update -y
-RUN apt-get install -y qt5-default
+RUN sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+ && sed -i 's/security.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+ && apt-get update -y \
+ && apt-get install -y qt5-default
 
 WORKDIR /usr/local/src/
 COPY libs/linux libs
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/libs
+ENV LD_LIBRARY_PATH=/usr/local/src/libs
 
 WORKDIR /usr/local/src/net_matching/
 COPY package/*.deb .
 COPY config/*.ini ./config/
 
-RUN dpkg -i *.deb
-RUN rm *.deb
+RUN rm -f ./config/db_conf* \
+ && dpkg -i *.deb \
+ && rm *.deb \

@@ -30,7 +30,7 @@ namespace step{
 namespace tools{
 
 	template<  typename StepSuiteType >
-	void initStepsHy( StepSuiteType& stepSuite )
+	void initStepsWatercourseLink( StepSuiteType& stepSuite )
 	{
 		stepSuite.addStep( epg::step::factoryNew< CorrectCountryConnectivity >() );
 		stepSuite.addStep( epg::step::factoryNew< FillFictitiousField >() );
@@ -52,7 +52,7 @@ namespace tools{
 	}
 
 	template<  typename StepSuiteType >
-	void initStepsTn(StepSuiteType& stepSuite)
+	void initStepsRoadLink(StepSuiteType& stepSuite)
 	{
 		// stepSuite.addStep( epg::step::factoryNew< JunctionMatching >() );
 		// stepSuite.addStep( epg::step::factoryNew< GenerateCLinArea >() );
@@ -71,7 +71,7 @@ namespace tools{
 	}
 
 	template<  typename StepSuiteType >
-	void initStepsRa(StepSuiteType& stepSuite)
+	void initStepsRailwayLink(StepSuiteType& stepSuite)
 	{
 		stepSuite.addStep( epg::step::factoryNew< GenerateConnectingPoint >());
 		stepSuite.addStep( epg::step::factoryNew< ConnectionConnectingPoint >());

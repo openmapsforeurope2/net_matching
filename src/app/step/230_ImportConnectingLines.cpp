@@ -31,7 +31,7 @@ namespace app {
 
 			//--
 			_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));
-			ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true, true);
+			ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true);
 
 			//--
 			_themeParams.setParameter(CL_TABLE, ign::data::String(getLastWorkingTableName(CL_TABLE)));

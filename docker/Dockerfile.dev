@@ -1,14 +1,19 @@
 FROM libepg
 
-#patch : debian:10 archived
-RUN sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list
-RUN sed -i 's/security.debian.org/archive.debian.org/g' /etc/apt/sources.list
+ARG GIT_BRANCH
+ARG NB_PROC
 
-RUN apt-get -y update
-RUN apt-get -y install gdb
+ENV APP_DIR_SRC=/usr/local/src/net_matching/                                              
 
-ENV APP_DIR_SRC=/usr/local/src/net_matching/                                                     
+WORKDIR $APP_DIR_SRC/../
+
+COPY . $APP_DIR_SRC
 
 WORKDIR $APP_DIR_SRC
 
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/src/sd-externs/unix-gxx/shapelib-1.3.0b3/lib:/usr/local/src/sd-externs/unix-gxx/qt-5.14.1/lib/:/usr/local/src/sd-externs/unix-gxx/sqlite-3.32.3/lib
+RUN git checkout $GIT_BRANCH \
+ && mkdir build-unix-release \
+ && cd build-unix-release && cmake .. -DCMAKE_INSTALL_PREFIX=$APP_DIR_SRC -DCMAKE_BUILD_TYPE=Release && make -j$NB_PROC install \
+ && cd .. && rm -r build-unix-release
+
+ENV PATH=$PATH:$APP_DIR_SRC/bin

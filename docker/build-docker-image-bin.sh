@@ -1,3 +1,4 @@
+DOCKER_NAME=net_matching_bin
 PROJECT_NAME=net_matching
 
 if [ $# -eq 0 ]
@@ -16,13 +17,11 @@ fi
 
 GIT_BRANCH_LOWER=$(echo $GIT_BRANCH | tr '[:upper:]' '[:lower:]')
 
-DOCKER_TAG="bin"
+DOCKER_TAG=$(head -n 1 ./../VERSION)
 
 if [ $GIT_BRANCH_LOWER = "main" ]
 then
-    DOCKER_TAG+="_latest"
-else   
-    DOCKER_TAG+="_"$(head -n 1 ./../VERSION)
+    DOCKER_TAG="latest"
 fi
 
 echo $GIT_BRANCH
@@ -36,4 +35,9 @@ then
 fi
 echo $NB_PROC
 
-docker build --no-cache --build-arg NB_PROC=$NB_PROC -t $PROJECT_NAME:$DOCKER_TAG -f Dockerfile.bin ./..
+docker build \
+    --label org.opencontainers.image.source=https://github.com/openmapsforeurope2/$PROJECT_NAME \
+    --no-cache \
+    --build-arg NB_PROC=$NB_PROC \
+    -t $DOCKER_NAME:$DOCKER_TAG \
+    -f Dockerfile.bin ./..

@@ -8,7 +8,7 @@
         "request": "launch",
         "program": "/usr/local/src/net_matching/bin/net_matchingd",
         "cwd": "/usr/local/src/net_matching",
-        "args": ["--c", "/usr/local/src/net_matching/config/epg_parameters.ini", "--T", "hy", "--cc", "be#fr", "--sp", "203"],
+        "args": ["--c", "/usr/local/src/net_matching/config/epg_parameters.ini", "--t", "watercourse_link", "--s", "20251118", "--as", "20251112", "be", "fr"],
         "stopAtEntry": true,
         "environment": [{ "name": "config", "value": "Debug" }],
         "externalConsole": true,
@@ -23,7 +23,7 @@
         "pipeTransport": {
             "debuggerPath": "/usr/bin/gdb",
             "pipeProgram": "docker",
-            "pipeArgs": ["exec", "-i", "net_matching_container", "sh", "-c"],
+            "pipeArgs": ["exec", "-i", "net_matching_base_container", "sh", "-c"],
             "pipeCwd": "${workspaceRoot}"
         },
         "MIMode": "gdb",

@@ -9,6 +9,7 @@
 
 // OME2
 #include <ome2/utils/setTableName.h>
+#include <ome2/utils/getEnvStr.h>
 
 // APP
 #include <app/params/ThemeParameters.h>
@@ -27,34 +28,37 @@ int main(int argc, char *argv[])
     std::string     logDirectory = "";
     std::string     epgParametersFile = "";
     std::string     themeParametersFile = "";
+    std::string     suffix = "";
+    std::string     areaSuffix = "";
     std::string     stepCode = "";
-    std::string     countryCode = "";
-    std::string     theme = "";
+    std::string     borderCode = "";
+    std::string     table = "";
     bool            verbose = true;
 
 
-    epg::step::StepSuite< app::params::ThemeParametersS > stepSuiteTn, stepSuiteHy, stepSuiteRa;
-	app::step::tools::initStepsHy(stepSuiteHy);
-	app::step::tools::initStepsTn(stepSuiteTn);
-	app::step::tools::initStepsRa(stepSuiteRa);
+    epg::step::StepSuite< app::params::ThemeParametersS > stepSuiteWaterCourseLink, stepSuiteRoadLink, stepSuiteRailwayLink;
+	app::step::tools::initStepsWatercourseLink(stepSuiteWaterCourseLink);
+	app::step::tools::initStepsRoadLink(stepSuiteRoadLink);
+	app::step::tools::initStepsRailwayLink(stepSuiteRailwayLink);
 
 
 	std::ostringstream OperatorDetail;
 	OperatorDetail << "set step :" << std::endl
-        << "TN:" << std::endl
-		<< stepSuiteTn.toString() 
-		<< "HY:" << std::endl
-		<< stepSuiteHy.toString()
-        << "RA:" << std::endl
-		<< stepSuiteRa.toString();
+        << "road_link:" << std::endl
+		<< stepSuiteRoadLink.toString() 
+		<< "watercourse_link:" << std::endl
+		<< stepSuiteWaterCourseLink.toString()
+        << "railway_link:" << std::endl
+		<< stepSuiteRailwayLink.toString();
 
 
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "produce help message")
         ("c" , po::value< std::string >(&epgParametersFile)     , "conf file" )
-        ("T" , po::value< std::string >(&theme)                 , "theme" )
-        ("cc" , po::value< std::string >(&countryCode)          , "country code" )
+        ("t" , po::value< std::string >(&table)                 , "table" )
+        ("s" , po::value< std::string >(&suffix)                , "working table suffix" )
+        ("as", po::value< std::string >(&areaSuffix)            , "area working tables suffix" )
         ("sp", po::value< std::string >(&stepCode), OperatorDetail.str().c_str())
     ;
 
@@ -67,32 +71,47 @@ int main(int argc, char *argv[])
     int returnValue = 0;
     try{
 
+        po::parsed_options parsed = po::command_line_parser(argc, argv)
+                                    .options(desc)
+                                    .allow_unregistered()
+                                    .run();
+
         po::variables_map vm;
-        int style = po::command_line_style::default_style & ~po::command_line_style::allow_guessing;
-        po::store( po::parse_command_line( argc, argv, desc, style ), vm );
-        po::notify( vm );    
+        po::store( parsed, vm );
+        po::notify( vm );
 
         if ( vm.count( "help" ) ) {
             std::cout << desc << std::endl;
             return 1;
         }
 
+        // Récupérer les arguments libres (non reconnus)
+        std::vector<std::string> countries = po::collect_unrecognized(parsed.options, po::include_positional);
+
+        if ( countries.size() != 2 ) {
+            std::string mError = "spécifier au moins deux et seulement deux pays en argument";
+            IGN_THROW_EXCEPTION(mError);
+        }
+        if( countries.front() > countries.back() )
+            std::swap(countries.front(), countries.back());
+        borderCode = countries.front()+"#"+countries.back();
+
         epg::step::StepSuite< app::params::ThemeParametersS >* stepSuitePtr = 0;
-        if (theme == "hy")
-			stepSuitePtr = &stepSuiteHy;
-		else if (theme == "tn")
-			stepSuitePtr = &stepSuiteTn;
-        else if (theme == "ra")
-			stepSuitePtr = &stepSuiteRa;
+        if (table == "watercourse_link")
+			stepSuitePtr = &stepSuiteWaterCourseLink;
+		else if (table == "road_link")
+			stepSuitePtr = &stepSuiteRoadLink;
+        else if (table == "railway_link")
+			stepSuitePtr = &stepSuiteRailwayLink;
         else {
-            std::string mError = "unknown theme " + theme;
+            std::string mError = "unknown table " + table;
             IGN_THROW_EXCEPTION(mError);
         }
 
         if (stepCode.empty()) stepCode = stepSuitePtr->getStepsRange();
 
         //parametres EPG
-		context->loadEpgParameters( epgParametersFile, theme );
+		context->loadEpgParameters( epgParametersFile, table );
 
         //Initialisation du log de prod
         logDirectory = context->getConfigParameters().getValue( LOG_DIRECTORY ).toString();
@@ -119,7 +138,7 @@ int main(int argc, char *argv[])
         //theme parameters
         themeParametersFile = context->getConfigParameters().getValue( THEME_PARAMETER_FILE ).toString();
 		app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-        epg::params::tools::loadParams( *themeParameters, themeParametersFile, countryCode );
+        epg::params::tools::loadParams( *themeParameters, themeParametersFile, borderCode );
         if ( themeParameters->getValue(CL_TABLE).toString() == "" )
             themeParameters->setParameter(CL_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CL_TABLE_SUFFIX).toString()));
         if ( themeParameters->getValue(CP_TABLE).toString() == "" ) 
@@ -127,6 +146,43 @@ int main(int argc, char *argv[])
 
         //info de connection db
         context->loadEpgParameters( themeParameters->getValue(DB_CONF_FILE).toString() );
+        //pour IGN-MUT
+        if( context->getConfigParameters().parameterHasNullValue(HOST) ) 
+            context->getConfigParameters().setParameter(HOST, ign::data::String(ome2::utils::getEnvStr("HOST")));
+        if( context->getConfigParameters().parameterHasNullValue(PORT) ) 
+            context->getConfigParameters().setParameter(PORT, ign::data::String(ome2::utils::getEnvStr("PORT")));
+        if( context->getConfigParameters().parameterHasNullValue(USER) ) 
+            context->getConfigParameters().setParameter(USER, ign::data::String(ome2::utils::getEnvStr("USER")));
+        if( context->getConfigParameters().parameterHasNullValue(PASSWORD) ) 
+            context->getConfigParameters().setParameter(PASSWORD, ign::data::String(ome2::utils::getEnvStr("PASSWORD")));
+        if( context->getConfigParameters().parameterHasNullValue(DATABASE) ) 
+            context->getConfigParameters().setParameter(DATABASE, ign::data::String(ome2::utils::getEnvStr("DATABASE")));
+
+        //tables des surfaces
+        if ( !areaSuffix.empty() && table == "watercourse_link" ) {
+            std::string watercourseTableBaseName = themeParameters->getValue(WATERCOURSE_AREA_TABLE_BASE).toString();
+            std::string watercourseTableName = watercourseTableBaseName + "_" + countries.front() + "_" + countries.back() + "_" + areaSuffix;
+            themeParameters->setParameter(WATERCOURSE_AREA_TABLE, ign::data::String(watercourseTableName));
+
+            std::string standingWaterTableBaseName = themeParameters->getValue(STANDING_WATER_TABLE_BASE).toString();
+            std::string standingWaterTableName = standingWaterTableBaseName + "_" + countries.front() + "_" + countries.back() + "_" + areaSuffix;
+            themeParameters->setParameter(STANDING_WATER_TABLE, ign::data::String(standingWaterTableName));
+
+            std::string matchedWatercourseTableBaseName = themeParameters->getValue(MATCHED_WATERCOURSE_AREA_TABLE_BASE).toString();
+            std::string matchedWatercourseTableName = matchedWatercourseTableBaseName + "_" + countries.front() + "_" + countries.back() + "_" + areaSuffix;
+            themeParameters->setParameter(MATCHED_WATERCOURSE_AREA_TABLE, ign::data::String(matchedWatercourseTableName));
+
+            std::string matchedStandingWaterTableBaseName = themeParameters->getValue(MATCHED_STANDING_WATER_TABLE_BASE).toString();
+            std::string matchedStandingWaterTableName = matchedStandingWaterTableBaseName + "_" + countries.front() + "_" + countries.back() + "_" + areaSuffix;
+            themeParameters->setParameter(MATCHED_STANDING_WATER_TABLE, ign::data::String(matchedStandingWaterTableName));
+        }
+        
+        //table de travail
+        if ( !suffix.empty() ) {
+            std::string tableBaseName = themeParameters->getValue(EDGE_TABLE_INIT_BASE).toString();
+            std::string tableName = tableBaseName + "_" + countries.front() + "_" + countries.back() + "_" + suffix;
+            themeParameters->setParameter(EDGE_TABLE_INIT, ign::data::String(tableName));
+        }
 
         //set BDD search path
         context->getDataBaseManager().setSearchPath(themeParameters->getValue(WORKING_SCHEMA).toString());

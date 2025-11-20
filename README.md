@@ -89,18 +89,20 @@ Le traitement peut être lancé sur trois types de réseaux:
 
 Paramètres:
 * c [obligatoire] : chemin vers le fichier de configuration
-* T [obligatoire] : thème (doit être parmi les valeurs : tn, hy, ra)
-* cc [obligatoire] : code pays double (exemple : be#fr)
+* s [obligatoire] : suffix de la table de travail
+* as [optionnel] : suffix des tables de travail des surfaces (à utiliser uniquement lors du traitement de la classe d'objets watercourse_link)
+* t [obligatoire] : nom de la classe d'objet (doit être parmi les valeurs : road_link, railway_link, watercourse_link)
 * sp [obligatoire] : code de l'étape(s) à executer (exemples: 220 ou 220,240 ou 210-280...)
+* arguments libres [obligatoire] : codes des deux pays frontaliers
 
 <br>
 
 Exemple d'appel pour lancer successivement l'ensemble des étapes du thème hydrographie sur la frontière franco-belge :
 ~~~
-bin/net_matching --c path/to/config/epg_parameters.ini --cc be#fr --T hy
+bin/net_matching --c path/to/config/epg_parameters.ini --s 20251118 --as 20251113 --t watercourse_link be fr
 ~~~
 
 Exemple d'appel pour ne lancer qu'une seule étape :
 ~~~
-bin/net_matching --c path/to/config/epg_parameters.ini --cc be#fr --T hy --sp 250
+bin/net_matching --c path/to/config/epg_parameters.ini --s 20251118 --as 20251113 --t watercourse_link --sp 250 be fr
 ~~~

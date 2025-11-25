@@ -71,9 +71,6 @@ int main(int argc, char *argv[])
     int returnValue = 0;
     try{
 
-        //DEBUG
-        epg::log::EpgLoggerS::getInstance()->log(epg::log::DEBUG, "pouet1");
-
         po::parsed_options parsed = po::command_line_parser(argc, argv)
                                     .options(desc)
                                     .allow_unregistered()
@@ -83,9 +80,6 @@ int main(int argc, char *argv[])
         po::store( parsed, vm );
         po::notify( vm );
 
-        //DEBUG
-        epg::log::EpgLoggerS::getInstance()->log(epg::log::DEBUG, "pouet2");
-
         if ( vm.count( "help" ) ) {
             std::cout << desc << std::endl;
             return 1;
@@ -93,9 +87,6 @@ int main(int argc, char *argv[])
 
         // Récupérer les arguments libres (non reconnus)
         std::vector<std::string> countries = po::collect_unrecognized(parsed.options, po::include_positional);
-
-        //DEBUG
-        epg::log::EpgLoggerS::getInstance()->log(epg::log::DEBUG, "pouet3");
 
         if ( countries.size() != 2 ) {
             std::string mError = "spécifier au moins deux et seulement deux pays en argument";
@@ -117,9 +108,6 @@ int main(int argc, char *argv[])
             IGN_THROW_EXCEPTION(mError);
         }
 
-        //DEBUG
-        epg::log::EpgLoggerS::getInstance()->log(epg::log::DEBUG, "pouet4");
-
         if (stepCode.empty()) stepCode = stepSuitePtr->getStepsRange();
 
         //parametres EPG
@@ -139,9 +127,6 @@ int main(int argc, char *argv[])
             }
         }
 
-        //DEBUG
-        epg::log::EpgLoggerS::getInstance()->log(epg::log::DEBUG, "pouet5");
-
         //repertoire de travail
         context->setLogDirectory( logDirectory );
 
@@ -149,9 +134,6 @@ int main(int argc, char *argv[])
         epg::log::EpgLogger* logger = epg::log::EpgLoggerS::getInstance();
         // logger->setProdOfstream( logDirectory+"/net_matching.log" );
         logger->setDevOfstream( context->getLogDirectory()+"/net_matching.log" );
-
-        //DEBUG
-        logger->log(epg::log::DEBUG, "pouet6");
         
         //theme parameters
         themeParametersFile = context->getConfigParameters().getValue( THEME_PARAMETER_FILE ).toString();
@@ -176,9 +158,6 @@ int main(int argc, char *argv[])
         if( context->getConfigParameters().parameterHasNullValue(DATABASE) ) 
             context->getConfigParameters().setParameter(DATABASE, ign::data::String(ome2::utils::getEnvStr("DATABASE")));
 
-        //DEBUG
-        logger->log(epg::log::DEBUG, "poue7");
-
         //tables des surfaces
         if ( !areaSuffix.empty() && table == "watercourse_link" ) {
             std::string watercourseTableBaseName = themeParameters->getValue(WATERCOURSE_AREA_TABLE_BASE).toString();
@@ -198,9 +177,6 @@ int main(int argc, char *argv[])
             themeParameters->setParameter(MATCHED_STANDING_WATER_TABLE, ign::data::String(matchedStandingWaterTableName));
         }
         
-        //DEBUG
-        logger->log(epg::log::DEBUG, "pouet8");
-
         //table de travail
         if ( !suffix.empty() ) {
             std::string tableBaseName = themeParameters->getValue(EDGE_TABLE_INIT_BASE).toString();
@@ -215,9 +191,6 @@ int main(int argc, char *argv[])
 
         //créer les tables CP et CL vides si elles n'existent pas
         app::utils::createCpClTables(themeParameters->getValue(EDGE_TABLE_INIT).toString());
-
-        //DEBUG
-        logger->log(epg::log::DEBUG, "pouet9");
 
         logger->log(epg::log::INFO, "[START EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 

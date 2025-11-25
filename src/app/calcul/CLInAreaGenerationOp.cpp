@@ -344,6 +344,9 @@ namespace app
 
                 ign::geometry::LineString clPathGeom = _convertPathToLineString(graph, "", clPath);
 
+                //DEBUG
+                _logger->log(epg::log::DEBUG, clPathGeom.toString());
+
                 for( std::list<oriented_edge_descriptor>::const_iterator lit = clPath.begin() ; lit != clPath.end() ; ++lit )
                     sTreatedEdges.insert(lit->descriptor);
                 
@@ -717,18 +720,13 @@ namespace app
                         pathBackgeomMeanGeomLink
                     );
 
-                    // on verifie que l'edge fusionné fictif est entièrement inclus dans une surface fusionnée (sinon on annule la fusion)
-                    double ratio = _getRatio(meanGeom, _getBorderCode(vpCountryEdges.front().first, vpCountryEdges.back().first));
+                    if( isFictitiousFront && isFictitiousBack ) {
+                        // on verifie que l'edge fusionné fictif est entièrement inclus dans une surface fusionnée (sinon on annule la fusion)
+                        double ratio = _getRatio(meanGeom, _getBorderCode(vpCountryEdges.front().first, vpCountryEdges.back().first));
 
-                    //DEBUG
-                    if (!isFictitiousBack && !isFictitiousFront ) {
-                        _logger->log(epg::log::DEBUG, "pouet");
-                        _logger->log(epg::log::DEBUG, meanGeom.toString());
-                        _logger->log(epg::log::DEBUG, ign::data::Double(ratio).toString());
+                        if ( ratio < 1 )
+                            continue;
                     }
-
-                    if( ratio < 1 )
-                        continue;
                 }
                 // geometry::tools::LengthIndexedLineString lsIndexMean(meanGeom);
                 // double meanLength = meanGeom.length();

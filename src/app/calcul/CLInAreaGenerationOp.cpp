@@ -88,8 +88,8 @@ namespace app
 
             // app parameters
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
-            std::string areaTableName = themeParameters->getValue(WATERCOURSE_AREA_TABLE).toString();
-            std::string standingTableName = themeParameters->getValue(STANDING_WATER_TABLE).toString();
+            std::string areaTableName = themeParameters->getValue(MATCHED_WATERCOURSE_AREA_TABLE).toString();
+            std::string standingTableName = themeParameters->getValue(MATCHED_STANDING_WATER_TABLE).toString();
 
             //--
             _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTableName, idName, geomName);
@@ -719,6 +719,14 @@ namespace app
 
                     // on verifie que l'edge fusionné fictif est entièrement inclus dans une surface fusionnée (sinon on annule la fusion)
                     double ratio = _getRatio(meanGeom, _getBorderCode(vpCountryEdges.front().first, vpCountryEdges.back().first));
+
+                    //DEBUG
+                    if (!isFictitiousBack && !isFictitiousFront ) {
+                        _logger->log(epg::log::DEBUG, "pouet");
+                        _logger->log(epg::log::DEBUG, meanGeom.toString());
+                        _logger->log(epg::log::DEBUG, ign::data::Double(ratio).toString());
+                    }
+
                     if( ratio < 1 )
                         continue;
                 }

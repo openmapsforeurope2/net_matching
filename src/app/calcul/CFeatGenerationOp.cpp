@@ -105,12 +105,9 @@ void app::calcul::CFeatGenerationOp::_generateConnectingLinesByCountry() const
 	double const ratioInBuff = themeParameters->getValue(CL_RATIO_IN_BUFFER).toDouble();
 	double const snapOnVertexBorder = themeParameters->getValue(CL_SNAP_ON_VERTEX_BORDER_DIST).toDouble();
 	double angleMaxBorder = themeParameters->getValue(CL_BORDER_MAX_ANGLE).toDouble();
-	double angleMaxEdges = themeParameters->getValue(CL_EDGE_MAX_ANGLE).toDouble();
-	double const distMergeCL = themeParameters->getValue(CL_MERGE_CL_DIST).toDouble();
 	double angleMaxToCutBorder = themeParameters->getValue(CFG_BOUNDARY_ANGLE_THRESHOLD).toDouble();
 	
 	angleMaxBorder = angleMaxBorder * M_PI / 180;
-	angleMaxEdges = angleMaxEdges * M_PI / 180;
 	angleMaxToCutBorder = angleMaxToCutBorder * M_PI / 180;
 
 	//--
@@ -134,9 +131,6 @@ void app::calcul::CFeatGenerationOp::_generateConnectingLinesByCountry() const
 
 			ign::geometry::algorithm::BufferOpGeos buffOp;
 			ign::geometry::GeometryPtr buffBorder(buffOp.buffer(lsBoundaryCutByAngle, distBuffer, 0, ign::geometry::algorithm::BufferOpGeos::CAP_FLAT));
-
-			ign::feature::Feature fBuff;
-			fBuff.setGeometry(buffBorder->clone());
 
 			_getCLfromBorder(lsBoundaryCutByAngle, buffBorder, distBuffer, thresholdNoCL, angleMaxBorder, ratioInBuff, snapOnVertexBorder);
 		}
@@ -596,8 +590,7 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 			std::string idCL = _idGeneratorCL->next();
 			featCL.setId(idCL);
 			featCL.setAttribute(linkedFeatIdName, ign::data::String(fEdge.getId()));
-			for (std::vector<ign::feature::FeatureAttributeType>::iterator vit = listAttrEdge.begin();
-				vit != listAttrEdge.end(); ++vit) {
+			for (std::vector<ign::feature::FeatureAttributeType>::iterator vit = listAttrEdge.begin(); vit != listAttrEdge.end(); ++vit) {
 				std::string attrName = vit->getName();
 				if (attrName == geomName || attrName == idName || !_fsCL->getFeatureType().hasAttribute(attrName) )
 					continue;

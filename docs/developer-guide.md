@@ -311,3 +311,159 @@ Un traitement se déroule en plusieurs étapes:
 - effondrement (suppression) des connecting lines : pour chaque face fine on effondre les connecting lines si celles-ci réprésentent une portion de son contour inférieure à _CLA_FICTITIOUS_RATIO_THRESHOLD_ et une longeur inférieure à _CLA_FICTITIOUS_LENGTH_THRESHOLD_. En cas d'effondrement, les éventuels arcs incidents sont déplacés avec un opérateur de déformation amortie.
 
 A noter que la création des connecting lines dans les faces fines prend en compte la propriété _EDGE_FICTITIOUS_NAME_ afin de déterminer leur géométrie. Si l'un des deux objets fusionnés est fictif et l'autre non, c'est la géométrie de l'objet fictif qui sera prise, si les deux objets sont tout deux fictifs ou non-fictifs une géométrie moyenne sera calculée. En cas de fusion de deux arcs fictifs, on vérifie que le résultat de la fusion est bien entièrement inclus dans une surface fusionnée (résultant du traitement _net_area_matching_), si ce n'est pas le cas cette fusion est abandonnée.
+
+![204_a](images/204_a_with_key.png)
+<br>
+![204_b](images/204_b_with_key.png)
+
+
+### 210-214 : Generate connecting lines on Border
+
+L'objectif de cette suite d'étapes et la génération de _connecting lines_ résultant de la fusion d'arcs des deux pays localisés à proximité des frontières.
+Les _connecting lines_ sont enregistrées dans une table dédiée. C'est lors d'une étape postérieure que ces objets seront injectés dans la table des arcs en replacement des arcs dont ils sont le résultat de la fusion.
+_
+#### 210 : GenerateConnectingLinesByCountry
+
+L'objectif de cette étape et de générer, pour chaque pays, les connecting lines correspondant à des arcs ou portions d'arcs longeant la frontière. 
+
+##### Données de travail :
+
+| table                          | entrée | sortie | entitée de travail | description                                                 |
+|--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
+| CL_TABLE                       |        | X      | X                  | table des connecting lines                                  |
+| EDGE_TABLE_INIT                | X      |        |                    | table du réseau à traiter                                   |
+
+##### Principaux opérateurs de calcul utilisés :
+- app::calcul::CFeatGenerationOp
+
+##### Description du traitement :
+
+Paramètre utilisés: 
+| paramètre                     | description                                                                                                                           |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| CL_BUFFER_DIST                | rayon du buffer autour des frontières                                                                                                 |
+| CL_THRESHOLD_NO_CL            | seuil de longueur de portion d'arc hors buffer determinant une interruption de connecting line                                        |
+| CL_RATIO_IN_BUFFER            | proportion d'une portion d'arc qui doit être situé dans le buffer de la frontière pour pouvoir donner naissance à une connecting line |
+| CL_SNAP_ON_VERTEX_BORDER_DIST | distance de snapping de la projection des extremités des arcs sur les points des polylignes des frontières                            |
+| CL_BORDER_MAX_ANGLE           | angle maximum entre la frontièere et un arc ou une portion d'arc pour qu'ils puissent générer une connecting line                     |
+| CFG_BOUNDARY_ANGLE_THRESHOLD  | seuil d'angle pour le découpage des frontières au niveau des angles aigu (si le paramètre vaut 180, aucun découpage n'est réalisé)    |
+| LINKED_FEATURE_ID             | nom du champ indiquant l'identifiant de l'arc associé à une connecting line                                                           |
+
+L'objectif, dans un premier temps, est de déterminer les arcs ou portions d'arcs qui donneront naissance à des connecting lines,
+Pour cela un buffer est créé autour de la frontière et chaque arc intersectant celui-ci est découpé selon le contour du buffer.
+Pour chaque arc on parcourt l'ensemble de sous-arcs ainsi obtenu et on détermine quelles sont les ensembles de sous-arcs adjacents pouvant donner naissance à des connecting lines.
+Un ensemble de sous-arcs est éligible à la génération d'une connecting line si celui-ci n'est composé que de parties localisées à l'interieur du buffer et éventuellemnent de partie hors buffer de longueur inférieur au seuil _CL_THRESHOLD_NO_CL_. Un ensemble éligible donnera effectivement naissance à une connecting line si la proportion (en longueur) des parties situées dans le buffer est supérieur au seuil _CL_RATIO_IN_BUFFER_.
+
+![210](images/210_with_key.png)
+
+
+#### 211 : MergeConnectingLinesOnBorder
+
+##### Données de travail :
+
+| table                          | entrée | sortie | entitée de travail | description                                                 |
+|--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
+| CL_TABLE                       |        | X      | X                  | table des connecting lines                                  |
+
+##### Principaux opérateurs de calcul utilisés :
+- app::calcul::CFeatGenerationOp
+
+##### Description du traitement :
+
+Paramètre utilisés: 
+| paramètre                   | description                                                                                                               |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| CL_EDGE_MAX_DIST            | distance de hausdorff maximum entre deux portions d'arc pour quelles puissent être fusionnées en une connecting line      |
+| CL_SNAP_PROJ_CL_2_EDGE_DIST | distance de snapping de la projection des extremités des connecting lines sur les points des polylignes des arcs associés |
+| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line                                           |
+
+
+création d'un graph planaire à partir de connecting lines des deux pays
+pour les arcs du graph possédant plusieurs origines : on cherche les couples d'arcs à appairer (à fusionner en connecting line
+si le distance entre les arcs dépasse _CL_EDGE_MAX_DIST_ aucune fusion
+si une seul origine l'arcs du graph est supprimé
+
+A partir de la les CL ont au moins deux et seulement 2 arcs associés appartenant aux deux pays
+
+
+
+#### 212 : SnapConnectingLines
+
+##### Données de travail :
+
+| table                          | entrée | sortie | entitée de travail | description                                                 |
+|--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
+| CL_TABLE                       |        | X      | X                  | table des connecting lines                                  |
+
+##### Principaux opérateurs de calcul utilisés :
+- app::calcul::CFeatGenerationOp
+
+##### Description du traitement :
+
+Paramètre utilisés: 
+| paramètre                   | description                                                                                                               |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| CL_CL_CLOSEST_MAX_DIST      | seuil de distance entre les extrémités de deux connecting lines en dessous duquel une connection doit être créée          |
+
+connexion par déplacement des extrémités des connecting lines vers un point médian (milieu du segment formé par les deux extrémités proches à connecter)
+
+
+
+
+#### 213 : DeleteConnectingLines
+
+##### Données de travail :
+
+| table                          | entrée | sortie | entitée de travail | description                                                 |
+|--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
+| CL_TABLE                       |        | X      | X                  | table des connecting lines                                  |
+| EDGE_TABLE_INIT                | X      |        |                    | table du réseau à traiter                                   |
+
+##### Principaux opérateurs de calcul utilisés :
+- app::calcul::CFeatGenerationOp
+
+##### Description du traitement :
+
+Paramètre utilisés: 
+| paramètre                   | description                                                                                                               |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| CL_EDGE_MAX_ANGLE           | angle maximum entre les deux arcs associés d'une connecting line pour que celle-ci soit conservée                         |
+| CL_EDGE_MAX_DIST            | distance de hausdorff maximum entre deux portions d'arc pour quelles puissent être fusionnées en une connecting line      |
+| CL_SNAP_PROJ_CL_2_EDGE_DIST | distance de snapping de la projection des extremités des connecting lines sur les points des polylignes des arcs associés |
+| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line                                           |
+
+
+supression des cl dont les edges associés forment un angle dépassant le seuil ou dont l'éloignement maximum dépasse le seuil.
+suppression des petites cl isolée (cl dont la longueur est inférieur à un seuil et non connecté à d'autres cl)
+
+
+
+#### 214 : UpdateGeomConnectingLines
+
+##### Données de travail :
+
+| table                          | entrée | sortie | entitée de travail | description                                                 |
+|--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
+| CL_TABLE                       |        | X      | X                  | table des connecting lines                                  |
+| EDGE_TABLE_INIT                | X      |        |                    | table du réseau à traiter                                   |
+
+##### Principaux opérateurs de calcul utilisés :
+- app::calcul::CFeatGenerationOp
+
+##### Description du traitement :
+
+Paramètre utilisés: 
+| paramètre                   | description                                                                                                               |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| CL_SNAP_PROJ_CL_2_EDGE_DIST           | angle m
+| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line                                           |
+EDGE_FICTITIOUS_NAME
+
+
+calcul de la nouvelle géométrie des connecting lines par interpolation (géométrie moyenne) des deux portions d'arc associées. Sauf il un des deux arcs est fictifs et pas l'autre --> on prend la géom de l'arc fictif
+La modification des géométries ayant créé des discontinuités on ré-établi les connexion légitimes  (cl connecté avant changement de géom et arcs associés identique ou connecté dans les pays respectifs)
+
+
+
+
+TODO vérifier l'utilisation de EDGE_TABLE_INIT dans chacun des steps

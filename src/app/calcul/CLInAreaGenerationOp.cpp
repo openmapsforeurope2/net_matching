@@ -271,6 +271,9 @@ namespace app
         ///
         ///
         bool CLInAreaGenerationOp::_collapseClByIteration() const {
+            //DEBUG
+            _logger->log(epg::log::ERROR, "_collapseClByIteration");
+
             bool hasCollapsed = false;
             bool hasNotTreatedCl = false;
             do {
@@ -1208,6 +1211,9 @@ namespace app
         ///
         void CLInAreaGenerationOp::_clean() const
         {
+            //DEBUG
+            _logger->log(epg::log::ERROR, "_clean");
+
             ign::feature::FeatureFilter filter;
             detail::EdgeCleaningGraphManager graphManager;
 
@@ -1215,9 +1221,17 @@ namespace app
 
             GraphType const& graph = graphManager.getGraph();
 
+            std::map<std::string, std::string> mMergedEdgeRemainingEdge;
+
             vertex_iterator vit, vend;
             for( graph.vertices( vit, vend ) ; vit != vend ; ++vit )
             {
+                //DEBUG
+                if (graph.getGeometry(*vit).distance(ign::geometry::Point(3941624.301,3163818.798)) < 0.1) {
+                    bool test = true;
+                }
+                ign::geometry::Point pt = graph.getGeometry(*vit);
+
                 if (graph.degree(*vit) < 3)
                     continue;
 
@@ -1226,6 +1240,9 @@ namespace app
                 for( size_t i = 0 ; i < vEdges.size() ; ++i ) {
                     if( graphManager.isCl(vEdges[i]) )
                         vCls.push_back(vEdges[i]);
+                    //DEBUG
+                    ign::geometry::LineString lsTest = graph.getGeometry(vEdges[i]);
+                    bool test = true;
                 }
 
                 if( vCls.size() != 2 )
@@ -1237,8 +1254,14 @@ namespace app
                 if( idNatFront != idNatBack )
                     continue;
                 
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "test1");
                 ign::geometry::LineString lsFront = graph.getGeometry(vCls.front());
                 ign::geometry::LineString lsBack = graph.getGeometry(vCls.back());
+                //DEBUG
+                _logger->log(epg::log::DEBUG, lsFront.toString());
+                _logger->log(epg::log::DEBUG, lsBack.toString());
+                _logger->log(epg::log::DEBUG, "test2");
 
                 edge_descriptor* eToMergePtr = lsFront.length() < lsBack.length() ? &vCls.front() : &vCls.back();
 
@@ -1257,23 +1280,67 @@ namespace app
                 std::string idFeatRef = graph.origins(eRef)[0];
                 std::string idFeatToMerge = graph.origins(*eToMergePtr)[0];
 
+                //DEBUG
+                if( idFeatRef == "eca9f10e-30ed-436d-8dfb-a32dd890c826" || idFeatRef == "9bb791c2-e357-4e06-95a9-aaa7592703c4" || idFeatRef == "3cf1f5dd-a04d-4541-9054-f9baea58de45") {
+                    bool test = true;
+                }
+                if( idFeatToMerge == "eca9f10e-30ed-436d-8dfb-a32dd890c826" || idFeatToMerge == "9bb791c2-e357-4e06-95a9-aaa7592703c4" || idFeatToMerge == "3cf1f5dd-a04d-4541-9054-f9baea58de45") {
+                    bool test = true;
+                }
+
+                //--
+                idFeatRef = _getRemainingEdge( idFeatRef, mMergedEdgeRemainingEdge );
+
                 //--
                 ign::feature::Feature fRef, fToMerge;
                 _fsEdge->getFeatureById(idFeatRef, fRef);
                 _fsEdge->getFeatureById(idFeatToMerge, fToMerge);
 
                 //--
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "test3");
+                _logger->log(epg::log::DEBUG, idFeatRef);
+                _logger->log(epg::log::DEBUG, idFeatToMerge);
                 ign::geometry::LineString const& featRefGeom = fRef.getGeometry().asLineString();
                 ign::geometry::LineString const& fToMergeGeom = fToMerge.getGeometry().asLineString();
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "test4");
 
                 ign::geometry::LineString mergedGeom = _merge(featRefGeom, fToMergeGeom);
 
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "test5");
                 //--
                 fRef.setGeometry(mergedGeom);
                 _fsEdge->modifyFeature(fRef);
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "test6");
 
                 //--
-                _fsEdge->deleteFeature(idFeatToMerge);
+                mMergedEdgeRemainingEdge.insert(std::make_pair(idFeatToMerge, idFeatRef));
+
+                //DEBUG
+                // _fsEdge->deleteFeature(idFeatToMerge);
+            }
+            
+            for ( std::map<std::string, std::string>::const_iterator mit = mMergedEdgeRemainingEdge.begin() ; mit != mMergedEdgeRemainingEdge.end() ; ++mit )
+                _fsEdge->deleteFeature(mit->first);
+        }
+
+        ///
+        ///
+        ///
+        std::string CLInAreaGenerationOp::_getRemainingEdge(
+            std::string const& idMerged,
+            std::map<std::string, std::string> const& mMergedEdgeRemainingEdge
+        ) const {
+            std::string idRemaining = idMerged;
+            while (true) {
+                std::map<std::string, std::string>::const_iterator mit = mMergedEdgeRemainingEdge.find(idRemaining);
+                if ( mit == mMergedEdgeRemainingEdge.end() )
+                    return idRemaining;
+                else
+                    idRemaining = mit->second;
             }
         }
 
@@ -1318,6 +1385,9 @@ namespace app
         ///
         bool CLInAreaGenerationOp::_compute() const
         {
+            //DEBUG
+            _logger->log(epg::log::ERROR, "_compute");
+
 			//--
 			epg::Context *context = epg::ContextS::getInstance();
 

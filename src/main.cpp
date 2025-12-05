@@ -139,10 +139,6 @@ int main(int argc, char *argv[])
         themeParametersFile = context->getConfigParameters().getValue( THEME_PARAMETER_FILE ).toString();
 		app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
         epg::params::tools::loadParams( *themeParameters, themeParametersFile, borderCode );
-        if ( themeParameters->getValue(CL_TABLE).toString() == "" )
-            themeParameters->setParameter(CL_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CL_TABLE_SUFFIX).toString()));
-        if ( themeParameters->getValue(CP_TABLE).toString() == "" ) 
-            themeParameters->setParameter(CP_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CP_TABLE_SUFFIX).toString()));
 
         //info de connection db
         context->loadEpgParameters( themeParameters->getValue(DB_CONF_FILE).toString() );
@@ -177,12 +173,16 @@ int main(int argc, char *argv[])
             themeParameters->setParameter(MATCHED_STANDING_WATER_TABLE, ign::data::String(matchedStandingWaterTableName));
         }
         
-        //table de travail
+        //tables de travail
         if ( !suffix.empty() ) {
             std::string tableBaseName = themeParameters->getValue(EDGE_TABLE_INIT_BASE).toString();
             std::string tableName = tableBaseName + "_" + countries.front() + "_" + countries.back() + "_" + suffix;
             themeParameters->setParameter(EDGE_TABLE_INIT, ign::data::String(tableName));
         }
+        if ( themeParameters->getValue(CL_TABLE).toString() == "" )
+            themeParameters->setParameter(CL_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CL_TABLE_SUFFIX).toString()));
+        if ( themeParameters->getValue(CP_TABLE).toString() == "" ) 
+            themeParameters->setParameter(CP_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CP_TABLE_SUFFIX).toString()));
 
         //set BDD search path
         context->getDataBaseManager().setSearchPath(themeParameters->getValue(WORKING_SCHEMA).toString());

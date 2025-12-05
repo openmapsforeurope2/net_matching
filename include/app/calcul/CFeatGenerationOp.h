@@ -26,7 +26,10 @@ namespace calcul{
 		/// @brief Constructeur
 		/// @param countryCodeDouble Code pays double (avec '#')
 		/// @param verbose Mode verbeux
-		CFeatGenerationOp(std::string countryCodeDouble, bool verbose = false);
+		CFeatGenerationOp(
+			std::string const& countryCodeDouble, 
+			bool verbose = false
+		);
 
 		/// @brief 
 		~CFeatGenerationOp();
@@ -34,37 +37,58 @@ namespace calcul{
 		/// @brief Generation des connecting lines
 		/// @param countryCodeDouble Code pays double (avec '#')
 		/// @param verbose Mode verbeux
-		static void ComputeCL(std::string countryCodeDouble, bool verbose = false);
+		static void ComputeCL(
+			std::string const& countryCodeDouble,
+			bool verbose = false
+		);
 
 		/// @brief Generation des connecting points
 		/// @param countryCodeDouble Code pays double (avec '#')
 		/// @param verbose Mode verbeux
-		static void ComputeCP(std::string countryCodeDouble, bool verbose = false);
+		static void ComputeCP(
+			std::string const& countryCodeDouble,
+			bool verbose = false
+		);
 
 		/// @brief Generation des connecting lines pays par pays
 		/// @param countryCodeDouble 
 		/// @param verbose Mode verbeux
-		static void GenerateConnectingLinesByCountry(std::string countryCodeDouble, bool verbose = false);
+		static void GenerateConnectingLinesByCountry(
+			std::string const& countryCodeDouble,
+			bool verbose = false
+		);
 
 		/// @brief Fusion des connecting lines projetées sur les frontières
 		/// @param countryCodeDouble Code pays double (avec '#')
 		/// @param verbose Mode verbeux
-		static void MergeConnectingLinesOnBorder(std::string countryCodeDouble, bool verbose = false);
+		static void MergeConnectingLinesOnBorder(
+			std::string const& countryCodeDouble,
+			bool verbose = false
+		);
 
 		/// @brief Snap des connecting lines pour éviter des petites discontinuité 
 		/// @param countryCodeDouble Code pays double (avec '#')
 		/// @param verbose Mode verbeux
-		static void SnapConnectingLines(std::string countryCodeDouble, bool verbose = false);
+		static void SnapConnectingLines(
+			std::string const& countryCodeDouble,
+			bool verbose = false
+		);
 
 		/// @brief Suppression des connecting lines dont les objets d'origines ne sont pas cohérents (dist et angle)
 		/// @param countryCodeDouble Code pays double (avec '#')
 		/// @param verbose Mode verbeux
-		static void DeleteConnectingLines(std::string countryCodeDouble, bool verbose = false);
+		static void DeleteConnectingLines(
+			std::string const& countryCodeDouble,
+			bool verbose = false
+		);
 
 		/// @brief Calcul de la géométrie des connecting lines par interpolation des géométries d'origine
 		/// @param countryCodeDouble Code pays double (avec '#')
 		/// @param verbose Mode verbeux
-		static void UpdateGeomConnectingLines(std::string countryCodeDouble, bool verbose = false);
+		static void UpdateGeomConnectingLines(
+			std::string const& countryCodeDouble,
+			bool verbose = false
+		);
 
 	private:
 
@@ -125,51 +149,55 @@ namespace calcul{
 		void _updateGeomConnectingLines() const;
 
 		//--
-		void _init(std::string countryCodeDouble, bool verbose);
+		void _init(
+			std::string const& countryCodeDouble,
+			bool verbose
+		);
 
 		//--
 		void _getBorderCutByAngle(
-			ign::geometry::LineString & lsBorder,
+			ign::geometry::LineString const& lsBorder,
 			std::vector<ign::geometry::LineString> & vLsBorderCutByAngle,
 			double angleMaxToCutBorder
 		) const;
 
 		//--
 		void _getCLfromBorder(
-			ign::geometry::LineString & lsBorder,
-			ign::geometry::GeometryPtr & buffBorder,
-			double distBuffer,
-			double thresholdNoCL,
-			double angleMax,
-			double ratioInBuff,
-			double snapOnVertexBorder
+			ign::geometry::LineString const& lsBorder,
+			ign::geometry::Geometry const& buffBorder
 		) const;
 
 		//--
 		double _getAngleEdgeWithBorder(
-			ign::geometry::LineString & lsEdge,
-			ign::geometry::LineString & lsBorder
+			ign::geometry::LineString const& lsEdge,
+			ign::geometry::LineString const& lsBorder
 		) const;
 
 		//--
-		void _getGeomCL(
-			ign::geometry::LineString & lsCL,
+		ign::geometry::LineString _getGeomCL(
 			epg::tools::MultiLineStringTool & mslBorder,
-			ign::geometry::LineString& lsStart2EndToPrject,
+			ign::geometry::LineString const& lsStart2EndToPrject,
 			double distMaxBorder,
 			double snapOnVertexBorder
 		) const;
 
 		//--
+		ign::geometry::LineString _getLinestring(
+			std::vector<ign::geometry::LineString> const& subEdges,
+			size_t idFirst,
+			size_t idLast
+		) const;
+
+		//--
 		void _addToUndershootNearBorder(
-			ign::geometry::LineString & lsBorder,
-			ign::geometry::GeometryPtr& buffBorder,
+			ign::geometry::LineString const& lsBorder,
+			ign::geometry::Geometry const& buffBorder,
 			double distUnderShoot
 		) const;
 
 		//--
 		void _getCPfromIntersectBorder(
-			ign::geometry::LineString & lsBorder,
+			ign::geometry::LineString const& lsBorder,
 			double distCLIntersected
 		) const;
 
@@ -180,8 +208,8 @@ namespace calcul{
 		// @SK : est ce normal que ce ne soit pas la reference des objets passée en paramètre ?
 		bool _hasClExtremityClose(
 			double distMaxClClosest,
-			ign::feature::Feature fClCurr,
-			ign::geometry::Point ptClCurr,
+			ign::feature::Feature const& fClCurr,
+			ign::geometry::Point const& ptClCurr,
 			ign::feature::Feature & fCl2snap,
 			bool isClosestStartCl2snap
 		) const;
@@ -212,8 +240,8 @@ namespace calcul{
 		//--
 		// @SK est ce que les params pourraient etre const ?
 		bool _isEdgeConnected2cl(
-			ign::geometry::Geometry & geomObjNearCl,
-			ign::geometry::Envelope & envArroundGeom,
+			ign::geometry::Geometry const& geomObjNearCl,
+			ign::geometry::Envelope const& envArroundGeom,
 			ign::feature::Feature & fCl2SnapOn,
 			double distMinCl
 		) const;
@@ -222,12 +250,12 @@ namespace calcul{
 		void _snapCpOnClNearBy(
 			double distCp2snapCl,
 			double snapDistOnVertexFromCl,
-			std::map< std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint> > & mClSplitedByCp
+			std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> & mClSplitedByCp
 		) const;
 
 		//--
 		void _cutClByCp(
-			std::map< std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint> > & mClSplittedByCp
+			std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> const& mClSplittedByCp
 		) const;
 
 		//--
@@ -238,11 +266,7 @@ namespace calcul{
 		) const;
 
 		//--
-		void _deleteClByAngleAndDistEdges(
-			double angleMax,
-			double distMax,
-			double snapOnVertexBorder
-		) const;
+		void _deleteClByAngleAndDistEdges() const;
 
 		//--
 		void _mergeIntersectingCL2(
@@ -255,26 +279,16 @@ namespace calcul{
 			double distMaxEdges,
 			double snapProjCl2edge
 		) const;
-		
-		//--
-		// @SK : est ce normal que ce ne soit pas la reference des objets passée en paramètre ?
-		bool _getCLToMerge(
-			ign::feature::Feature fCL,
-			double distMergeCL,
-			std::map < std::string, ign::feature::Feature> & mCL2merge,
-			std::set<std::string> & sCountryCode
-		) const;
 
 		//--
-		void _getBorderFromEdge(
-			ign::geometry::LineString & lsEdgeOnBorder,
-			ign::geometry::LineString & lsBorder
+		ign::geometry::LineString _getBorderFromEdge(
+			ign::geometry::LineString const& lsEdgeOnBorder
 		) const;
 
 		//--
 		bool _isNextEdgeInAntennas(
-			ign::feature::Feature & fEdge,
-			ign::geometry::Point & ptCurr,
+			ign::feature::Feature const& fEdge,
+			ign::geometry::Point const& ptCurr,
 			ign::feature::Feature & edgeNext,
 			ign::geometry::Point & ptNext
 		) const;
@@ -283,10 +297,9 @@ namespace calcul{
 		void _updateGeomCL(double snapOnVertex) const;
 
 		//--
-		void _getGeomProjClOnEdge(
-			ign::geometry::LineString & lsCl,
-			ign::geometry::LineString & lsEdge,
-			ign::geometry::LineString & lsprojClOnEdg,
+		ign::geometry::LineString _getGeomProjClOnEdge(
+			ign::geometry::LineString const& lsCl,
+			ign::geometry::LineString const& lsEdge,
 			double snapOnVertex
 		) const;
 
@@ -298,13 +311,13 @@ namespace calcul{
 
 		//--
 		void _loadGraphEdges(
-			std::string countryCodeSimple,
+			std::string const& countryCodeSimple,
 			GraphType & graphEdges
 		) const;
 
 		//--
 		bool _isConnectedEdges(
-			GraphType & graph,
+			GraphType const& graph,
 			std::string const& idEdge1,
 			std::string const& idEdge2
 		) const;
@@ -312,13 +325,13 @@ namespace calcul{
 		//--
 		std::pair<bool,std::pair<std::string, std::string>> _getClLinkedEdges(
 			std::string const& linkedFeatIdName,
-			GraphType & graphCL,
+			GraphType const& graphCL,
 			GraphType::edge_descriptor eCl
 		) const;
 
 		//--
 		bool _areParallelEdges(
-			GraphType & graphCL,
+			GraphType const& graphCL,
 			GraphType::edge_descriptor e1,
 			GraphType::edge_descriptor e2
 		) const;
@@ -331,16 +344,10 @@ namespace calcul{
 		) const;
 
 		//--
-		void _setContinuityCl(GraphType & graphCL) const;
+		void _setContinuityCl(GraphType const& graphCL) const;
 
 		//--
 		void _deleteCLUnderThreshold() const;
-
-		//--
-		void _getGeomCountry(
-			std::string countryCodeSimple,
-			ign::geometry::MultiPolygon & geomCountry
-		) const;
  
 		//--
 		void _mergingEdgesByOrigin(GraphType & graph) const;

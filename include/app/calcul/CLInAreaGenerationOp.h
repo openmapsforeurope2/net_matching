@@ -142,6 +142,12 @@ namespace calcul{
 		void _clean() const;
 
 		//--
+		std::string _getRemainingEdge(
+            std::string const& idMerged,
+            std::map<std::string, std::string> const& mMergedEdgeRemainingEdge
+        ) const;
+
+		//--
 		ign::geometry::LineString _merge(
             ign::geometry::LineString const& lsRef,
             ign::geometry::LineString const& lsToMerge

@@ -359,6 +359,8 @@ Un ensemble de sous-arcs est éligible à la génération d'une connecting line 
 
 #### 211 : MergeConnectingLinesOnBorder
 
+Le but est ici de fusionner deux à deux les connecting lines ou portions de connecting lines dont les arcs associés peuvent être appairés. A l'issu de ce traitement il ne doit subsister que des connectings associés à deux arcs des deux pays.
+
 ##### Données de travail :
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
@@ -378,13 +380,17 @@ Paramètre utilisés:
 | LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line                                           |
 
 
-création d'un graph planaire à partir de connecting lines des deux pays
-pour les arcs du graph possédant plusieurs origines : on cherche les couples d'arcs à appairer (à fusionner en connecting line
-si le distance entre les arcs dépasse _CL_EDGE_MAX_DIST_ aucune fusion
-si une seul origine l'arcs du graph est supprimé
+La première étape consiste à construire un graph planaire à partir des connecting lines. Les linéaires superposés sont ainsi agrégés et découpés pour former le graph, chaque connexion du graph est ainsi associée à un ou plusieurs arcs du réseau traité.
+Pour les connexions du graph possédant plusieurs arcs associés provenant des deux pays, on cherche les meilleurs couples d'arcs à appairer.
+Pour qu'un couple d'arcs soit appairable il faut que :
+- les deux arcs soient de pays différents
+- la distance de hausdorff entre les portions d'arcs associés à la connecting line soit inférieure au seuil _CL_EDGE_MAX_DIST_
 
-A partir de la les CL ont au moins deux et seulement 2 arcs associés appartenant aux deux pays
+Pour chaque couple appairé une connecting line est créée. Toutes les connecting lines ou portions de connecting line non fusionnées sont supprimées.
 
+![211_a](images/211_a_with_key.png)
+<br>
+![211_b](images/211_b_with_key.png)
 
 
 #### 212 : SnapConnectingLines

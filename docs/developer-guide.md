@@ -394,7 +394,7 @@ Pour chaque couple appairé une connecting line est créée. Toutes les connecti
 
 
 #### 212 : SnapConnectingLines
-  
+   
 ##### Données de travail :
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |

@@ -11,15 +11,24 @@
 #include <epg/tools/MultiLineStringTool.h>
 #include <ome2/calcul/utils/AttributeMerger.h>
 
+
 namespace app{
 namespace calcul{
 
 	/// @brief Classe utilitaire dédiée à la génération des connecting lines et des connecting points
 	class CFeatGenerationOp {
 	private:
+		//--
 		typedef ign::geometry::graph::GeometryGraph< ign::geometry::graph::PunctualVertexProperties, ign::geometry::graph::LinearEdgeProperties >  GraphType;
 		typedef typename GraphType::edge_descriptor edge_descriptor;
 		typedef typename GraphType::vertex_descriptor vertex_descriptor;
+		//--
+		enum ENDING{
+			NONE,
+			START,
+			END,
+			BOTH
+		};
 
 	public:
 
@@ -205,13 +214,19 @@ namespace calcul{
 		void _snapCl2Cl(double distMaxClClosest) const;
 
 		//--
-		// @SK : est ce normal que ce ne soit pas la reference des objets passée en paramètre ?
-		bool _hasClExtremityClose(
+		void _snapTo( 
 			double distMaxClClosest,
-			ign::feature::Feature const& fClCurr,
-			ign::geometry::Point const& ptClCurr,
-			ign::feature::Feature & fCl2snap,
-			bool isClosestStartCl2snap
+			CFeatGenerationOp::ENDING ending,
+			ign::feature::Feature & fCL,
+			ign::geometry::LineString & newClGeom,
+			std::map<std::string, std::pair<CFeatGenerationOp::ENDING, ign::feature::Feature>> & mFClModified
+		) const;
+
+		//--
+		std::vector<std::pair<CFeatGenerationOp::ENDING, ign::feature::Feature>> _getClExtremityClose(
+			double distMaxClClosest,
+			CFeatGenerationOp::ENDING ending,
+			ign::feature::Feature const& fClCurr
 		) const;
 
 		//--

@@ -82,7 +82,7 @@
         {
             "label": "run the code",
             "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching_base ./bin/net_matching --c config/epg_parameters.ini --t watercourse_link --s 20251203 --sp 204 be nl",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching_base ./bin/net_matching --c config/epg_parameters.ini --t watercourse_link --s 20251208 --sp 212 be nl",
             "group": "build",
             "problemMatcher": []
         },

@@ -1329,96 +1329,39 @@ void  app::calcul::CFeatGenerationOp::_snapCl2Cl(
 	double distMaxClClosest
 ) const {
 	_logger->log(epg::log::TITLE, "[ BEGIN SNAP CONNECTING LINES 2 CONNECTING LINES ] : " + epg::tools::TimeTools::getTime());
+	
+	//--
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
-	ign::feature::FeatureFilter filterCL(countryCodeName + " = '" + _countryCodeDouble + "'");
-
-	ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);
-	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCL);
-	boost::progress_display displayLoad(numFeatures, std::cout, "[ SNAP CL 2 CL]\n");
-
+	
+	//--
 	GraphType graphCl;
 	_loadGraphCL(graphCl);
 
-	std::map<std::string,ign::feature::Feature> mFClModified;
+	//--
+	ign::feature::FeatureFilter filterCL(countryCodeName + " = '" + _countryCodeDouble + "'");
+	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCL);
+	boost::progress_display displayLoad(numFeatures, std::cout, "[ SNAP CL 2 CL]\n");
+
+	ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);
+	std::map<std::string, std::pair<ENDING, ign::feature::Feature>> mFClModified;
 	while (itCL->hasNext()) {
 		++displayLoad;
+
 		ign::feature::Feature fCL = itCL->next();
 		ign::geometry::LineString lsCl = fCL.getGeometry().asLineString();
 
 		edge_descriptor edCl = graphCl.getInducedEdges(fCL.getId()).second[0].descriptor;
 
-		if(graphCl.degree(graphCl.source(edCl)) == 1) {
-			ign::feature::Feature fCl2snapStart;
-			bool isClosestStartCl2snapStart;
-			bool hasClCandidate2snapStart = _hasClExtremityClose( distMaxClClosest, fCL, lsCl.startPoint(), fCl2snapStart, isClosestStartCl2snapStart);
-
-			if (hasClCandidate2snapStart) {
-				if (mFClModified.find(fCl2snapStart.getId()) != mFClModified.end()) //modif deja faite
-					continue;
-				ign::geometry::LineString lsCl2snapStart = fCl2snapStart.getGeometry().asLineString();
-				ign::geometry::MultiPoint mp;
-				mp.addGeometry(lsCl.startPoint());
-				if(isClosestStartCl2snapStart)
-					mp.addGeometry(lsCl2snapStart.startPoint());
-				else 
-					mp.addGeometry(lsCl2snapStart.endPoint());
-
-				ign::geometry::Point pt2Modif = mp.asMultiPoint().getCentroid();
-				pt2Modif.setZ(0);
-
-				lsCl.setPointN(pt2Modif, 0);
-				if (isClosestStartCl2snapStart)
-					lsCl2snapStart.setPointN(pt2Modif, 0);
-				else
-					lsCl2snapStart.setPointN(pt2Modif, lsCl2snapStart.numPoints() - 1);
-
-				fCL.setGeometry(lsCl);
-				fCl2snapStart.setGeometry(lsCl2snapStart);
-				mFClModified[fCL.getId()] = fCL;
-				mFClModified[fCl2snapStart.getId()]= fCl2snapStart;
-			}
-
-		}
-		if (graphCl.degree(graphCl.target(edCl)) == 1) {
-			ign::feature::Feature fCl2snapEnd;
-			bool isClosestStartCl2snapEnd;
-			bool hasClCandidate2snapEnd = _hasClExtremityClose(distMaxClClosest, fCL, lsCl.endPoint(), fCl2snapEnd, isClosestStartCl2snapEnd);
-			if (hasClCandidate2snapEnd) {
-				if (mFClModified.find(fCl2snapEnd.getId()) != mFClModified.end()) //modif deja faite
-					continue;
-				ign::geometry::LineString lsCl2snapEnd = fCl2snapEnd.getGeometry().asLineString();
-				ign::geometry::MultiPoint mp;
-				mp.addGeometry(lsCl.endPoint());
-				if (isClosestStartCl2snapEnd)
-					mp.addGeometry(lsCl2snapEnd.startPoint());
-				else
-					mp.addGeometry(lsCl2snapEnd.endPoint());
-
-				ign::geometry::Point pt2Modif = mp.asMultiPoint().getCentroid();
-				pt2Modif.setZ(0);
-
-				lsCl.setPointN(pt2Modif, lsCl.numPoints() - 1);
-				if (isClosestStartCl2snapEnd)
-					lsCl2snapEnd.setPointN(pt2Modif, 0);
-				else
-					lsCl2snapEnd.setPointN(pt2Modif, lsCl2snapEnd.numPoints() - 1);
-
-				fCL.setGeometry(lsCl);
-				fCl2snapEnd.setGeometry(lsCl2snapEnd);
-				mFClModified[fCL.getId()] = fCL;
-				mFClModified[fCl2snapEnd.getId()] = fCl2snapEnd;
-
-				//DEBUG
-				ign::feature::Feature featConnPoint;
-				featConnPoint.setGeometry(pt2Modif);
-				_shapeLogger->writeFeature("clSnapclPoint", featConnPoint);
-			}
-		}
+		if(graphCl.degree(graphCl.source(edCl)) == 1)
+			_snapTo(distMaxClClosest, START, fCL, lsCl, mFClModified);
+			
+		if(graphCl.degree(graphCl.target(edCl)) == 1)
+			_snapTo(distMaxClClosest, END, fCL, lsCl, mFClModified);
 	}
 
-	for (std::map<std::string, ign::feature::Feature>::iterator mit = mFClModified.begin(); mit != mFClModified.end(); ++mit) {
-		_fsCL->modifyFeature(mit->second);
+	for (std::map<std::string, std::pair<ENDING, ign::feature::Feature>>::iterator mit = mFClModified.begin(); mit != mFClModified.end(); ++mit) {
+		_fsCL->modifyFeature(mit->second.second);
 	}
 
 }
@@ -1426,14 +1369,102 @@ void  app::calcul::CFeatGenerationOp::_snapCl2Cl(
 ///
 ///
 ///
-bool  app::calcul::CFeatGenerationOp::_hasClExtremityClose(
+void app::calcul::CFeatGenerationOp::_snapTo( 
 	double distMaxClClosest,
-	ign::feature::Feature const& fClCurr,
-	ign::geometry::Point const& ptClCurr,
-	ign::feature::Feature & fCl2snap,
-	bool isClosestStartCl2snap 
+	app::calcul::CFeatGenerationOp::ENDING ending,
+	ign::feature::Feature & fCL,
+	ign::geometry::LineString & newClGeom,
+	std::map<std::string, std::pair<app::calcul::CFeatGenerationOp::ENDING, ign::feature::Feature>> & mFClModified
+) const {
+	std::vector<std::pair<ENDING, ign::feature::Feature>> vClExtremityClose = _getClExtremityClose( distMaxClClosest, ending, fCL);
+
+	ign::geometry::LineString const& clGeom = fCL.getGeometry().asLineString();
+	ign::geometry::Point const& endingGeom = ending == START ? clGeom.startPoint() : clGeom.endPoint();
+	ign::geometry::Point const& otherEndingGeom = ending == START ? clGeom.endPoint() : clGeom.startPoint();
+
+	ign::geometry::MultiPoint mp;
+	mp.addGeometry(ending == START ? clGeom.startPoint() : clGeom.endPoint() );
+	
+	for ( int i = vClExtremityClose.size()-1 ; i >= 0 ; --i ) {
+		
+		std::map<std::string, std::pair<ENDING, ign::feature::Feature>>::const_iterator mit = mFClModified.find(vClExtremityClose[i].second.getId());
+		if ( mit != mFClModified.end() )
+			if ( mit->second.first == BOTH || mit->second.first == vClExtremityClose[i].first ) {
+				//modif deja faite
+				vClExtremityClose.erase(vClExtremityClose.begin() + i);
+				continue;
+			}
+		// gestion des cl < distMaxClClosest = snapper l'extremité la plus proche 
+		if ( clGeom.length() < distMaxClClosest ) {
+			ign::geometry::LineString const& ClExtremityCloseGeom = vClExtremityClose[i].second.getGeometry().asLineString();
+			ign::geometry::Point const& extremityGeom = vClExtremityClose[i].first == START ? ClExtremityCloseGeom.startPoint() : ClExtremityCloseGeom.endPoint();
+			if ( otherEndingGeom.distance(extremityGeom) < endingGeom.distance(extremityGeom) ) {
+				vClExtremityClose.erase(vClExtremityClose.begin() + i);
+				continue;
+			}
+		}
+
+		ign::geometry::LineString const& clCloseGem = vClExtremityClose[i].second.getGeometry().asLineString();
+
+		if ( vClExtremityClose[i].first != END ) {
+			mp.addGeometry(clCloseGem.startPoint());
+		}
+		if ( vClExtremityClose[i].first != START ) {
+			mp.addGeometry(clCloseGem.endPoint());
+		}
+	}
+
+	if (!vClExtremityClose.empty()) {
+		ign::geometry::Point newPt = mp.asMultiPoint().getCentroid();
+		newPt.setZ(0);
+		
+		newClGeom.setPointN(newPt, ending == START ? 0 : newClGeom.numPoints()-1);
+		fCL.setGeometry(newClGeom);
+
+		ENDING ending_ = ending;
+		std::map<std::string, std::pair<app::calcul::CFeatGenerationOp::ENDING, ign::feature::Feature>>::iterator mit = mFClModified.find(fCL.getId());
+		if ( mit != mFClModified.end() && mit->second.first != ending )
+			ending_ = BOTH;
+
+		mFClModified[fCL.getId()] = std::make_pair(ending_, fCL);
+
+		for ( size_t i = 0 ; i < vClExtremityClose.size() ; ++i ) {
+			ign::geometry::LineString clGeom = vClExtremityClose[i].second.getGeometry().asLineString();
+			if ( vClExtremityClose[i].first != END )
+				clGeom.setPointN(newPt, 0);
+			if ( vClExtremityClose[i].first != START )
+				clGeom.setPointN(newPt, clGeom.numPoints()-1);
+			vClExtremityClose[i].second.setGeometry(clGeom);
+
+			std::map<std::string, std::pair<ENDING, ign::feature::Feature>>::iterator mit = mFClModified.find(vClExtremityClose[i].second.getId());
+			if ( mit != mFClModified.end() ) {
+				mit->second.first = BOTH;
+				mit->second.second = vClExtremityClose[i].second;
+			} else {
+				mFClModified.insert(std::make_pair(vClExtremityClose[i].second.getId(), vClExtremityClose[i]));
+			}
+		}
+
+		//DEBUG
+		ign::feature::Feature featConnPoint;
+		featConnPoint.setGeometry(newPt);
+		_shapeLogger->writeFeature("clSnapclPoint", featConnPoint);
+	}
+}
+
+///
+///
+///
+std::vector<std::pair<app::calcul::CFeatGenerationOp::ENDING, ign::feature::Feature>> app::calcul::CFeatGenerationOp::_getClExtremityClose(
+	double distMaxClClosest,
+	app::calcul::CFeatGenerationOp::ENDING ending,
+	ign::feature::Feature const& fClCurr
 ) const {
 	//recup des CL proches si dist = 0 rien faire, si dist inf distMaxClClosest snapper
+
+	ign::geometry::LineString const& clGeom = fClCurr.getGeometry().asLineString();
+
+	ign::geometry::Point const& ptClCurr = ending == START ? clGeom.startPoint() : clGeom.endPoint();
 
 	//--
 	epg::Context* context = epg::ContextS::getInstance();
@@ -1446,33 +1477,31 @@ bool  app::calcul::CFeatGenerationOp::_hasClExtremityClose(
 	filterArroundCl.setExtent(ptClCurr.getEnvelope().expandBy(distMaxClClosest));
 
 	ign::feature::FeatureIteratorPtr itClArround = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterArroundCl);
+	std::vector<std::pair<ENDING, ign::feature::Feature>> vConnectedCl;
 	while (itClArround->hasNext()) {
+
 		ign::feature::Feature const& fClArround = itClArround->next();
 		ign::geometry::LineString const& lsClArround = fClArround.getGeometry().asLineString();
-		double distClCurr = lsClArround.distance(fClCurr.getGeometry());
 
-		if ( distClCurr == 0 || distClCurr > distMaxClClosest )
+		std::map<double, ENDING> mEnding;
+		mEnding.insert(std::make_pair(lsClArround.startPoint().distance(ptClCurr), START));
+		mEnding.insert(std::make_pair(lsClArround.endPoint().distance(ptClCurr), END));
+
+		if ( mEnding.begin()->first == 0 || mEnding.begin()->first > distMaxClClosest )
 			continue;
+		
+		ENDING endingClAround = NONE;
 
-		double distStart = lsClArround.startPoint().distance(ptClCurr);
-		double distEnd = lsClArround.endPoint().distance(ptClCurr);
+		if ( mEnding.begin()->first < distMaxClClosest )
+			endingClAround = mEnding.begin()->second;
 
-		if ( distEnd < distMaxClClosest && distStart < distMaxClClosest )
-			_logger->log(epg::log::WARN, "CL has two extremities close : " + fClCurr.getId());
-
-		if ( distEnd < distStart && distEnd < distMaxClClosest ) {
-			fCl2snap = fClArround;
-			isClosestStartCl2snap = false;
-			return true;
-		}
-
-		if (distStart < distEnd && distStart < distMaxClClosest) {
-			fCl2snap = fClArround;
-			isClosestStartCl2snap = true;
-			return true;
-		}
+		if ( mEnding.rbegin()->first < distMaxClClosest && clGeom.length() > distMaxClClosest )
+			endingClAround = endingClAround != NONE ? BOTH : mEnding.rbegin()->second;
+		
+		if ( endingClAround != NONE )
+			vConnectedCl.push_back(std::make_pair(endingClAround, fClArround));
 	}
-	return false;
+	return vConnectedCl;
 }
 
 ///

@@ -312,7 +312,13 @@ namespace calcul{
 		void _updateGeomCL(double snapOnVertex) const;
 
 		//--
-		ign::geometry::LineString _getGeomProjClOnEdge(
+		ign::geometry::LineString _computeMeanGeom(
+			ign::geometry::Geometry const& geom1,
+			ign::geometry::Geometry const& geom2
+		) const;
+
+		//--
+		ign::geometry::Geometry* _getGeomProjClOnEdge(
 			ign::geometry::LineString const& lsCl,
 			ign::geometry::LineString const& lsEdge,
 			double snapOnVertex

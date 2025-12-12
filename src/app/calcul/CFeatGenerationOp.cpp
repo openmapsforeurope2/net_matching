@@ -1594,10 +1594,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 				ign::feature::Feature fEdge1;
 				_fsEdge->getFeatureById(idEdgeLinked1, fEdge1);
 				ign::geometry::LineString lsEdge1 = fEdge1.getGeometry().asLineString();
-				ign::geometry::LineString lsClEdge1 = _getGeomProjClOnEdge(lsCl, lsEdge1, snapProjCl2edge);
-				
-				if (lsClEdge1.isEmpty())
-					continue;
+				ign::geometry::GeometryPtr geomClEdge1(_getGeomProjClOnEdge(lsCl, lsEdge1, snapProjCl2edge));
 
 				for (std::map<std::string, ign::feature::Feature>::iterator mit2 = mIdClOriginsCountry2.begin(); mit2 != mIdClOriginsCountry2.end(); ++mit2) {
 
@@ -1607,12 +1604,9 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 					ign::feature::Feature fEdge2;
 					_fsEdge->getFeatureById(idEdgeLinked2, fEdge2);
 					ign::geometry::LineString lsEdge2 = fEdge2.getGeometry().asLineString();
-					ign::geometry::LineString lsClEdge2 = _getGeomProjClOnEdge(lsCl, lsEdge2, snapProjCl2edge);
+					ign::geometry::GeometryPtr geomClEdge2(_getGeomProjClOnEdge(lsCl, lsEdge2, snapProjCl2edge));
 
-					if (lsClEdge2.isEmpty())
-						continue;
-
-					double hausdorffDistEdges = ign::geometry::algorithm::OptimizedHausdorffDistanceOp::distance(lsClEdge1, lsClEdge2);
+					double hausdorffDistEdges = ign::geometry::algorithm::OptimizedHausdorffDistanceOp::distance(*geomClEdge1, *geomClEdge2);
 
 					if (hausdorffDistEdges > distMaxEdges) {
 
@@ -1949,9 +1943,9 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 			ign::geometry::LineString lsEdg2 = fEdg2.getGeometry().asLineString();
 			ign::geometry::LineString lsCl = fCl.getGeometry().asLineString();
 
-			ign::geometry::LineString lsProjClEdg1 = _getGeomProjClOnEdge(lsCl, lsEdg1, snapProjCl2edge);
-			ign::geometry::LineString lsProjClEdg2 = _getGeomProjClOnEdge(lsCl, lsEdg2, snapProjCl2edge);
-			if (lsProjClEdg1.isEmpty()) {
+			ign::geometry::GeometryPtr geomProjClEdg1(_getGeomProjClOnEdge(lsCl, lsEdg1, snapProjCl2edge));
+			ign::geometry::GeometryPtr geomProjClEdg2(_getGeomProjClOnEdge(lsCl, lsEdg2, snapProjCl2edge));
+			if (geomProjClEdg1->isPoint()) {
 				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not projecting on matching linked edge : " + idEdgLinked1);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
@@ -1960,7 +1954,7 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 				sCl2delete.insert(fCl.getId());
 				continue;
 			}
-			if (lsProjClEdg2.isEmpty()) {
+			if (geomProjClEdg2->isPoint()) {
 				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + "  not projecting on matching linked edge : " + idEdgLinked2);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
@@ -1969,6 +1963,9 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 				sCl2delete.insert(fCl.getId());
 				continue;
 			}
+			ign::geometry::LineString const& lsProjClEdg1 = geomProjClEdg1->asLineString();
+			ign::geometry::LineString const& lsProjClEdg2 = geomProjClEdg2->asLineString();
+
 			ign::math::Vec2d vec1(lsProjClEdg1.endPoint().x() - lsProjClEdg1.startPoint().x(), lsProjClEdg1.endPoint().y() - lsProjClEdg1.startPoint().y());
 			ign::math::Vec2d vec2(lsProjClEdg2.endPoint().x() - lsProjClEdg2.startPoint().x(), lsProjClEdg2.endPoint().y() - lsProjClEdg2.startPoint().y());
 			double angleEdgesLinked = epg::tools::geometry::angle(vec1, vec2);
@@ -2061,14 +2058,15 @@ bool app::calcul::CFeatGenerationOp::_isNextEdgeInAntennas(
 void app::calcul::CFeatGenerationOp::_updateGeomCL(double snapProjCl2edge) const
 {
 	_logger->log(epg::log::TITLE, "[ BEGIN UPDATE GEOM CL " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
+	//--
 	epg::Context* context = epg::ContextS::getInstance();
+
+	//--
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
-	std::string const edgeTableName = _fsEdge->getTableName();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
 	std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS_NAME).toString();
-	//std::string const natIdName = themeParameters->getValue(NATIONAL_IDENTIFIER).toString();
 
 	if(_vCountriesCodeName.size() != 2)
 		_logger->log(epg::log::WARN, "Attention, le countryCode " + _countryCodeDouble + " n'a pas deux country" );
@@ -2076,19 +2074,20 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(double snapProjCl2edge) const
 	std::string countryCode1 = _vCountriesCodeName[0];
 	std::string countryCode2 = _vCountriesCodeName[1];
 
+	//--
 	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + _countryCodeDouble + "'");
-	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLCountryCode);
 	boost::progress_display display(numFeatures, std::cout, "[  UPDATE GEOM CL ]\n");
 
+	//--
+	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
 	std::set<std::string> sCL2delete;
 	while (it->hasNext()) {
 		++display;
 		ign::feature::Feature fCL = it->next();
 		ign::geometry::LineString lsCLCurr = fCL.getGeometry().asLineString();
 		lsCLCurr.setFillZ(0);
-		ign::geometry::LineString lsCLUpdated;
-
+		
 		std::vector<std::string> vEdgeslinked;
 		epg::tools::StringTools::Split(fCL.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinked);
 		std::string idEdgLinked1 = vEdgeslinked[0];
@@ -2101,17 +2100,16 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(double snapProjCl2edge) const
 		if (fEdg1.getId().empty() || fEdg2.getId().empty()) //si on ne trouve pas l'un des troncons liés
 			continue;
 
-
 		ign::geometry::LineString lsEdgInit1 = fEdg1.getGeometry().asLineString();
 		ign::geometry::LineString lsEdgInit2 = fEdg2.getGeometry().asLineString();
 
-		ign::geometry::LineString lsEdg1 = _getGeomProjClOnEdge(lsCLCurr, lsEdgInit1, snapProjCl2edge);
-		ign::geometry::LineString lsEdg2 = _getGeomProjClOnEdge(lsCLCurr, lsEdgInit2, snapProjCl2edge);
+		ign::geometry::GeometryPtr geomEdg1(_getGeomProjClOnEdge(lsCLCurr, lsEdgInit1, snapProjCl2edge));
+		ign::geometry::GeometryPtr geomEdg2(_getGeomProjClOnEdge(lsCLCurr, lsEdgInit2, snapProjCl2edge));
 
 		//on coupe les edges au niveau de la projection des extremites des CLs sur ces edges, pour ne prendre que la portion d'edge que l'on apparie à la CL
 
-		if (lsEdg1.isEmpty()) {
-			_logger->log(epg::log::WARN, "Suppression CL  " + fCL.getId() + " not matching linked edge : " + idEdgLinked1);
+		if (geomEdg1->isPoint() && geomEdg2->isPoint()) {
+			_logger->log(epg::log::WARN, "Suppression CL " + fCL.getId());
 			ign::feature::Feature fShaplog = fCL; 
 			ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
 			lsSphaplog.clearZ();
@@ -2121,9 +2119,12 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(double snapProjCl2edge) const
 			continue;
 		}
 
-		if (lsEdg2.isEmpty()) {
-			_logger->log(epg::log::WARN, "Suppression CL  " + fCL.getId() + " not matching linked edge : " + idEdgLinked2);
-			ign::feature::Feature fShaplog = fCL;
+		bool isFictEdg1 = fEdg1.getAttribute(fictitiousFieldName).toString() == "true" ? true : false;
+		bool isFictEdg2 = fEdg2.getAttribute(fictitiousFieldName).toString() == "true" ? true : false;
+
+		if ( isFictEdg1 && geomEdg1->isPoint() || isFictEdg2 && geomEdg2->isPoint() ) {
+			_logger->log(epg::log::WARN, "Suppression CL (géometrie cible ponctuelle)" + fCL.getId());
+			ign::feature::Feature fShaplog = fCL; 
 			ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
 			lsSphaplog.clearZ();
 			fShaplog.setGeometry(lsSphaplog);
@@ -2132,73 +2133,16 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(double snapProjCl2edge) const
 			continue;
 		}
 
-
-		std::string ficticiousValue1 = fEdg1.getAttribute(fictitiousFieldName).toString();
-		bool isFictEdg1 = false;
-		if (ficticiousValue1 == "true")
-			isFictEdg1 = true;
-		std::string ficticiousClValue2 = fEdg2.getAttribute(fictitiousFieldName).toString();
-		bool isFictEdg2 = false;
-		if (ficticiousClValue2 == "true")
-			isFictEdg2 = true;
-
+		ign::geometry::LineString lsCLUpdated;
 		if (isFictEdg1 && !isFictEdg2)
-			lsCLUpdated = lsEdg1;
+			lsCLUpdated = geomEdg1->asLineString();
 		else if (!isFictEdg1 && isFictEdg2)
-				lsCLUpdated = lsEdg2;
-		else {
-
-			//si les 2 edges sont dans le même pays, on prend la geom de la portion de l'edge du pays
-			/*bool isLs1InCountry1 = lsEdg1.intersects(mPolyCountry1);
-			bool isLs2InCountry1 = lsEdg2.intersects(mPolyCountry1);
-			bool isLs1InCountry2 = lsEdg1.intersects(mPolyCountry2);
-			bool isLs2InCountry2 = lsEdg2.intersects(mPolyCountry2);
-			if (isLs1InCountry1 && !isLs1InCountry2 && isLs2InCountry1 && !isLs2InCountry2)
-				_getGeomCL(lsCLUpdated, lsEdg1, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertex);
-			else if (isLs1InCountry2 && !isLs1InCountry1 && isLs2InCountry2 && !isLs2InCountry1)
-				_getGeomCL(lsCLUpdated, lsEdg2, lsCLCurr.startPoint(), lsCLCurr.endPoint(), snapOnVertex);
-			else {*/
-
-			std::set<double> sAbsCurv;
-			geometry::tools::LengthIndexedLineString lsIndex1(lsEdg1);
-			geometry::tools::LengthIndexedLineString lsIndex2(lsEdg2);
-			for (size_t i = 0; i < lsEdg1.numPoints() - 1; ++i) {
-				double abscurv = lsIndex1.getPointLocation(i) / lsEdg1.length();
-				sAbsCurv.insert(abscurv);
-			}
-			for (size_t i = 0; i < lsEdg2.numPoints() - 1; ++i) {
-				double abscurv = lsIndex2.getPointLocation(i) / lsEdg2.length();
-				sAbsCurv.insert(abscurv);
-			}
-
-			for (std::set<double>::iterator sit = sAbsCurv.begin(); sit != sAbsCurv.end(); ++sit) {
-				ign::geometry::MultiPoint multiPt;
-				double test = *sit*lsEdg1.length();
-				ign::geometry::Point pt1 = lsIndex1.locateAlong(*sit*lsEdg1.length());
-				ign::geometry::Point pt2 = lsIndex2.locateAlong(*sit*lsEdg2.length());
-				multiPt.addGeometry(pt1);
-				multiPt.addGeometry(pt2);
-				ign::geometry::Point ptLsCentroid = multiPt.getCentroid();
-				bool hasPtDistMin = false;
-				if (sit != sAbsCurv.begin()) {
-					if (lsCLUpdated.endPoint().distance(ptLsCentroid) < 0)
-						hasPtDistMin = true;
-				}
-				if (!hasPtDistMin)
-					lsCLUpdated.addPoint(ptLsCentroid);
-			}
-			ign::geometry::MultiPoint multiPtEnd;
-			multiPtEnd.addGeometry(lsEdg1.endPoint());
-			multiPtEnd.addGeometry(lsEdg2.endPoint());
-			//multiPtEnd.addGeometry(endLsProj2);
-			lsCLUpdated.addPoint(multiPtEnd.getCentroid());
-			//lsCLUpdated.clearZ();
-			lsCLUpdated.setFillZ(0);
-		}
+			lsCLUpdated = geomEdg2->asLineString();
+		else
+			lsCLUpdated = _computeMeanGeom(*geomEdg1, *geomEdg2);
 
 		fCL.setGeometry(lsCLUpdated);
 		_fsCL->modifyFeature(fCL);
-		
 	}
 
 	for( std::set<std::string>::iterator sit = sCL2delete.begin(); sit != sCL2delete.end();++sit)
@@ -2211,7 +2155,82 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(double snapProjCl2edge) const
 ///
 ///
 ///
-ign::geometry::LineString app::calcul::CFeatGenerationOp::_getGeomProjClOnEdge(
+ign::geometry::LineString app::calcul::CFeatGenerationOp::_computeMeanGeom(
+	ign::geometry::Geometry const& geom1,
+	ign::geometry::Geometry const& geom2
+) const {
+	ign::geometry::LineString meanLs;
+
+	std::set<double> sAbsCurv;
+
+	geometry::tools::LengthIndexedLineString* lsIndex1Ptr = 0;
+	geometry::tools::LengthIndexedLineString* lsIndex2Ptr = 0;
+
+	double length1 = 0;
+	double length2 = 0;
+
+	if( geom1.isLineString() ) {
+		ign::geometry::LineString const& ls = geom1.asLineString();
+		length1 = ls.length();
+		lsIndex1Ptr = new geometry::tools::LengthIndexedLineString(ls);
+		for (size_t i = 0; i < ls.numPoints() - 1; ++i) {
+			double abscurv = lsIndex1Ptr->getPointLocation(i) / length1;
+			sAbsCurv.insert(abscurv);
+		}
+	}
+
+	if( geom2.isLineString() ) {
+		ign::geometry::LineString const& ls = geom2.asLineString();
+		length2 = ls.length();
+		lsIndex2Ptr = new geometry::tools::LengthIndexedLineString(ls);
+		for (size_t i = 0; i < ls.numPoints() - 1; ++i) {
+			double abscurv = lsIndex2Ptr->getPointLocation(i) / length2;
+			sAbsCurv.insert(abscurv);
+		}
+	}
+
+	for (std::set<double>::iterator sit = sAbsCurv.begin(); sit != sAbsCurv.end(); ++sit) {
+
+		ign::geometry::Point pt1 = lsIndex1Ptr == 0 ? geom1.asPoint() : lsIndex1Ptr->locateAlong(*sit*length1);
+		ign::geometry::Point pt2 = lsIndex2Ptr == 0 ? geom2.asPoint() : lsIndex2Ptr->locateAlong(*sit*length2);
+
+		ign::geometry::MultiPoint multiPt;
+		multiPt.addGeometry(pt1);
+		multiPt.addGeometry(pt2);
+		ign::geometry::Point meanPt = multiPt.getCentroid();
+		
+		if (sit != sAbsCurv.begin()) {
+			if (meanLs.endPoint().distance(meanPt) >= 0) // WARNING : PAS DE SEUIL !!!
+				meanLs.addPoint(meanPt);
+		} else 
+			meanLs.addPoint(meanPt);
+	}
+
+	//--
+	ign::geometry::Point endPt1 = lsIndex1Ptr == 0 ? geom1.asPoint() : geom1.asLineString().endPoint();
+	ign::geometry::Point endPt2 = lsIndex2Ptr == 0 ? geom2.asPoint() : geom2.asLineString().endPoint();
+
+	ign::geometry::MultiPoint multiPtEnd;
+	multiPtEnd.addGeometry(endPt1);
+	multiPtEnd.addGeometry(endPt2);
+	ign::geometry::Point meanEndPt = multiPtEnd.getCentroid();
+
+	meanLs.addPoint(meanEndPt);
+	meanLs.setFillZ(0);
+
+	if (lsIndex1Ptr != 0 )
+		delete lsIndex1Ptr;
+	
+	if (lsIndex2Ptr != 0 )
+		delete lsIndex2Ptr;
+
+	return meanLs;
+}
+
+///
+///
+///
+ign::geometry::Geometry* app::calcul::CFeatGenerationOp::_getGeomProjClOnEdge(
 	ign::geometry::LineString const& lsCl,
 	ign::geometry::LineString const& lsEdge,
 	double snapProjCl2edge
@@ -2220,6 +2239,9 @@ ign::geometry::LineString app::calcul::CFeatGenerationOp::_getGeomProjClOnEdge(
 	startLsProj.setZ(0);//interpolate avec projZ
 	ign::geometry::Point endLsProj = epg::tools::geometry::project(lsEdge, lsCl.endPoint(), snapProjCl2edge);
 	endLsProj.setZ(0);//interpolate
+
+	if( startLsProj.egal2d(endLsProj) )
+		return startLsProj.clone();
 
 	app::geometry::tools::LineStringSplitter lsSplitter(lsEdge);
 	lsSplitter.addCuttingGeometry(startLsProj);
@@ -2236,16 +2258,16 @@ ign::geometry::LineString app::calcul::CFeatGenerationOp::_getGeomProjClOnEdge(
 		}
 	}
 	if (idCandidate < 0 || vLsCandidate[idCandidate].isEmpty())
-		return ign::geometry::LineString();
+		return startLsProj.clone();
 
 	vLsCandidate[idCandidate].startPoint().setZ(0);
 	vLsCandidate[idCandidate].endPoint().setZ(0);
 
 	//on s'assure du sens de ls
 	if (!vLsCandidate[idCandidate].startPoint().egal2d(startLsProj))
-		return vLsCandidate[idCandidate].reverse();
+		return vLsCandidate[idCandidate].reverse().clone();
 	else
-		return vLsCandidate[idCandidate];
+		return vLsCandidate[idCandidate].clone();
 }
 
 ///

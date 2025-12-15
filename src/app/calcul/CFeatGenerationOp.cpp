@@ -186,7 +186,7 @@ void app::calcul::CFeatGenerationOp::_snapConnectingLines() const
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	double const distMaxClClosest = themeParameters->getValue(CL_CL_CLOSEST_MAX_DIST).toDouble();
 
-	_snapCl2Cl( distMaxClClosest);
+	_snapCl2Cl( distMaxClClosest );
 
 	_logger->log(epg::log::TITLE, "[ END CL SNAPPING FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 }
@@ -503,7 +503,7 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filter);
 	if (numFeatures == 0)
 		return;
-	boost::progress_display display(numFeatures, std::cout, "[ CREATE CONNECTING LINES ]\n");
+	boost::progress_display display(numFeatures, std::cout, "[ creating connecting lines % complete ]\n");
 
 	while (eit->hasNext())
 	{
@@ -523,7 +523,7 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 			double angleEdgBorder = _getAngleEdgeWithBorder(lsEdge, lsBorder);		
 			//si l'edge est "proche" on considere qu'il est entierement dans le buffer et longe la frontiere
 			if (lsEdge.distance(lsBorder) < distBuffer && (angleEdgBorder < angleMax || angleEdgBorder > (M_PI - angleMax) ) ) {
-				ign::geometry::LineString lsCL = _getGeomCL(*_mlsBorderSmoothed, lsEdge, distBuffer,snapOnVertexBorder);
+				ign::geometry::LineString lsCL = _getGeomCL(*_mlsBorderSmoothed, lsEdge, distBuffer, snapOnVertexBorder);
 				if (lsCL.numPoints() >= 2) {
 					vLsProjectedOnBorder.push_back(lsCL);
 				}
@@ -651,7 +651,7 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 
 	ign::feature::FeatureIteratorPtr eit = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterBuffBorder);
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterBuffBorder);
-	boost::progress_display display(numFeatures, std::cout, "[ GET CONNECTING POINTS BY UNDERSHOOT LINES ]\n");
+	boost::progress_display display(numFeatures, std::cout, "[ computing connecting point by resolving undershoot % complete ]\n");
 
 	epg::tools::geometry::SegmentIndexedGeometry segIndexLsBorder(&lsBorder);
 
@@ -709,7 +709,7 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 		ign::geometry::MultiLineString mlsBorderSegments(vBorderSegments);
 		////////////////////todo recup le bon segment de la frontiere
 		std::vector< ign::geometry::Point > vPtIntersect = epg::tools::geometry::LineIntersector::compute(ptClosestBorder, lsEdge.pointN(1), mlsBorderSegments);
-		double distMin = 100000;
+		double distMin = std::numeric_limits<double>::infinity();
 		for (std::vector< ign::geometry::Point >::iterator vit = vPtIntersect.begin(); vit != vPtIntersect.end(); ++vit) {
 			double dist = ptClosestBorder.distance(*vit);
 			if (dist < distMin) {
@@ -780,7 +780,7 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 	ign::feature::FeatureIteratorPtr itFeaturesToMatch = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterFeaturesToMatch);
 
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterFeaturesToMatch);
-	boost::progress_display display(numFeatures, std::cout, "[ CREATE CONNECTING POINTS ]\n");
+	boost::progress_display display(numFeatures, std::cout, "[ creating connecting points % complete ]\n");
 
 	while (itFeaturesToMatch->hasNext())
 	{
@@ -1188,7 +1188,7 @@ void app::calcul::CFeatGenerationOp::_snapCpOnClNearBy(
 	}
 	ign::feature::FeatureIteratorPtr itCp = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCp);
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCP, filterCp);
-	boost::progress_display display(numFeatures, std::cout, "[ SNAP CP ON CL]\n");
+	boost::progress_display display(numFeatures, std::cout, "[ snapping cp on cl % complete ]\n");
 	std::map<std::string, ign::feature::Feature> mSnappedCpOnCl;
 	while (itCp->hasNext())
 	{
@@ -1260,7 +1260,7 @@ void app::calcul::CFeatGenerationOp::_cutClByCp(
 	std::map<std::string,std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> const& mClSplittedByCp
 ) const {
 	std::set<std::string> sCl2delete;
-	boost::progress_display display(mClSplittedByCp.size(), std::cout, "[ CUT CL BY CP]\n");
+	boost::progress_display display(mClSplittedByCp.size(), std::cout, "[ cutting cl by cp % complete ]\n");
 	for (std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>>::const_iterator mit = mClSplittedByCp.begin();
 		mit != mClSplittedByCp.end(); ++mit) {
 		++display;
@@ -1341,7 +1341,7 @@ void  app::calcul::CFeatGenerationOp::_snapCl2Cl(
 	//--
 	ign::feature::FeatureFilter filterCL(countryCodeName + " = '" + _countryCodeDouble + "'");
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCL);
-	boost::progress_display displayLoad(numFeatures, std::cout, "[ SNAP CL 2 CL]\n");
+	boost::progress_display displayLoad(numFeatures, std::cout, "[ snapping cl to cl % complete ]\n");
 
 	ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);
 	std::map<std::string, std::pair<ENDING, ign::feature::Feature>> mFClModified;
@@ -1511,22 +1511,27 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 	double distMaxEdges,
 	double snapProjCl2edge
 ) const {
-	_logger->log(epg::log::TITLE, "[ BEGIN FUSION CONNECTING LINES ] : " + epg::tools::TimeTools::getTime());
+	//--
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
 	std::string separator = "#";
 
+	//--
 	GraphType graphCl;
-	ign::geometry::graph::tools::SnapRoundPlanarizer< GraphType >  planarizerCl(graphCl, 10000);//scale =100 -> precision de 0.01
+	ign::geometry::graph::tools::SnapRoundPlanarizer< GraphType >  planarizerCl(graphCl, 1e4);//scale =1e2 -> precision de 0.01
+
+	//--
 	ign::feature::FeatureFilter filterCL;
 	for (size_t i = 0; i < _vCountriesCodeName.size(); ++i) {
 		epg::tools::FilterTools::addOrConditions(filterCL, countryCodeName + " = '" + _vCountriesCodeName[i] + "'");
 	}
 
-	ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);
+	//--
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCL);
-	boost::progress_display displayLoad(numFeatures, std::cout, "[ LOAD GRAPH PLANARIZE CL ]\n");
+	boost::progress_display displayLoad(numFeatures, std::cout, "[ loading cl planar graph % complete ]\n");
+
+	ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);
 	while (itCL->hasNext()) {
 		++displayLoad;
 		ign::feature::Feature const& fCL = itCL->next();
@@ -1539,7 +1544,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 
 	GraphType::edge_iterator eit, eitEnd;
 	graphCl.edges(eit, eitEnd);
-	boost::progress_display display(graphCl.numEdges(), std::cout, "[ FUSION CONNECTING LINES ]\n");
+	boost::progress_display display(graphCl.numEdges(), std::cout, "[ merging connecting lines % complete ]\n");
 	while (eit != eitEnd) {
 		++display;
 
@@ -1583,7 +1588,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 		while(nbEdgesMerged != sEdgesMerged.size() ){
 			nbEdgesMerged = sEdgesMerged.size();
 
-			double distMin = 100000;
+			double distMin = std::numeric_limits<double>::infinity();
 			std::pair<std::string, std::string> cl2merge;
 
 			for (std::map<std::string, ign::feature::Feature>::iterator mit1 = mIdClOriginsCountry1.begin(); mit1 != mIdClOriginsCountry1.end(); ++mit1) {
@@ -1665,8 +1670,6 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 	ss1 << linkedFeatIdName << " LIKE '%#%'";
 	ign::feature::FeatureFilter mergeFilter(ss1.str());
 	ome2::calcul::detail::ClMerger::mergeAll(_fsCL, mergeFilter, _idGeneratorCL.get());
-
-	_logger->log(epg::log::TITLE, "[ END FUSION CONNECTING LINES ] : " + epg::tools::TimeTools::getTime());
 }
 
 ///
@@ -1690,7 +1693,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 	//std::string const natIdName = themeParameters->getValue(NATIONAL_IDENTIFIER).toString();
 	ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCL);
-	boost::progress_display display(numFeatures, std::cout, "[ FUSION CONNECTING LINES WITH #]\n");
+	boost::progress_display display(numFeatures, std::cout, "[ connecting lines merging with # % complete ]\n");
 
 	std::set<std::string> sCL2Merged;
 	std::string separator = "#";
@@ -1781,7 +1784,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 			ign::geometry::LineString lsIntersectedCL;
 			
 			//lsIntersectedCL = lsCurr;
-			double lengthMin = 100000;
+			double lengthMin = std::numeric_limits<double>::infinity();
 
 			if (lsSE.length() < lengthMin && lsSE.length()> 0.1 ) {//on s'assure que la section de frontière n'est pas nulle et que les projections ne se sont pas snappés au même endroit sur la frontière
 				int numSegSE = static_cast<int>(std::floor(lsSE.numSegments() / 2.));
@@ -1898,7 +1901,7 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 
 		ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
 		size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLCountryCode);
-		boost::progress_display display(numFeatures, std::cout, "[  DELETE CL BY ANGLE EDGES ]\n");
+		boost::progress_display display(numFeatures, std::cout, "[ deleting cl by angle between linked edges % complete ]\n");
 		while (it->hasNext()) {
 			++display;
 			ign::feature::Feature const& fCl = it->next();
@@ -1922,7 +1925,7 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 			_fsEdge->getFeatureById(idEdgLinked1, fEdg1);
 			_fsEdge->getFeatureById(idEdgLinked2, fEdg2);
 			if (fEdg1.getId().empty()) {
-				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not matching linked edge : " + idEdgLinked1);
+				_logger->log(epg::log::WARN, "Suppression CL " + fCl.getId() + " not matching linked edge : " + idEdgLinked1);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
 				fShaplog.setGeometry(lsSphaplog);
@@ -1931,7 +1934,7 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 				continue;
 			}
 			if (fEdg2.getId().empty()) {
-				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not matching linked edge : " + idEdgLinked2);
+				_logger->log(epg::log::WARN, "Suppression CL " + fCl.getId() + " not matching linked edge : " + idEdgLinked2);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
 				fShaplog.setGeometry(lsSphaplog);
@@ -1946,7 +1949,7 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 			ign::geometry::GeometryPtr geomProjClEdg1(_getGeomProjClOnEdge(lsCl, lsEdg1, snapProjCl2edge));
 			ign::geometry::GeometryPtr geomProjClEdg2(_getGeomProjClOnEdge(lsCl, lsEdg2, snapProjCl2edge));
 			if (geomProjClEdg1->isPoint()) {
-				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + " not projecting on matching linked edge : " + idEdgLinked1);
+				_logger->log(epg::log::WARN, "Suppression CL " + fCl.getId() + " not projecting on matching linked edge : " + idEdgLinked1);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
 				fShaplog.setGeometry(lsSphaplog);
@@ -1955,7 +1958,7 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 				continue;
 			}
 			if (geomProjClEdg2->isPoint()) {
-				_logger->log(epg::log::WARN, "Suppression CL  " + fCl.getId() + "  not projecting on matching linked edge : " + idEdgLinked2);
+				_logger->log(epg::log::WARN, "Suppression CL " + fCl.getId() + " not projecting on matching linked edge : " + idEdgLinked2);
 				ign::feature::Feature fShaplog = fCl;
 				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
 				fShaplog.setGeometry(lsSphaplog);
@@ -1988,7 +1991,6 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 		for (std::set<std::string>::iterator sit = sCl2delete.begin(); sit != sCl2delete.end(); ++sit) 
 			_fsCL->deleteFeature(*sit);
 
-		
 		numCl2delete = sCl2delete.size();
 	}
 
@@ -2077,7 +2079,7 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(double snapProjCl2edge) const
 	//--
 	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + _countryCodeDouble + "'");
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLCountryCode);
-	boost::progress_display display(numFeatures, std::cout, "[  UPDATE GEOM CL ]\n");
+	boost::progress_display display(numFeatures, std::cout, "[ computing cl geometry by linked edges interpolation % complete ]\n");
 
 	//--
 	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
@@ -2291,7 +2293,7 @@ void app::calcul::CFeatGenerationOp::_deleteCLUnderThreshold() const
 	ign::feature::FeatureFilter filterCLInf10m(ssconditionDeleteCLUnderThreshold.str());
 	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLInf10m);
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLInf10m);
-	boost::progress_display display(numFeatures, std::cout, "[ CLEAN CL UNDER THRESHOLD ]\n");
+	boost::progress_display display(numFeatures, std::cout, "[ cleaning cl under threshold % complete ]\n");
 
 	while (it->hasNext()) {
 		++display;
@@ -2334,7 +2336,7 @@ void app::calcul::CFeatGenerationOp::_loadGraphCL(GraphType & graphCL) const
 	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + _countryCodeDouble + "'");
 	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLCountryCode);
-	boost::progress_display display(numFeatures, std::cout, "[ LOAD GRAPH CL ]\n");
+	boost::progress_display display(numFeatures, std::cout, "[ loading cl graph % complete ]\n");
 
 	ign::geometry::graph::builder::SimpleGraphBuilder<GraphType> graphBuilder(graphCL, 0.01);
 	while (it->hasNext()) {
@@ -2359,7 +2361,7 @@ void app::calcul::CFeatGenerationOp::_loadGraphEdges(
 	ign::feature::FeatureFilter filterEdgeCountryCode(countryCodeName + " = '" + countryCodeSimple + "'");
 	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterEdgeCountryCode);
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterEdgeCountryCode);
-	boost::progress_display display(numFeatures, std::cout, "[ LOAD GRAPH EDGE " + countryCodeSimple+" ]\n");
+	boost::progress_display display(numFeatures, std::cout, "[ loading "+ countryCodeSimple+" edges graph % complete ]\n");
 
 	ign::geometry::graph::builder::SimpleGraphBuilder<GraphType> graphBuilder(graphEdges, 0.01);
 	while (it->hasNext()) {
@@ -2465,7 +2467,7 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl(GraphType const& graphCL) 
 	GraphType::vertex_iterator vit, vitEnd;
 	graphCL.vertices(vit, vitEnd);
 
-	boost::progress_display display(graphCL.numVertices(), std::cout, "[ SET CL CONTINUITY ]\n");
+	boost::progress_display display(graphCL.numVertices(), std::cout, "[ set cl continuity % complete ]\n");
 	std::map<std::string, ign::feature::Feature> mClModified;
 
 	while (vit != vitEnd) {
@@ -2603,11 +2605,11 @@ void app::calcul::CFeatGenerationOp::_getClDoublonGeom() const
 	std::set<std::string> sClDoublonToDelete;
 
 	GraphType graphClDoublon;
-	ign::geometry::graph::tools::SnapRoundPlanarizer< GraphType >  planarizerClDoublon(graphClDoublon,100);//scale =100 -> precision de 0.01
+	ign::geometry::graph::tools::SnapRoundPlanarizer< GraphType >  planarizerClDoublon(graphClDoublon, 1e2);//scale =1e2 -> precision de 0.01
 	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + _countryCodeDouble + "'");
 	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLCountryCode);
-	boost::progress_display displayLoad(numFeatures, std::cout, "[ LOAD GRAPH PLANARIZE CL ]\n");
+	boost::progress_display displayLoad(numFeatures, std::cout, "[ loading cl planar graph % complete ]\n");
 	while (it->hasNext()) {
 		++displayLoad;
 		ign::feature::Feature const& fCL = it->next();
@@ -2617,7 +2619,7 @@ void app::calcul::CFeatGenerationOp::_getClDoublonGeom() const
 
 	GraphType::edge_iterator eit, eitEnd;
 	graphClDoublon.edges(eit, eitEnd);
-	boost::progress_display display(graphClDoublon.numEdges(), std::cout, "[ DELETE CL DOUBLON ]\n");
+	boost::progress_display display(graphClDoublon.numEdges(), std::cout, "[ deleting cl duplicates % complete ]\n");
 	while (eit != eitEnd) {
 		++display;
 		
@@ -2680,7 +2682,7 @@ void app::calcul::CFeatGenerationOp::_mergingEdgesByOrigin(
 ) const {
 	std::map< typename GraphType::edge_descriptor, std::set< typename GraphType::edge_descriptor >  > mGatheredEdges;
 
-	boost::progress_display display(graph.numEdges(), std::cout, "[ gathergByOrigin % complete ]\n");
+	boost::progress_display display(graph.numEdges(), std::cout, "[ gathering edges by origins % complete ]\n");
 
 	std::set< GraphType::edge_descriptor > sVisitedEdges;
 
@@ -2758,7 +2760,7 @@ void app::calcul::CFeatGenerationOp::_mergingEdgesByOrigin(
 	}
 
 	//patience
-	boost::progress_display display2(mGatheredEdges.size(), std::cout, "[ mergingByOrigin % complete ]\n");
+	boost::progress_display display2(mGatheredEdges.size(), std::cout, "[ merging cl by origins % complete ]\n");
 
 	typename std::map< GraphType::edge_descriptor, std::set<GraphType::edge_descriptor> >::iterator mit;
 	for (mit = mGatheredEdges.begin(); mit != mGatheredEdges.end(); ++mit, ++display2)

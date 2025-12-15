@@ -394,7 +394,9 @@ Pour chaque couple appairé une connecting line est créée. Toutes les connecti
 
 
 #### 212 : SnapConnectingLines
-     
+
+Cette étape vise à corriger les discontinuités entre les connecting lines qui ont pu être crées par les traitements précédents.
+
 ##### Données de travail :
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
@@ -407,16 +409,20 @@ Pour chaque couple appairé une connecting line est créée. Toutes les connecti
 ##### Description du traitement :
 
 Paramètre utilisés: 
-| paramètre                   | description                                                                                                               |
-|-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| CL_CL_CLOSEST_MAX_DIST      | seuil de distance entre les extrémités de deux connecting lines en dessous duquel une connection doit être créée          |
+| paramètre                   | description                                                                                                      |
+|-----------------------------|------------------------------------------------------------------------------------------------------------------|
+| CL_CL_CLOSEST_MAX_DIST      | seuil de distance entre les extrémités de deux connecting lines en dessous duquel une connection doit être créée |
 
-connexion par déplacement des extrémités des connecting lines vers un point médian (milieu du segment formé par les deux extrémités proches à connecter)
+Pour détecter les discontinuités, un graph des connecting lines est chargé. Pour chaque noeud de degré 1 on recherche s'il existe des extrémités d'autres connecting lines situés à une distance inférieure au seuil _CL_CL_CLOSEST_MAX_DIST_. 
+Les extremités proches sont déplacées vers le barycentre de l'ensemble de ces points.
 
+![212](images/212_with_key.png)
 
 
 
 #### 213 : DeleteConnectingLines
+
+Cette étape consiste à supprimer les connecting lines pour lesquelles les arcs associés ne peuvent être fusionnés car trop éloignés ou parce que présentant des orientations trop différentes.
 
 ##### Données de travail :
 
@@ -433,16 +439,19 @@ connexion par déplacement des extrémités des connecting lines vers un point m
 Paramètre utilisés: 
 | paramètre                   | description                                                                                                               |
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| CL_EDGE_MAX_ANGLE           | angle maximum entre les deux arcs associés d'une connecting line pour que celle-ci soit conservée                         |
-| CL_EDGE_MAX_DIST            | distance de hausdorff maximum entre deux portions d'arc pour quelles puissent être fusionnées en une connecting line      |
+| CL_EDGE_MAX_ANGLE           | angle maximum autorisé entre les deux portions d'arcs associées à une connecting line                                     |
+| CL_EDGE_MAX_DIST            | distance de hausdorff maximum autorisée entre les deux portions d'arc associées à une connecting line                     |
+| CL_MIN_LENGTH               | longueur minimum d'une connecting line isolée (non connectée à d'autres connecting lines)                                 |
 | CL_SNAP_PROJ_CL_2_EDGE_DIST | distance de snapping de la projection des extremités des connecting lines sur les points des polylignes des arcs associés |
 | LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line                                           |
 
+On charge dans un premier un graphe des connecting lines, puis, pour chaque connecting line dont au moins une des extrémités n'est pas connectée à d'autres connecting lines (noeud de degré 1), on calcule la portion pour chacun des deux arcs associés correspondant à la projection de la connecting line sur l'arc. On obtient ainsi les deux portions d'arc associés à la connecting line.
+Une connecting line est supprimée si l'angle entre les orientations de deux portions d'arc est supérieur à _CL_EDGE_MAX_ANGLE_ ou bien si la distance de hausdorff entre elles est supérieure à _CL_EDGE_MAX_DIST_.
+En outre, chaque connecting line isolée (non connectée à d'autres connecting lines) dont la longeur est inférieure à _CL_MIN_LENGTH_ et supprimée.
 
-supression des cl dont les edges associés forment un angle dépassant le seuil ou dont l'éloignement maximum dépasse le seuil.
-suppression des petites cl isolée (cl dont la longueur est inférieur à un seuil et non connecté à d'autres cl)
+> Note : on désigne ici par orientation d'une polyligne, le vecteur défini par ses deux extrémitées.
 
-
+![213](images/213_with_key.png)
 
 #### 214 : UpdateGeomConnectingLines
 
@@ -473,3 +482,11 @@ La modification des géométries ayant créé des discontinuités on ré-établi
 
 
 TODO vérifier l'utilisation de EDGE_TABLE_INIT dans chacun des steps
+TODO 
+ign::geometry::LineString app::calcul::CFeatGenerationOp::_getGeomCL(
+	epg::tools::MultiLineStringTool & mslBorder,
+	ign::geometry::LineString const& lsToProject,
+	double distMaxBorder,    -----------------------------------------------> pas utilisé
+	double snapOnVertexBorder)
+
+TODO ajouter CL_MIN_LENGTH

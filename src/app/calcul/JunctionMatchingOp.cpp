@@ -219,7 +219,7 @@ void app::calcul::JunctionMatchingOp::_loadGraph(
 	while (itEdge->hasNext())
 	{
 		++display;
-		ign::feature::Feature const& fEdge = itEdge->next();
+		ign::feature::Feature fEdge = itEdge->next();
 		ign::geometry::LineString const& ls = fEdge.getGeometry().asLineString();
 		std::string edgeId = fEdge.getId();
 		std::string fictitious = fEdge.getAttribute(fictitiousFieldName).toString();

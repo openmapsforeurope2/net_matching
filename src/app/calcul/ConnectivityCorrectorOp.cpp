@@ -133,7 +133,7 @@ namespace app
             while (itEdge->hasNext())
             {
                 ++display;
-                ign::feature::Feature const& fEdge = itEdge->next();
+                ign::feature::Feature fEdge = itEdge->next();
                 ign::geometry::LineString const& ls = fEdge.getGeometry().asLineString();
                 std::string edgeId = fEdge.getId();
 
@@ -237,7 +237,7 @@ namespace app
             while (itEdge->hasNext())
             {
                 ++display;
-                ign::feature::Feature const& fEdge = itEdge->next();
+                ign::feature::Feature fEdge = itEdge->next();
                 ign::geometry::LineString const& ls = fEdge.getGeometry().asLineString();
                 std::string edgeId = fEdge.getId();
 

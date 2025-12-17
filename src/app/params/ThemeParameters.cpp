@@ -77,6 +77,7 @@ namespace params{
 		_initParameter( CL_SNAP_ON_VERTEX_BORDER_DIST, "CL_SNAP_ON_VERTEX_BORDER_DIST");
 		_initParameter( CL_CL_CLOSEST_MAX_DIST, "CL_CL_CLOSEST_MAX_DIST");
 		_initParameter( CL_BORDER_MAX_ANGLE, "CL_BORDER_MAX_ANGLE");
+		_initParameter( CL_MIN_LENGTH, "CL_MIN_LENGTH");
 		_initParameter( CL_EDGE_MAX_ANGLE, "CL_EDGE_MAX_ANGLE");
 		_initParameter( CL_CL_INTERSECTED_DIST, "CL_CL_INTERSECTED_DIST");
 		_initParameter( CL_MERGE_CL_DIST, "CL_MERGE_CL_DIST");

@@ -111,7 +111,7 @@ namespace app
             ign::feature::FeatureIteratorPtr itBoundary = ome2::feature::sql::NotDestroyedTools::GetFeatures(*fsBoundary, ign::feature::FeatureFilter(countryCodeName +" = '"+_borderCode+"'"));
             while (itBoundary->hasNext())
             {
-                ign::feature::Feature const& fBoundary = itBoundary->next();
+                ign::feature::Feature fBoundary = itBoundary->next();
                 ign::geometry::LineString const& ls = fBoundary.getGeometry().asLineString();
 
                 ign::geometry::GeometryPtr tmpBuffPtr(ls.buffer(3000));
@@ -129,7 +129,7 @@ namespace app
                 ign::feature::FeatureIteratorPtr itLandmask = ome2::feature::sql::NotDestroyedTools::GetFeatures(*fsLandmask, ign::feature::FeatureFilter(landCoverTypeName + " = '" + landAreaValue + "' AND " + countryCodeName + " = '" + *vit + "'"));
                 while (itLandmask->hasNext())
                 {
-                    ign::feature::Feature const& fLandmask = itLandmask->next();
+                    ign::feature::Feature fLandmask = itLandmask->next();
                     ign::geometry::MultiPolygon const& mp = fLandmask.getGeometry().asMultiPolygon();
                     for (int i = 0; i < mp.numGeometries(); ++i)
                     {
@@ -252,7 +252,7 @@ namespace app
                 ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filter);
                 while (itEdge->hasNext())
                 {
-                    ign::feature::Feature const& fEdge = itEdge->next();
+                    ign::feature::Feature fEdge = itEdge->next();
                     ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
                     mlsEdgesAround.addGeometry(edgeGeom);
                 }
@@ -617,7 +617,7 @@ namespace app
             while (itEdge->hasNext())
             {
                 ++display;
-                ign::feature::Feature const& fEdge = itEdge->next();
+                ign::feature::Feature fEdge = itEdge->next();
                 ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
                 std::string edgeId = fEdge.getId();
                 std::string country = fEdge.getAttribute(countryCodeName).toString();
@@ -653,7 +653,7 @@ namespace app
             while (itEdge->hasNext())
             {
                 ++display;
-                ign::feature::Feature const& fEdge = itEdge->next();
+                ign::feature::Feature fEdge = itEdge->next();
                 ign::geometry::LineString const& ls = fEdge.getGeometry().asLineString();
                 std::string edgeId = fEdge.getId();
                 std::string country = fEdge.getAttribute(countryCodeName).toString();

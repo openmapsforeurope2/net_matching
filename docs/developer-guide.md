@@ -419,7 +419,6 @@ Les extremités proches sont déplacées vers le barycentre de l'ensemble de ces
 ![212](images/212_with_key.png)
 
 
-
 #### 213 : DeleteConnectingLines
 
 Cette étape consiste à supprimer les connecting lines pour lesquelles les arcs associés ne peuvent être fusionnés car trop éloignés ou parce que présentant des orientations trop différentes.
@@ -453,7 +452,10 @@ En outre, chaque connecting line isolée (non connectée à d'autres connecting 
 
 ![213](images/213_with_key.png)
 
+
 #### 214 : UpdateGeomConnectingLines
+
+Le traitement mis en oeuvre dans cette étape consiste à calculer de nouvelles géométries pour les connecting line qui sont les géométries moyennes calculées à partir des paires de portion d'arc fusionnées. 
 
 ##### Données de travail :
 
@@ -470,23 +472,23 @@ En outre, chaque connecting line isolée (non connectée à d'autres connecting 
 Paramètre utilisés: 
 | paramètre                   | description                                                                                                               |
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| CL_SNAP_PROJ_CL_2_EDGE_DIST           | angle m
+| EDGE_FICTITIOUS_NAME        | nom du champ indiquant si l'objet est fictif                                                                              |
 | LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line                                           |
-EDGE_FICTITIOUS_NAME
+| CL_SNAP_PROJ_CL_2_EDGE_DIST | distance de snapping de la projection des extremités des connecting lines sur les points des polylignes des arcs associés |
+
+Ce traitement se déroule en deux phases avec une phase intitiale:
+
+0- chargement d'un graph GL à partr du réseau initial de connecting lines.
+
+1- calcul des nouvelles géométries des connecting lines : si les arcs associés à la connecting line sont tous deux fictifs ou non-fictifs, on calcule une géométrie moyenne par interpolation des deux portions d'arcs associés. Si seulement l'un des deux arcs est fictif c'est la géométrie c'est la portion de cet arc associée à la connecting line qui sera pris pour nouvelle géométrie
+
+2- rétablissement des connexions légitimes entre les connecting lines : les connecting lines initialement connectées sont déconnectées après calcul des nouvelles géométries. La création du graph initial GL, préalablement à la modification des géométries, a permis de mémoriser les relations d'adjacence entre les connecting lines qu'il nous faut maintenant rétablir. Tout d'abord nous chargeons deux graphs G1 et G2 à partir des réseaux des deux pays country1 et country2. Ensuite, nous parcourons tous les noeuds de degré supérieur à 2 du graph GL. Pour l'ensemble des connecting lines adjacentes à ce noeud (une connecting line est ici équivalente à un arc du graph) on détermine les groupes de connecting lines qui doivent effectivement rester connectées. Les connecting lines qui doivent être connectées sont celles dont les arcs associés sont identiques ou connectés dans leur réseau respectif (G1 ou G2). Les relations d'adjacence des arcs associés sont retrouvées en interrogeant les graphs G1 et G2. Par exemple, soit 2 connecting lines adjacentes cl1 et cl2 qui ont respectivement pour paires d'arcs associés (country1_1, country2_1) et (country1_1, country2_2). La connexion entre ces deux connecting lines doit être rétablie si les arcs country2_1 et country2_2 sont effectivement connectés dans le réseau du pays country2 (la relation d'adjacence est évidente en ce qui concerne les arcs issus du pays country1 puisque les 2 connecting lines sont associées au même arc country1_1). Si une relation d'adjacence est établie entre plusieurs connecting lines, un barycentre est calculé à partir des géométries des extrémités devant être reliées. Ces géométries sont ensuite remplacées par celle du barycentre.
 
 
-calcul de la nouvelle géométrie des connecting lines par interpolation (géométrie moyenne) des deux portions d'arc associées. Sauf il un des deux arcs est fictifs et pas l'autre --> on prend la géom de l'arc fictif
-La modification des géométries ayant créé des discontinuités on ré-établi les connexion légitimes  (cl connecté avant changement de géom et arcs associés identique ou connecté dans les pays respectifs)
 
-
-
-
-TODO vérifier l'utilisation de EDGE_TABLE_INIT dans chacun des steps
 TODO 
 ign::geometry::LineString app::calcul::CFeatGenerationOp::_getGeomCL(
 	epg::tools::MultiLineStringTool & mslBorder,
 	ign::geometry::LineString const& lsToProject,
 	double distMaxBorder,    -----------------------------------------------> pas utilisé
 	double snapOnVertexBorder)
-
-TODO ajouter CL_MIN_LENGTH

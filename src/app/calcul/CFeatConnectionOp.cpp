@@ -274,7 +274,7 @@ namespace app
             while (itCl->hasNext())
             {
                 ++display;
-                ign::feature::Feature const& fCl = itCl->next();
+                ign::feature::Feature fCl = itCl->next();
                 std::string const linkedFeatureId = fCl.getAttribute(linkedFeatureIdName).toString();
                 std::string const countryCode = fCl.getAttribute(countryCodeName).toString();
 
@@ -578,7 +578,7 @@ namespace app
             while (itCp->hasNext())
             {
                 ++display;
-                ign::feature::Feature const& fCp = itCp->next();
+                ign::feature::Feature fCp = itCp->next();
 
                 ign::geometry::Point const& cpGeom = fCp.getGeometry().asPoint();
                 std::string const linkedFeatureId = fCp.getAttribute(linkedFeatureIdName).toString();
@@ -715,7 +715,7 @@ namespace app
 
                 while (itEdge->hasNext())
                 {
-                    ign::feature::Feature const& fEdge = itEdge->next();
+                    ign::feature::Feature fEdge = itEdge->next();
 
                     ign::geometry::LineString const &edgeGeom = fEdge.getGeometry().asLineString();
                     double distance = edgeGeom.distance(refGeom);
@@ -792,7 +792,7 @@ namespace app
             {
                 ++display;
 
-                ign::feature::Feature const& fEdge = itEdge->next();
+                ign::feature::Feature fEdge = itEdge->next();
                 ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
 
                 graphBuilder.addEdge(edgeGeom, fEdge.getId());
@@ -938,10 +938,8 @@ namespace app
             boost::progress_display display2(graph.numEdges(), std::cout, "[ applyDisplacement (2/2) % complete ]\n");
 
             edge_iterator eit, eend;
-            for (graph.edges(eit, eend); eit != eend; ++eit)
+            for (graph.edges(eit, eend); eit != eend; ++eit, ++display2)
             {
-                ++display2;
-
                 typename std::map<vertex_descriptor, std::vector<ign::math::Vec2d>>::iterator dit_source, dit_target;
 
                 dit_source = mDisplacements.find(graph.source(*eit));

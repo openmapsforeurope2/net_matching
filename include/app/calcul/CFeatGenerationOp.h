@@ -20,8 +20,12 @@ namespace calcul{
 	private:
 		//--
 		typedef ign::geometry::graph::GeometryGraph< ign::geometry::graph::PunctualVertexProperties, ign::geometry::graph::LinearEdgeProperties >  GraphType;
-		typedef typename GraphType::edge_descriptor edge_descriptor;
-		typedef typename GraphType::vertex_descriptor vertex_descriptor;
+		typedef typename GraphType::edge_descriptor                        edge_descriptor;
+		typedef typename GraphType::oriented_edge_descriptor               oriented_edge_descriptor;
+		typedef typename GraphType::edge_iterator                          edge_iterator;
+		typedef typename GraphType::edges_path                             edges_path;
+		typedef typename GraphType::edges_path_const_iterator              edges_path_const_iterator;
+		typedef typename GraphType::vertex_descriptor                      vertex_descriptor;
 		//--
 		enum ENDING{
 			NONE,
@@ -369,6 +373,18 @@ namespace calcul{
 
 		//--
 		void _deleteCLUnderThreshold() const;
+
+		//--
+		double _getLength(
+			GraphType const& graph,
+			edges_path const& path
+		) const;
+	
+		//--
+		edges_path _getPath(
+			GraphType const& graph,
+			edge_descriptor e
+		) const;
  
 		//--
 		void _mergingEdgesByOrigin(GraphType & graph) const;

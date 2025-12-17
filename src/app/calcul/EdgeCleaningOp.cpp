@@ -119,7 +119,7 @@ namespace app
             ign::feature::FeatureIteratorPtr itBoundary = ome2::feature::sql::NotDestroyedTools::GetFeatures(*fsBoundary,ign::feature::FeatureFilter(countryCodeName +" = '"+_countryCode+"'"));
             while (itBoundary->hasNext())
             {
-                ign::feature::Feature const& fBoundary = itBoundary->next();
+                ign::feature::Feature fBoundary = itBoundary->next();
                 ign::geometry::LineString const& ls = fBoundary.getGeometry().asLineString();
 
                 ign::geometry::GeometryPtr tmpBuffPtr(ls.buffer(10000));
@@ -138,7 +138,7 @@ namespace app
                 
                 while (itLandmask->hasNext())
                 {
-                    ign::feature::Feature const& fLandmask = itLandmask->next();
+                    ign::feature::Feature fLandmask = itLandmask->next();
                     ign::geometry::MultiPolygon const& mp = fLandmask.getGeometry().asMultiPolygon();
                     for (int i = 0; i < mp.numGeometries(); ++i)
                     {
@@ -193,7 +193,7 @@ namespace app
             while (itEdge->hasNext())
             {
                 ++display;
-                ign::feature::Feature const& fEdge = itEdge->next();
+                ign::feature::Feature fEdge = itEdge->next();
                 ign::geometry::LineString const& ls = fEdge.getGeometry().asLineString();
                 std::string edgeId = fEdge.getId();
                 std::string country = fEdge.getAttribute(countryCodeName).toString();
@@ -706,7 +706,7 @@ namespace app
 
             while (itEdge->hasNext())
             {
-                ign::feature::Feature const& fEdge = itEdge->next();
+                ign::feature::Feature fEdge = itEdge->next();
                 std::string edgeId = fEdge.getId();
                 sTreatedFeatures.insert(edgeId);
             }
@@ -1348,7 +1348,7 @@ namespace app
             ign::geometry::Point closestCpGeom;
             while (itCp->hasNext())
             {
-                ign::feature::Feature const& fCp = itCp->next();
+                ign::feature::Feature fCp = itCp->next();
                 ign::geometry::Point const& cpGeom = fCp.getGeometry().asPoint();
 
                 double distance = vGeom.distance(cpGeom);

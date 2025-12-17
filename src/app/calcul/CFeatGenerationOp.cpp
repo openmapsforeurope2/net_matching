@@ -75,6 +75,8 @@ app::calcul::CFeatGenerationOp::~CFeatGenerationOp()
 	_shapeLogger->closeShape("edgeClCutByCp");
 	_shapeLogger->closeShape("lsBorderCutByAngle");
 	_shapeLogger->closeShape("clSnapclPoint");
+	_shapeLogger->closeShape("clDeleteByLength");
+	_shapeLogger->closeShape("clNoDeleteByLength");
 
 	delete _mlsBorderSmoothed;	
 }
@@ -111,7 +113,7 @@ void app::calcul::CFeatGenerationOp::_generateConnectingLinesByCountry() const
 	ign::feature::FeatureIteratorPtr itBoundary = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsBoundary, ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCodeDouble + "'"));
 	while (itBoundary->hasNext())
 	{
-		ign::feature::Feature const& fBoundary = itBoundary->next();
+		ign::feature::Feature fBoundary = itBoundary->next();
 		_logger->log(epg::log::INFO, "id boundary :"+ fBoundary.getId());
 
 		std::string boundaryType = fBoundary.getAttribute("boundary_type").toString();
@@ -232,25 +234,21 @@ void app::calcul::CFeatGenerationOp::UpdateGeomConnectingLines(
 ///
 void app::calcul::CFeatGenerationOp::_updateGeomConnectingLines() const
 {
-	_logger->log(epg::log::TITLE, "[ BEGIN LOAD GRAPH CL FOR CONTINUITY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+	_logger->log(epg::log::TITLE, "[ BEGIN CL UPDATE GEOMETRY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
+	//--
 	GraphType graphCL;
 	_loadGraphCL(graphCL);
 
-	_logger->log(epg::log::TITLE, "[ END LOAD GRAPH CL FOR CONTINUITY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
-
-
-	_logger->log(epg::log::TITLE, "[ BEGIN CL UPDATE GEOMETRY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
-
+	//--
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	double const snapProjCl2edge = themeParameters->getValue(CL_SNAP_PROJ_CL_2_EDGE_DIST).toDouble();
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string idName = context->getEpgParameters().getValue(ID).toString();
 	std::string geomName = context->getEpgParameters().getValue(GEOM).toString();
 
-	_updateGeomCL( snapProjCl2edge);
-
-	_logger->log(epg::log::TITLE, "[ END CL UPDATE GEOMETRY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+	//--
+	_updateGeomCL(snapProjCl2edge);
 
 	//-- copie intermediaire pour debug
 	epg::utils::CopyTableUtils::copyTable(
@@ -259,14 +257,15 @@ void app::calcul::CFeatGenerationOp::_updateGeomConnectingLines() const
 		geomName,
 		ign::geometry::Geometry::GeometryTypeLineString,
 		themeParameters->getValue(CL_TABLE).toString()+"_no_cont",
-		"", false, true
+		"",
+		false,
+		true
 	);
 
-	_logger->log(epg::log::TITLE, "[ BEGIN CL UPDATE CONTINUITY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
-
+	//--
 	_setContinuityCl(graphCL);
 
-	_logger->log(epg::log::TITLE, "[ END CL UPDATE CONTINUITY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+	_logger->log(epg::log::TITLE, "[ END CL UPDATE GEOMETRY FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 }
 
 
@@ -316,9 +315,11 @@ void app::calcul::CFeatGenerationOp::_computeCP() const
 {
 	_logger->log(epg::log::TITLE, "[ BEGIN CP GENERATION FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
+	//--
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 
+	//--
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	double const distCLIntersected = themeParameters->getValue(CP_INTERSECTED_CL_DIST).toDouble();
 	double const distUnderShoot = themeParameters->getValue(CP_UNDERSHOOT_DIST).toDouble();
@@ -328,24 +329,34 @@ void app::calcul::CFeatGenerationOp::_computeCP() const
 	//--
     ign::feature::FeatureIteratorPtr itBoundary = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsBoundary, ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCodeDouble + "'"));
 	while (itBoundary->hasNext()) {
-		ign::feature::Feature const& fBoundary = itBoundary->next();
-		_logger->log(epg::log::INFO, "id boundary :" + fBoundary.getId());
+
+		ign::feature::Feature fBoundary = itBoundary->next();
 		std::string const& boundaryType = fBoundary.getAttribute("boundary_type").toString();
+		ign::geometry::LineString const& lsBoundary = fBoundary.getGeometry().asLineString();
+
+		_logger->log(epg::log::INFO, "id boundary :" + fBoundary.getId());
+		
 		if (boundaryType != "international_boundary" && boundaryType.find("coastline_sea_limit") == -1)
 			continue;
-		ign::geometry::LineString lsBoundary = fBoundary.getGeometry().asLineString();
+
+		//--
 		ign::geometry::algorithm::BufferOpGeos buffOp;
 		ign::geometry::GeometryPtr buffBorder(buffOp.buffer(lsBoundary, distUnderShoot, 0, ign::geometry::algorithm::BufferOpGeos::CAP_FLAT));
 
+		//--
 		_getCPfromIntersectBorder(lsBoundary, distCLIntersected);
 
+		//--
 		_addToUndershootNearBorder(lsBoundary, *buffBorder, distUnderShoot);
 	}
 
+	//--
 	_snapCPNearBy(0);
 
+	//--
 	std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> mClSplittedByCp;
 	_snapCpOnClNearBy(distCp2snapCl, snapDistOnVertexFromCl, mClSplittedByCp);
+
 	_cutClByCp(mClSplittedByCp);
 
 	_logger->log(epg::log::TITLE, "[ END CP GENERATION FOR " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
@@ -379,6 +390,8 @@ void app::calcul::CFeatGenerationOp::_init(
 	_shapeLogger->addShape("edgeClCutByCp", epg::log::ShapeLogger::LINESTRING); 
 	_shapeLogger->addShape("lsBorderCutByAngle", epg::log::ShapeLogger::LINESTRING);
 	_shapeLogger->addShape("clSnapclPoint", epg::log::ShapeLogger::POINT);
+	_shapeLogger->addShape("clDeleteByLength", epg::log::ShapeLogger::LINESTRING);
+	_shapeLogger->addShape("clNoDeleteByLength", epg::log::ShapeLogger::LINESTRING);
 
 	_countryCodeDouble = countryCodeDouble;
 	epg::tools::StringTools::Split(_countryCodeDouble, "#", _vCountriesCodeName);
@@ -509,7 +522,7 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 	{
 		++display;
 		//
-		ign::feature::Feature const& fEdge = eit->next();
+		ign::feature::Feature fEdge = eit->next();
 		ign::geometry::LineString const& lsEdge = fEdge.getGeometry().asLineString();
 	
 		//ign::geometry::Geometry* geomIntersect = lsEdge.Intersection(*buff);
@@ -586,8 +599,6 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 			ign::feature::Feature featCL = _fsCL->newFeature();
 			vLsProjectedOnBorder[i].setFillZ(0);
 			featCL.setGeometry(vLsProjectedOnBorder[i]);
-			std::string idCL = _idGeneratorCL->next();
-			featCL.setId(idCL);
 			featCL.setAttribute(linkedFeatIdName, ign::data::String(fEdge.getId()));
 			for (std::vector<ign::feature::FeatureAttributeType>::iterator vit = listAttrEdge.begin(); vit != listAttrEdge.end(); ++vit) {
 				std::string attrName = vit->getName();
@@ -595,15 +606,12 @@ void app::calcul::CFeatGenerationOp::_getCLfromBorder(
 					continue;
 				featCL.setAttribute(attrName,fEdge.getAttribute(attrName));
 			}
+
+			std::string idCL = _idGeneratorCL->next();
 			_fsCL->createFeature(featCL, idCL);
-			//shape CL
-			{
-				ign::feature::Feature fShaplog = featCL;
-				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
-				lsSphaplog.clearZ();
-				fShaplog.setGeometry(lsSphaplog);
-				_shapeLogger->writeFeature("CLBeforeMerge", fShaplog);
-			}
+			
+			//--
+			_shapeLogger->writeFeature("CLBeforeMerge", featCL);
 		}
 
 	}	
@@ -659,7 +667,7 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 	while (eit->hasNext())
 	{
 		++display;
-		ign::feature::Feature const& fEdge = eit->next();
+		ign::feature::Feature fEdge = eit->next();
 		ign::geometry::LineString lsEdge = fEdge.getGeometry().asLineString();
 		//si intersection border -> on fait rien
 		if (lsBorder.intersects(lsEdge))
@@ -689,7 +697,7 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 		ign::feature::FeatureIteratorPtr eitArroundPt = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterArroundPt);
 		bool isPtADangle = true;
 		while (eitArroundPt->hasNext()) {
-			ign::feature::Feature const& featArroundPt = eitArroundPt->next();
+			ign::feature::Feature featArroundPt = eitArroundPt->next();
 			if (featArroundPt.getId() == fEdge.getId())
 				continue;
 			double dist = featArroundPt.getGeometry().distance(ptClosestBorder);
@@ -732,8 +740,6 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 		projPt.setZ(0);
 		ign::feature::Feature fCF = _fsCP->newFeature();
 		fCF.setGeometry(projPt);
-		std::string idCP = _idGeneratorCP->next();
-		fCF.setId(idCP);
 		fCF.setAttribute(linkedFeatIdName, ign::data::String(fEdge.getId()));
 		for (std::vector<ign::feature::FeatureAttributeType>::iterator vit = listAttrEdge.begin();
 			vit != listAttrEdge.end(); ++vit) {
@@ -742,15 +748,12 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 				continue;
 			fCF.setAttribute(attrName, fEdge.getAttribute(attrName));
 		}
-		//fCF.setAttribute("w_calcul", ign::data::String("1"));
+
+		std::string idCP = _idGeneratorCP->next();
 		_fsCP->createFeature(fCF, idCP);
-		{
-			ign::feature::Feature fShaplog = fCF;
-			ign::geometry::Point ptProjNoZ = projPt;
-			ptProjNoZ.clearZ();
-			fShaplog.setGeometry(ptProjNoZ);
-			_shapeLogger->writeFeature("CPUndershoot", fShaplog);
-		}
+		
+		//--
+		_shapeLogger->writeFeature("CPUndershoot", fCF);
 	}
 }
 
@@ -761,22 +764,23 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 	ign::geometry::LineString const& lsBorder,
 	double distCLIntersected
 ) const {
+	//--
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
 	std::string const idName = context->getEpgParameters().getValue(ID).toString();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
 
-	std::vector<ign::feature::FeatureAttributeType> listAttrEdge = _fsEdge->getFeatureType().attributes();
+	std::vector<ign::feature::FeatureAttributeType> const& listAttrEdge = _fsEdge->getFeatureType().attributes();
 
 	//on prend les edges qui intersectent les frontières et ou ceux qui intersectent les Cls
-	ign::feature::FeatureFilter filterFeaturesToMatch("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + lsBorder.toString() + "'),3035))"
-		" OR ST_INTERSECTS(" + geomName + ", (SELECT ST_Union(array(SELECT "+geomName+" FROM "+ _fsEdge->getTableName()+" WHERE "+ countryCodeName + " = '" + _countryCodeDouble + "'))))");
+	ign::feature::FeatureFilter filterFeaturesToMatch("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + lsBorder.toString() + "'),3035))");
+	epg::tools::FilterTools::addOrConditions(filterFeaturesToMatch,"ST_INTERSECTS(" + geomName + ", (SELECT ST_Union(array(SELECT "+geomName+" FROM "+ _fsEdge->getTableName()+" WHERE "+ countryCodeName + " = '" + _countryCodeDouble + "'))))");
 
 	if (_reqFilterEdges2generateCF != "")
 		epg::tools::FilterTools::addAndConditions(filterFeaturesToMatch, _reqFilterEdges2generateCF);
 	//on ne prend que les edes ayant un cc simple pour ne pas créer de CP là où il y a des CLs
-	epg::tools::FilterTools::addAndConditions(filterFeaturesToMatch,"("+ countryCodeName+" = '" +_vCountriesCodeName[0]+"' or "+countryCodeName + " = '" + _vCountriesCodeName[1] +"')");
+	epg::tools::FilterTools::addAndConditions(filterFeaturesToMatch,"("+ countryCodeName+" = '" +_vCountriesCodeName[0]+"' OR "+countryCodeName + " = '" + _vCountriesCodeName[1] +"')");
 	ign::feature::FeatureIteratorPtr itFeaturesToMatch = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterFeaturesToMatch);
 
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterFeaturesToMatch);
@@ -786,8 +790,9 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 	{
 		++display;
 
-		ign::feature::Feature const& fToMatch = itFeaturesToMatch->next();
+		ign::feature::Feature fToMatch = itFeaturesToMatch->next();
 		ign::geometry::LineString const& lsFToMatch = fToMatch.getGeometry().asLineString();
+
 		ign::geometry::GeometryPtr geomPtr(lsFToMatch.Intersection(lsBorder));
 
 		ign::feature::Feature fClArround;
@@ -800,7 +805,7 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 			if (!geomIntersectCl->isNull() && !geomIntersectCl->isEmpty()) {
 				double distance = geomIntersectCl->distance(lsBorder);
 
-				if(distance >= 0 && distance < distCLIntersected ) {
+				if(distance >= 0 && distance < distCLIntersected) {
 					if (geomPtr->isNull() || geomPtr->distance(*geomIntersectCl) < distCLIntersected) //utile ce test ou le precedent suffit?
 						geomPtr.reset(geomIntersectCl.release());
 					}
@@ -810,9 +815,10 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 		if (geomPtr->isNull() || geomPtr->isEmpty())
 			continue;
 
+		//--
 		ign::feature::Feature fCF = _fsCP->newFeature();
 		fCF.setAttribute(linkedFeatIdName, ign::data::String(fToMatch.getId()));
-		for (std::vector<ign::feature::FeatureAttributeType>::iterator vit = listAttrEdge.begin();
+		for (std::vector<ign::feature::FeatureAttributeType>::const_iterator vit = listAttrEdge.begin();
 			vit != listAttrEdge.end(); ++vit) {
 			std::string attrName = vit->getName();
 			if (attrName == geomName || attrName == idName || !_fsCP->getFeatureType().hasAttribute(attrName))
@@ -826,7 +832,6 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 			std::string idCP = _idGeneratorCP->next();
 			_fsCP->createFeature(fCF, idCP);
 		}
-
 		else if (geomPtr->isGeometryCollection())
 		{
 			ign::geometry::GeometryCollection geomCollect = geomPtr->asGeometryCollection();
@@ -834,7 +839,7 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 			{
 				if (geomCollect.geometryN(i).isPoint())
 				{
-					ign::geometry::Point ptIntersect = geomCollect.geometryN(i).asPoint();		
+					ign::geometry::Point const& ptIntersect = geomCollect.geometryN(i).asPoint();		
 					fCF.setGeometry(ptIntersect);
 					std::string idCP = _idGeneratorCP->next();
 					_fsCP->createFeature(fCF, idCP);
@@ -842,7 +847,6 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 			}
 		}
 	}
-
 }
 
 ///
@@ -893,11 +897,12 @@ ign::geometry::LineString app::calcul::CFeatGenerationOp::_getGeomCL(
 void app::calcul::CFeatGenerationOp::_snapCPNearBy(
 	double snapOnVertexBorder
 ) const {
-
+	//--
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
 
+	//--
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	double const distMergeCP = themeParameters->getValue(CP_MERGE_DIST_CP).toDouble();
 	double const distMergeTractorCP = themeParameters->getValue(CP_MERGE_DIST_TRACTOR_CP).toDouble();
@@ -919,8 +924,11 @@ void app::calcul::CFeatGenerationOp::_snapCPNearBy(
 	{
 		// ++display;
 
-		ign::feature::Feature const& fCPCurr = itCP->next();
+		ign::feature::Feature fCPCurr = itCP->next();
 		std::string idCP = fCPCurr.getId();
+
+		//DEBUG
+		_logger->log(epg::log::DEBUG, idCP);
 
 		if (sCP2Snap.find(idCP) != sCP2Snap.end())
 			continue;
@@ -1063,8 +1071,11 @@ void app::calcul::CFeatGenerationOp::_snapCPNearBy(
 			double distMinBorder = 2 * maxDistMerge;
 			ign::feature::FeatureIteratorPtr fitBorder = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsBoundary, filterBorderNearCP);
 			while (fitBorder->hasNext()) {
-				ign::geometry::LineString const& lsBorder = fitBorder->next().getGeometry().asLineString();
+				ign::feature::Feature fBorder = fitBorder->next();
+				ign::geometry::LineString const& lsBorder = fBorder.getGeometry().asLineString();
+
 				double dist = lsBorder.distance(ptCentroidCP);
+
 				if (dist < distMinBorder) {
 					distMinBorder = dist;
 					lsBorderClosest = lsBorder;
@@ -1148,19 +1159,22 @@ bool app::calcul::CFeatGenerationOp::_isEdgeConnected2cl(
 	ign::feature::Feature & fCl2SnapOn,
 	double distMinCl
 ) const {
+	//--
 	epg::Context* context = epg::ContextS::getInstance();
-	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	
 	ign::feature::FeatureFilter filterArroundCp(countryCodeName + " = '" + _countryCodeDouble + "'");
 	filterArroundCp.setExtent(envArroundGeom);
-	ign::feature::FeatureIteratorPtr itClArround = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterArroundCp);
 
+	ign::feature::FeatureIteratorPtr itClArround = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterArroundCp);
 	bool hasEdgConnected2Cl = false;
 	while (itClArround->hasNext())
 	{
-		ign::feature::Feature const& fClArround = itClArround->next();
+		ign::feature::Feature fClArround = itClArround->next();
 		ign::geometry::LineString const& lsClArround = fClArround.getGeometry().asLineString();
+
 		double dist = lsClArround.distance(geomObjNearCl);
+
 		if (dist < distMinCl) {
 			hasEdgConnected2Cl = true;
 			distMinCl = dist;
@@ -1176,28 +1190,32 @@ bool app::calcul::CFeatGenerationOp::_isEdgeConnected2cl(
 void app::calcul::CFeatGenerationOp::_snapCpOnClNearBy(
 	double distCp2snapCl,
 	double snapDistOnVertexFromCl,
-	std::map< std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint> > & mClSplittedByCp
+	std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> & mClSplittedByCp
 ) const {
+	//--
 	epg::Context* context = epg::ContextS::getInstance();
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 
+	//--
 	ign::feature::FeatureFilter filterCp;
 	for (size_t i = 0; i < _vCountriesCodeName.size(); ++i) {
 		epg::tools::FilterTools::addOrConditions(filterCp, countryCodeName + " = '" + _vCountriesCodeName[i] + "'");
 	}
-	ign::feature::FeatureIteratorPtr itCp = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCp);
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCP, filterCp);
 	boost::progress_display display(numFeatures, std::cout, "[ snapping cp on cl % complete ]\n");
+
+	//--
 	std::map<std::string, ign::feature::Feature> mSnappedCpOnCl;
+	ign::feature::FeatureIteratorPtr itCp = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCp);
 	while (itCp->hasNext())
 	{
 		++display;
-		ign::feature::Feature fCp= itCp->next();
+		ign::feature::Feature fCp = itCp->next();
 		ign::geometry::Point const& ptCp = fCp.getGeometry().asPoint();
 
 		ign::feature::Feature fCl2SnapOn;
-		double  distMinCl = distCp2snapCl * 2;
+		double distMinCl = distCp2snapCl * 2;
 		bool hasClNearBy = _isEdgeConnected2cl(ptCp,ptCp.getEnvelope().expandBy(distCp2snapCl), fCl2SnapOn, distMinCl);
 
 		/*ign::feature::FeatureFilter filterArroundCp(countryCodeName + " = '" + _countryCodeDouble+ "'");
@@ -1315,7 +1333,7 @@ bool app::calcul::CFeatGenerationOp::_getNearestCP(
 		return false;
 	while (itArroundCP->hasNext())
 	{
-		ign::feature::Feature const& fCPArround = itArroundCP->next();
+		ign::feature::Feature fCPArround = itArroundCP->next();
 		_getNearestCP(fCPArround, distMergeCP, mCPNear);
 		mCPNear[fCPArround.getId()] = fCPArround;
 	}
@@ -1445,7 +1463,6 @@ void app::calcul::CFeatGenerationOp::_snapTo(
 			}
 		}
 
-		//DEBUG
 		ign::feature::Feature featConnPoint;
 		featConnPoint.setGeometry(newPt);
 		_shapeLogger->writeFeature("clSnapclPoint", featConnPoint);
@@ -1480,7 +1497,7 @@ std::vector<std::pair<app::calcul::CFeatGenerationOp::ENDING, ign::feature::Feat
 	std::vector<std::pair<ENDING, ign::feature::Feature>> vConnectedCl;
 	while (itClArround->hasNext()) {
 
-		ign::feature::Feature const& fClArround = itClArround->next();
+		ign::feature::Feature fClArround = itClArround->next();
 		ign::geometry::LineString const& lsClArround = fClArround.getGeometry().asLineString();
 
 		std::map<double, ENDING> mEnding;
@@ -1534,7 +1551,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 	ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);
 	while (itCL->hasNext()) {
 		++displayLoad;
-		ign::feature::Feature const& fCL = itCL->next();
+		ign::feature::Feature fCL = itCL->next();
 		planarizerCl.addEdge(fCL.getGeometry().asLineString(), fCL.getId());
 	}
 	planarizerCl.planarize();
@@ -1649,11 +1666,10 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingClWithGraph(
 			_attrMergerOnBorder.mergeFeatAttribute(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 			//_addFeatAttributeMergingOnBorder(fClNew, mIdClOriginsCountry2.find(cl2merge.second)->second, separator);
 
-			std::string idCLNew = _idGeneratorCL->next();
-			fClNew.setId(idCLNew);
 			lsCl.setFillZ(0);
 			fClNew.setGeometry(lsCl);
 
+			std::string idCLNew = _idGeneratorCL->next();
 			_fsCL->createFeature(fClNew, idCLNew);
 		}
 		++eit;
@@ -1701,15 +1717,11 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 	while (itCL->hasNext())
 	{
 		++display;
-		ign::feature::Feature const& fCLCurr = itCL->next();
+		ign::feature::Feature fCLCurr = itCL->next();
 		std::string idCLCurr = fCLCurr.getId();
 		ign::geometry::LineString const& lsCurr = fCLCurr.getGeometry().asLineString();
 		std::string const& countryCodeCLCurr = fCLCurr.getAttribute(countryCodeName).toString();
-		//debug	
-		/*if (fCLCurr.getAttribute(natIdName).toString() == "TRONROUT0000000057243619")
-			bool bStop = true;
-		else if (fCLCurr.getAttribute(natIdName).toString() == "{2005FE06-ED7A-4CA6-A011-471ADD678B46}")
-			bool bStop = true;*/
+
 		if (countryCodeCLCurr.find("#") != std::string::npos)
 			continue;
 		if (sCL2Merged.find(idCLCurr) != sCL2Merged.end())
@@ -1725,7 +1737,7 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 		ign::feature::FeatureIteratorPtr itArroundCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterArroundCL);
 		while (itArroundCL->hasNext())
 		{
-			ign::feature::Feature const& fCLArround = itArroundCL->next();
+			ign::feature::Feature fCLArround = itArroundCL->next();
 			std::string idClArround = fCLArround.getId();
 			ign::geometry::LineString const& lsClArround = fCLArround.getGeometry().asLineString();
 			//si CL deja traite on ne fait rien
@@ -1840,30 +1852,21 @@ void app::calcul::CFeatGenerationOp::_mergeIntersectingCL2(
 			if (countryCodeCLArround < countryCodeCLCurr) {
 				fCLNew = fCLArround;
 				_attrMergerOnBorder.mergeFeatAttribute(fCLNew, fCLCurr, separator);
-				//_addFeatAttributeMergingOnBorder(fCLNew, fCLCurr, separator);
 			}
 			else {
 				fCLNew = fCLCurr;
 				_attrMergerOnBorder.mergeFeatAttribute(fCLNew, fCLArround, separator);
-				//_addFeatAttributeMergingOnBorder(fCLNew, fCLArround, separator);
 			}
 
-			std::string idCLNew = _idGeneratorCL->next();
-			fCLNew.setId(idCLNew);
 			lsIntersectedCL.setFillZ(0);
 			fCLNew.setGeometry(lsIntersectedCL);
-
 			fCLNew.setAttribute(themeParameters->getValue(CF_STATUS).toString(), ign::data::String("edge_matched"));
 
+			std::string idCLNew = _idGeneratorCL->next();
 			_fsCL->createFeature(fCLNew, idCLNew);
-			{
-				ign::feature::Feature fShaplog = fCLNew;
-				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
-				lsSphaplog.clearZ();
-				fShaplog.setGeometry(lsSphaplog);
-				_shapeLogger->writeFeature("ClMergedBeforeUpdate", fShaplog);
-			}
-
+			
+			//--
+			_shapeLogger->writeFeature("ClMergedBeforeUpdate", fCLNew);
 		}
 	}
 
@@ -1895,16 +1898,21 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 
 	int numCl2delete = -1;
 	while (numCl2delete != 0){
-		std::set<std::string> sCl2delete;
+		//--
 		GraphType graphCl;
 		_loadGraphCL(graphCl);
 
-		ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
+		//--
 		size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLCountryCode);
 		boost::progress_display display(numFeatures, std::cout, "[ deleting cl by angle between linked edges % complete ]\n");
+
+		//--
+		std::set<std::string> sCl2delete;
+		ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
 		while (it->hasNext()) {
 			++display;
-			ign::feature::Feature const& fCl = it->next();
+
+			ign::feature::Feature fCl = it->next();
 
 			_logger->log(epg::log::DEBUG, fCl.getId());
 
@@ -1921,24 +1929,22 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 			epg::tools::StringTools::Split(fCl.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinked);
 			std::string idEdgLinked1 = vEdgeslinked[0];
 			std::string idEdgLinked2 = vEdgeslinked[1];
+
 			ign::feature::Feature fEdg1, fEdg2;
 			_fsEdge->getFeatureById(idEdgLinked1, fEdg1);
 			_fsEdge->getFeatureById(idEdgLinked2, fEdg2);
+			
 			if (fEdg1.getId().empty()) {
 				_logger->log(epg::log::WARN, "Suppression CL " + fCl.getId() + " not matching linked edge : " + idEdgLinked1);
-				ign::feature::Feature fShaplog = fCl;
-				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
-				fShaplog.setGeometry(lsSphaplog);
-				_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fShaplog);
+				_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fCl);
+
 				sCl2delete.insert(fCl.getId());
 				continue;
 			}
 			if (fEdg2.getId().empty()) {
 				_logger->log(epg::log::WARN, "Suppression CL " + fCl.getId() + " not matching linked edge : " + idEdgLinked2);
-				ign::feature::Feature fShaplog = fCl;
-				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
-				fShaplog.setGeometry(lsSphaplog);
-				_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fShaplog);
+				_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fCl);
+
 				sCl2delete.insert(fCl.getId());
 				continue;
 			}
@@ -1950,19 +1956,13 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 			ign::geometry::GeometryPtr geomProjClEdg2(_getGeomProjClOnEdge(lsCl, lsEdg2, snapProjCl2edge));
 			if (geomProjClEdg1->isPoint()) {
 				_logger->log(epg::log::WARN, "Suppression CL " + fCl.getId() + " not projecting on matching linked edge : " + idEdgLinked1);
-				ign::feature::Feature fShaplog = fCl;
-				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
-				fShaplog.setGeometry(lsSphaplog);
-				_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fShaplog);
+				_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fCl);
 				sCl2delete.insert(fCl.getId());
 				continue;
 			}
 			if (geomProjClEdg2->isPoint()) {
 				_logger->log(epg::log::WARN, "Suppression CL " + fCl.getId() + " not projecting on matching linked edge : " + idEdgLinked2);
-				ign::feature::Feature fShaplog = fCl;
-				ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
-				fShaplog.setGeometry(lsSphaplog);
-				_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fShaplog);
+				_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fCl);
 				sCl2delete.insert(fCl.getId());
 				continue;
 			}
@@ -1978,13 +1978,9 @@ void app::calcul::CFeatGenerationOp::_deleteClByAngleAndDistEdges() const {
 			//si angle trop important entre les deux edges on ne crée pas de Cl
 			if (angleEdgesLinked > angleMax && angleEdgesLinked < (M_PI - angleMax) || hausdorffDist > distMax) {
 				sCl2delete.insert(fCl.getId());
-				{
-					ign::feature::Feature fShaplog = fCl;
-					ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
-					lsSphaplog.clearZ();
-					fShaplog.setGeometry(lsSphaplog);
-					_shapeLogger->writeFeature("ClDeleteByAngleDistEdges", fShaplog);
-				}
+				
+				//--
+				_shapeLogger->writeFeature("ClDeleteByAngleDistEdges", fCl);
 			}
 		}
 
@@ -2009,7 +2005,7 @@ ign::geometry::LineString app::calcul::CFeatGenerationOp::_getBorderFromEdge(
 	filter.setExtent(lsEdgeOnBorder.getEnvelope());
 	ign::feature::FeatureIteratorPtr itBoundary = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsBoundary, filter);
 	while (itBoundary->hasNext()) {
-		ign::feature::Feature const& fBorder = itBoundary->next();
+		ign::feature::Feature fBorder = itBoundary->next();
 		ign::geometry::LineString const& lsBorderTemp = fBorder.getGeometry().asLineString();
 		double distBorder = lsEdgeOnBorder.distance(lsBorderTemp);
 		if (distBorder < 0.1) {
@@ -2071,7 +2067,7 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(double snapProjCl2edge) const
 	std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS_NAME).toString();
 
 	if(_vCountriesCodeName.size() != 2)
-		_logger->log(epg::log::WARN, "Attention, le countryCode " + _countryCodeDouble + " n'a pas deux country" );
+		_logger->log(epg::log::WARN, "Attention, le code pays " + _countryCodeDouble + " n'est pas double" );
 
 	std::string countryCode1 = _vCountriesCodeName[0];
 	std::string countryCode2 = _vCountriesCodeName[1];
@@ -2112,11 +2108,8 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(double snapProjCl2edge) const
 
 		if (geomEdg1->isPoint() && geomEdg2->isPoint()) {
 			_logger->log(epg::log::WARN, "Suppression CL " + fCL.getId());
-			ign::feature::Feature fShaplog = fCL; 
-			ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
-			lsSphaplog.clearZ();
-			fShaplog.setGeometry(lsSphaplog);
-			_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fShaplog);
+			_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fCL);
+
 			sCL2delete.insert(fCL.getId());
 			continue;
 		}
@@ -2126,11 +2119,8 @@ void app::calcul::CFeatGenerationOp::_updateGeomCL(double snapProjCl2edge) const
 
 		if ( isFictEdg1 && geomEdg1->isPoint() || isFictEdg2 && geomEdg2->isPoint() ) {
 			_logger->log(epg::log::WARN, "Suppression CL (géometrie cible ponctuelle)" + fCL.getId());
-			ign::feature::Feature fShaplog = fCL; 
-			ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
-			lsSphaplog.clearZ();
-			fShaplog.setGeometry(lsSphaplog);
-			_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fShaplog);
+			_shapeLogger->writeFeature("ClDeletedNoCandidatefound", fCL);
+			
 			sCL2delete.insert(fCL.getId());
 			continue;
 		}
@@ -2272,6 +2262,59 @@ ign::geometry::Geometry* app::calcul::CFeatGenerationOp::_getGeomProjClOnEdge(
 		return vLsCandidate[idCandidate].clone();
 }
 
+// void app::calcul::CFeatGenerationOp::_deleteCLUnderThreshold() const
+// {
+// 	_logger->log(epg::log::TITLE, "[ BEGIN CLEAN CL UNDER THRESHOLD " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+
+// 	epg::Context* context = epg::ContextS::getInstance();
+// 	std::string const CLTableName = _fsCL->getTableName();
+// 	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
+// 	std::string const idName = context->getEpgParameters().getValue(ID).toString();
+// 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+
+// 	std::ostringstream ssconditionDeleteCLUnderThreshold;
+
+// 	ssconditionDeleteCLUnderThreshold << " ST_LENGTH(" << geomName << ") < 10 AND "<<countryCodeName << " ='" << _countryCodeDouble << "'";
+
+// 	std::set<std::string> sCLToDelete;
+// 	ign::feature::FeatureFilter filterCLInf10m(ssconditionDeleteCLUnderThreshold.str());
+// 	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLInf10m);
+// 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLInf10m);
+// 	boost::progress_display display(numFeatures, std::cout, "[ cleaning cl under threshold % complete ]\n");
+
+// 	while (it->hasNext()) {
+// 		++display;
+// 		ign::feature::Feature const& fCL10m = it->next();
+
+// 		ign::feature::FeatureFilter filterNeighbor(idName + " <> '" + fCL10m.getId()+"'");
+// 		filterNeighbor.setExtent(fCL10m.getGeometry().getEnvelope());
+
+// 		ign::feature::FeatureIteratorPtr itArround = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterNeighbor);
+// 		bool hasNeithbor = false;
+// 		while (itArround->hasNext()) {
+// 			ign::feature::Feature const& fCLNeighbor = itArround->next();
+// 			if (fCLNeighbor.getGeometry().distance(fCL10m.getGeometry()) < 0.1) {
+// 				hasNeithbor = true;
+// 				break;
+// 			}
+// 		}
+// 		if(!hasNeithbor) {
+// 			sCLToDelete.insert(fCL10m.getId());
+// 			_shapeLogger->writeFeature("clDeleteByLength", fCL10m);
+// 		} else {
+// 			_shapeLogger->writeFeature("clNoDeleteByLength", fCL10m);
+// 		}
+			
+// 	}
+
+// 	for (std::set<std::string>::iterator sit = sCLToDelete.begin(); sit != sCLToDelete.end(); ++sit) {
+// 		_fsCL->deleteFeature(*sit);
+// 	}
+
+// 	_logger->log(epg::log::INFO, "Nb CL isolées inférieures a un seuil supprimées  " + ign::data::Integer(sCLToDelete.size()).toString());
+// 	_logger->log(epg::log::TITLE, "[ END CLEAN CL UNDER THRESHOLD " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
+// }
+
 ///
 ///
 ///
@@ -2279,40 +2322,48 @@ void app::calcul::CFeatGenerationOp::_deleteCLUnderThreshold() const
 {
 	_logger->log(epg::log::TITLE, "[ BEGIN CLEAN CL UNDER THRESHOLD " + _countryCodeDouble + " ] : " + epg::tools::TimeTools::getTime());
 
-	epg::Context* context = epg::ContextS::getInstance();
-	std::string const CLTableName = _fsCL->getTableName();
-	std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
-	std::string const idName = context->getEpgParameters().getValue(ID).toString();
-	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	//--
+	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+	double minLength = themeParameters->getValue(CL_MIN_LENGTH).toDouble();
 
-	std::ostringstream ssconditionDeleteCLUnderThreshold;
+	//--
+	GraphType graph;
+	_loadGraphCL(graph);
 
-	ssconditionDeleteCLUnderThreshold << " ST_LENGTH(" << geomName << ") < 10 AND "<<countryCodeName << " ='" << _countryCodeDouble << "'";
+	// patience
+	boost::progress_display display(graph.numEdges(), std::cout, "[ deleting short cl % complete ]\n");
 
+	//--
 	std::set<std::string> sCLToDelete;
-	ign::feature::FeatureFilter filterCLInf10m(ssconditionDeleteCLUnderThreshold.str());
-	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLInf10m);
-	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLInf10m);
-	boost::progress_display display(numFeatures, std::cout, "[ cleaning cl under threshold % complete ]\n");
+	std::set<edge_descriptor> sVisitedEdge;
+	edge_iterator eit, eend;
+	for( graph.edges( eit, eend ) ; eit != eend ; ++eit, ++display )
+	{
+		if( sVisitedEdge.find(*eit) != sVisitedEdge.end() )
+			continue;
 
-	while (it->hasNext()) {
-		++display;
-		ign::feature::Feature const& fCL10m = it->next();
+		edges_path path = _getPath(graph, *eit);
 
-		ign::feature::FeatureFilter filterNeighbor(idName + " <> '" + fCL10m.getId()+"'");
-		filterNeighbor.setExtent(fCL10m.getGeometry().getEnvelope());
+		if( graph.degree(graph.source(*path.begin())) > 1 || graph.degree(graph.target(*path.rbegin())) > 1 )
+			continue;
 
-		ign::feature::FeatureIteratorPtr itArround = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterNeighbor);
-		bool hasNeithbor = false;
-		while (itArround->hasNext()) {
-			ign::feature::Feature const& fCLNeighbor = itArround->next();
-			if (fCLNeighbor.getGeometry().distance(fCL10m.getGeometry()) < 0.1) {
-				hasNeithbor = true;
-				break;
-			}
+		for (edges_path_const_iterator pit = path.begin() ; pit != path.end() ; ++pit)
+			sVisitedEdge.insert(pit->descriptor);
+
+		double length = _getLength(graph, path);
+
+		if( length > minLength )
+			continue;
+
+		for (edges_path_const_iterator pit = path.begin() ; pit != path.end() ; ++pit) {
+			sCLToDelete.insert(graph.origins(pit->descriptor)[0]);
+
+			//--
+			ign::feature::Feature feat;
+			feat.setGeometry(graph.getGeometry(pit->descriptor));
+			_shapeLogger->writeFeature("clDeleteByLength", feat);
 		}
-		if(!hasNeithbor)
-			sCLToDelete.insert(fCL10m.getId());
+			
 	}
 
 	for (std::set<std::string>::iterator sit = sCLToDelete.begin(); sit != sCLToDelete.end(); ++sit) {
@@ -2326,6 +2377,72 @@ void app::calcul::CFeatGenerationOp::_deleteCLUnderThreshold() const
 ///
 ///
 ///
+double app::calcul::CFeatGenerationOp::_getLength(
+	GraphType const& graph,
+	edges_path const& path
+ ) const {
+	double length = 0;
+	for (edges_path_const_iterator pit = path.begin() ; pit != path.end() ; ++pit) {
+		length += graph.getGeometry(pit->descriptor).length();
+	}
+	return length;
+ }
+
+///
+///
+///
+app::calcul::CFeatGenerationOp::edges_path app::calcul::CFeatGenerationOp::_getPath(
+	GraphType const& graph,
+	edge_descriptor e
+) const {
+	edges_path path;
+
+	oriented_edge_descriptor tPivot[] = { 
+		oriented_edge_descriptor( e, ign::graph::DIRECT ), 
+		oriented_edge_descriptor( e, ign::graph::REVERSE ) 
+	};
+
+	path.push_back(tPivot[0]);
+
+	for( size_t  i = 0 ; i < 2 ; ++i) {
+		oriented_edge_descriptor nextEdge = tPivot[i] ;
+
+		vertex_descriptor vTarget = graph.target( nextEdge );
+		vertex_descriptor vStart = graph.source( nextEdge );
+
+		if( graph.degree( vTarget ) != 2 ) continue ;
+
+		bool isLoop = false;
+				
+		while( true ) {
+
+			if( vTarget == vStart ) {
+				isLoop = true;
+				break;
+			}
+
+			std::vector< oriented_edge_descriptor > vIncidentEdges ;
+			graph.incidentEdges( vTarget, vIncidentEdges);
+			nextEdge = (vIncidentEdges.front().descriptor == nextEdge.descriptor )? vIncidentEdges.back() : vIncidentEdges.front() ;
+
+			if( i == 0 )
+				path.push_back( nextEdge );
+			else
+				path.push_front( epg::graph::tools::reverse( nextEdge ) );
+
+			vTarget = graph.target( nextEdge );
+
+			if( graph.degree( vTarget ) != 2 ) break;
+		}
+		if (isLoop) break;
+	}
+
+	return path;
+}
+
+///
+///
+///
 void app::calcul::CFeatGenerationOp::_loadGraphCL(GraphType & graphCL) const
 {
 	//--
@@ -2334,14 +2451,15 @@ void app::calcul::CFeatGenerationOp::_loadGraphCL(GraphType & graphCL) const
 
 	//--
 	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + _countryCodeDouble + "'");
-	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLCountryCode);
 	boost::progress_display display(numFeatures, std::cout, "[ loading cl graph % complete ]\n");
 
+	//--
 	ign::geometry::graph::builder::SimpleGraphBuilder<GraphType> graphBuilder(graphCL, 0.01);
+	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
 	while (it->hasNext()) {
 		++display;
-		ign::feature::Feature const& fCL = it->next();
+		ign::feature::Feature fCL = it->next();
 		graphBuilder.addEdge(fCL.getGeometry().asLineString(), fCL.getId());
 	}
 }
@@ -2366,7 +2484,7 @@ void app::calcul::CFeatGenerationOp::_loadGraphEdges(
 	ign::geometry::graph::builder::SimpleGraphBuilder<GraphType> graphBuilder(graphEdges, 0.01);
 	while (it->hasNext()) {
 		++display;
-		ign::feature::Feature const& fedge = it->next();
+		ign::feature::Feature fedge = it->next();
 		graphBuilder.addEdge(fedge.getGeometry().asLineString(), fedge.getId());
 	}
 }
@@ -2379,9 +2497,7 @@ bool app::calcul::CFeatGenerationOp::_isConnectedEdges(
 	std::string const& idEdge1,
 	std::string const& idEdge2
 ) const {
-	_logger->log(epg::log::DEBUG, idEdge1);
 	edge_descriptor edCl1 = graph.getInducedEdges(idEdge1).second[0].descriptor;
-	_logger->log(epg::log::DEBUG, idEdge2);
 	edge_descriptor edCl2 = graph.getInducedEdges(idEdge2).second[0].descriptor;
 
 	if (graph.source(edCl1) == graph.source(edCl2) || graph.source(edCl1) == graph.target(edCl2) || graph.target(edCl1) == graph.source(edCl2) || graph.target(edCl1) == graph.target(edCl2))
@@ -2494,7 +2610,6 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl(GraphType const& graphCL) 
 			if (!pLinkedEdgesI.first)
 				continue;
 
-
 			for (size_t j = i + 1; j < vClsIncidentTemp.size(); ++j) {
 				if ( sTreated.find(j) != sTreated.end() ) continue;
 				std::pair<bool, std::pair<std::string, std::string>> pLinkedEdgesJ = _getClLinkedEdges(linkedFeatIdName, graphCL, vClsIncidentTemp[j].descriptor);
@@ -2598,25 +2713,30 @@ void app::calcul::CFeatGenerationOp::_setContinuityCl(GraphType const& graphCL) 
 void app::calcul::CFeatGenerationOp::_getClDoublonGeom() const
 {
 	_logger->log(epg::log::TITLE, "[ BEGIN DELETE CL DOUBLON ] : " + epg::tools::TimeTools::getTime());
+
+	//--
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 	std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
 
-	std::set<std::string> sClDoublonToDelete;
-
+	//--
 	GraphType graphClDoublon;
 	ign::geometry::graph::tools::SnapRoundPlanarizer< GraphType >  planarizerClDoublon(graphClDoublon, 1e2);//scale =1e2 -> precision de 0.01
+
+	//--
 	ign::feature::FeatureFilter filterCLCountryCode(countryCodeName + " = '" + _countryCodeDouble + "'");
-	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
 	size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCLCountryCode);
 	boost::progress_display displayLoad(numFeatures, std::cout, "[ loading cl planar graph % complete ]\n");
+
+	ign::feature::FeatureIteratorPtr it = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCLCountryCode);
 	while (it->hasNext()) {
 		++displayLoad;
-		ign::feature::Feature const& fCL = it->next();
+		ign::feature::Feature fCL = it->next();
 		planarizerClDoublon.addEdge(fCL.getGeometry().asLineString(), fCL.getId());
 	}
 	planarizerClDoublon.planarize();
 
+	//--
 	GraphType::edge_iterator eit, eitEnd;
 	graphClDoublon.edges(eit, eitEnd);
 	boost::progress_display display(graphClDoublon.numEdges(), std::cout, "[ deleting cl duplicates % complete ]\n");
@@ -2634,41 +2754,11 @@ void app::calcul::CFeatGenerationOp::_getClDoublonGeom() const
 			ign::feature::Feature fClDoublon;
 			_fsCL->getFeatureById(*vit, fClDoublon);
 			_logger->log(epg::log::WARN, "CL DOUBLON  : " + *vit);
-			if (fClDoublon.getId().empty() ) { 
-				//sClDoublonToDelete.insert(*vit);
+			if (fClDoublon.getId().empty() )
 				continue;
-			}
-			//ign::geometry::LineString lsClDoublon = fClDoublon.getGeometry().asLineString();
-			ign::feature::Feature fShaplog = fClDoublon;
-			ign::geometry::LineString lsSphaplog = fShaplog.getGeometry().asLineString();
-			lsSphaplog.clearZ();
-			fShaplog.setGeometry(lsSphaplog);
-			_shapeLogger->writeFeature("ClDoublon", fShaplog);
-			
-			/*
-			std::vector<std::string> vEdgeslinked;
-			epg::tools::StringTools::Split(fClDoublon.getAttribute(linkedFeatIdName).toString(), "#", vEdgeslinked);
-			std::string idEdgLinked1 = vEdgeslinked[0];
-			std::string idEdgLinked2 = vEdgeslinked[1];
-			ign::feature::Feature fEdg1, fEdg2;
-			_fsEdge->getFeatureById(idEdgLinked1, fEdg1);
-			_fsEdge->getFeatureById(idEdgLinked2, fEdg2);
-			if (fEdg1.getId().empty() || fEdg2.getId().empty()) { //si on ne trouve pas l'un des troncons liés
-				sClDoublonToDelete.insert(*vit);
-				continue;
-			}
-			ign::geometry::LineString lsEdg1 = fEdg1.getGeometry().asLineString();
-			ign::geometry::LineString lsEdg2 = fEdg2.getGeometry().asLineString();
-			//calcul de l'angle
-			ign::math::Vec2d vecLsDoublon(lsClDoublon.endPoint().x() - lsClDoublon.startPoint().x(), lsClDoublon.endPoint().y() - lsClDoublon.startPoint().y());
-			ign::math::Vec2d vecEdg1(lsEdg1.endPoint().x() - lsEdg1.startPoint().x(), lsEdg1.endPoint().y() - lsEdg1.startPoint().y());
-			ign::math::Vec2d vecEdg2(lsEdg2.endPoint().x() - lsEdg2.startPoint().x(), lsEdg2.endPoint().y() - lsEdg2.startPoint().y());
-			//, vecLsArround;
-			double anglClEdg1 = epg::tools::geometry::angle(vecLsDoublon, vecEdg1);
-			double anglClEdg2 = epg::tools::geometry::angle(vecLsDoublon, vecEdg2);
-			//if(anglClEdg1)*/
-		}
 
+			_shapeLogger->writeFeature("ClDoublon", fClDoublon);
+		}
 		++eit;
 	}
 	_logger->log(epg::log::TITLE, "[ END DELETE CL DOUBLON ] : " + epg::tools::TimeTools::getTime());

@@ -118,7 +118,7 @@ namespace app
             while (itEdge->hasNext())
             {
                 ++display;
-                ign::feature::Feature const& fEdge = itEdge->next();
+                ign::feature::Feature fEdge = itEdge->next();
                 ign::geometry::LineString const& ls = fEdge.getGeometry().asLineString();
                 std::string edgeId = fEdge.getId();
                 std::string country = fEdge.getAttribute(countryCodeName).toString();
@@ -162,7 +162,7 @@ namespace app
             ign::feature::FeatureIteratorPtr itArea = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsArea, filter);
             while (itArea->hasNext())
             {
-                ign::feature::Feature const& fArea = itArea->next();
+                ign::feature::Feature fArea = itArea->next();
                 ign::geometry::MultiPolygon const& areaGeom = fArea.getGeometry().asMultiPolygon();
 
                 areaUnionPtr.reset(areaUnionPtr->Union(areaGeom));
@@ -171,7 +171,7 @@ namespace app
             ign::feature::FeatureIteratorPtr itStand = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsStanding, filter);
             while (itStand->hasNext())
             {
-                ign::feature::Feature const& fStand = itStand->next();
+                ign::feature::Feature fStand = itStand->next();
                 ign::geometry::MultiPolygon const& standGeom = fStand.getGeometry().asMultiPolygon();
                 
                 areaUnionPtr.reset(areaUnionPtr->Union(standGeom));

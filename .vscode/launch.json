@@ -23,7 +23,7 @@
         "pipeTransport": {
             "debuggerPath": "/usr/bin/gdb",
             "pipeProgram": "docker",
-            "pipeArgs": ["exec", "-i", "net_matching_base_container", "sh", "-c"],
+            "pipeArgs": ["exec", "-i", "net_matching_dev_container", "sh", "-c"],
             "pipeCwd": "${workspaceRoot}"
         },
         "MIMode": "gdb",

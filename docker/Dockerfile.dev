@@ -1,19 +1,13 @@
 FROM libepg
 
-ARG GIT_BRANCH
-ARG NB_PROC
+RUN apt-get update -y \
+ && apt-get -y install g++ \
+ && apt-get -y install gcc \
+ && apt-get -y install cmake \
+ && apt-get -y install make \
+ && apt-get -y install gdb \
+ && rm -rf /var/lib/apt/lists/*
 
-ENV APP_DIR_SRC=/usr/local/src/net_matching/                                              
-
-WORKDIR $APP_DIR_SRC/../
-
-COPY . $APP_DIR_SRC
+ENV APP_DIR_SRC=/usr/local/src/net_matching/                                                     
 
 WORKDIR $APP_DIR_SRC
-
-RUN git checkout $GIT_BRANCH \
- && mkdir build-unix-release \
- && cd build-unix-release && cmake .. -DCMAKE_INSTALL_PREFIX=$APP_DIR_SRC -DCMAKE_BUILD_TYPE=Release && make -j$NB_PROC install \
- && cd .. && rm -r build-unix-release
-
-ENV PATH=$PATH:$APP_DIR_SRC/bin

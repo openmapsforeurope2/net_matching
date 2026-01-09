@@ -484,6 +484,7 @@ Ce traitement se déroule en deux phases avec une phase intitiale:
 
 2- rétablissement des connexions légitimes entre les connecting lines : les connecting lines initialement connectées sont déconnectées après calcul des nouvelles géométries. La création du graph initial GL, préalablement à la modification des géométries, a permis de mémoriser les relations d'adjacence entre les connecting lines qu'il nous faut maintenant rétablir. Tout d'abord nous chargeons deux graphs G1 et G2 à partir des réseaux des deux pays country1 et country2. Ensuite, nous parcourons tous les noeuds de degré supérieur à 2 du graph GL. Pour l'ensemble des connecting lines adjacentes à ce noeud (une connecting line est ici équivalente à un arc du graph) on détermine les groupes de connecting lines qui doivent effectivement rester connectées. Les connecting lines qui doivent être connectées sont celles dont les arcs associés sont identiques ou connectés dans leur réseau respectif (G1 ou G2). Les relations d'adjacence des arcs associés sont retrouvées en interrogeant les graphs G1 et G2. Par exemple, soit 2 connecting lines adjacentes cl1 et cl2 qui ont respectivement pour paires d'arcs associés (country1_1, country2_1) et (country1_1, country2_2). La connexion entre ces deux connecting lines doit être rétablie si les arcs country2_1 et country2_2 sont effectivement connectés dans le réseau du pays country2 (la relation d'adjacence est évidente en ce qui concerne les arcs issus du pays country1 puisque les 2 connecting lines sont associées au même arc country1_1). Si une relation d'adjacence est établie entre plusieurs connecting lines, un barycentre est calculé à partir des géométries des extrémités devant être reliées. Ces géométries sont ensuite remplacées par celle du barycentre.
 
+![214](images/214_with_key.png)
 
 
 TODO 
@@ -492,3 +493,11 @@ ign::geometry::LineString app::calcul::CFeatGenerationOp::_getGeomCL(
 	ign::geometry::LineString const& lsToProject,
 	double distMaxBorder,    -----------------------------------------------> pas utilisé
 	double snapOnVertexBorder)
+
+
+
+
+LINKED_FEATURE_ID
+LAND_COVER_TYPE_NAME
+TYPE_LAND_AREA
+CFC_SNAP_DIST

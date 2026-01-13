@@ -318,6 +318,9 @@ void app::calcul::CFeatGenerationOp::_computeCP() const
 	//--
 	epg::Context* context = epg::ContextS::getInstance();
 	std::string countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+	std::string boundaryTypeName = context->getEpgParameters().getValue(BOUNDARY_TYPE).toString();
+	std::string typeInternationalBoundary = context->getEpgParameters().getValue(TYPE_INTERNATIONAL_BOUNDARY).toString();
+	std::string typeCoastline = context->getEpgParameters().getValue(TYPE_COASTLINE).toString();
 
 	//--
 	params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
@@ -331,22 +334,20 @@ void app::calcul::CFeatGenerationOp::_computeCP() const
 	while (itBoundary->hasNext()) {
 
 		ign::feature::Feature fBoundary = itBoundary->next();
-		std::string const& boundaryType = fBoundary.getAttribute("boundary_type").toString();
+		std::string const& boundaryType = fBoundary.getAttribute(boundaryTypeName).toString();
 		ign::geometry::LineString const& lsBoundary = fBoundary.getGeometry().asLineString();
 
 		_logger->log(epg::log::INFO, "id boundary :" + fBoundary.getId());
 		
-		if (boundaryType != "international_boundary" && boundaryType.find("coastline_sea_limit") == -1)
+		if (boundaryType != typeInternationalBoundary && boundaryType.find(typeCoastline) == -1)
 			continue;
-
-		//--
-		ign::geometry::algorithm::BufferOpGeos buffOp;
-		ign::geometry::GeometryPtr buffBorder(buffOp.buffer(lsBoundary, distUnderShoot, 0, ign::geometry::algorithm::BufferOpGeos::CAP_FLAT));
 
 		//--
 		_getCPfromIntersectBorder(lsBoundary, distCLIntersected);
 
 		//--
+		ign::geometry::algorithm::BufferOpGeos buffOp;
+		ign::geometry::GeometryPtr buffBorder(buffOp.buffer(lsBoundary, distUnderShoot, 0, ign::geometry::algorithm::BufferOpGeos::CAP_FLAT));
 		_addToUndershootNearBorder(lsBoundary, *buffBorder, distUnderShoot);
 	}
 
@@ -654,7 +655,7 @@ void app::calcul::CFeatGenerationOp::_addToUndershootNearBorder(
 	ign::feature::FeatureFilter filterBuffBorder("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + buffBorder.toString() + "'),3035))");
 	if (_reqFilterEdges2generateCF != "")
 		epg::tools::FilterTools::addAndConditions(filterBuffBorder, _reqFilterEdges2generateCF);
-	//on ne prend que les edes ayant un cc simple pour ne pas créer de CP là où il y a des CLs
+	//on ne prend que les edges ayant un cc simple pour ne pas créer de CP là où il y a des CLs
 	epg::tools::FilterTools::addAndConditions(filterBuffBorder, "(" + countryCodeName + " = '" + _vCountriesCodeName[0] + "' or " + countryCodeName + " = '" + _vCountriesCodeName[1] + "')");
 
 	ign::feature::FeatureIteratorPtr eit = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterBuffBorder);
@@ -779,7 +780,7 @@ void app::calcul::CFeatGenerationOp::_getCPfromIntersectBorder(
 
 	if (_reqFilterEdges2generateCF != "")
 		epg::tools::FilterTools::addAndConditions(filterFeaturesToMatch, _reqFilterEdges2generateCF);
-	//on ne prend que les edes ayant un cc simple pour ne pas créer de CP là où il y a des CLs
+	//on ne prend que les edges ayant un cc simple pour ne pas créer de CP là où il y a des CLs
 	epg::tools::FilterTools::addAndConditions(filterFeaturesToMatch,"("+ countryCodeName+" = '" +_vCountriesCodeName[0]+"' OR "+countryCodeName + " = '" + _vCountriesCodeName[1] +"')");
 	ign::feature::FeatureIteratorPtr itFeaturesToMatch = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterFeaturesToMatch);
 
@@ -1167,7 +1168,7 @@ bool app::calcul::CFeatGenerationOp::_isEdgeConnected2cl(
 	filterArroundCp.setExtent(envArroundGeom);
 
 	ign::feature::FeatureIteratorPtr itClArround = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterArroundCp);
-	bool hasEdgConnected2Cl = false;
+	bool hasEdgeConnected2Cl = false;
 	while (itClArround->hasNext())
 	{
 		ign::feature::Feature fClArround = itClArround->next();
@@ -1176,12 +1177,12 @@ bool app::calcul::CFeatGenerationOp::_isEdgeConnected2cl(
 		double dist = lsClArround.distance(geomObjNearCl);
 
 		if (dist < distMinCl) {
-			hasEdgConnected2Cl = true;
+			hasEdgeConnected2Cl = true;
 			distMinCl = dist;
 			fCl2SnapOn = fClArround;
 		}
 	}
-	return hasEdgConnected2Cl;
+	return hasEdgeConnected2Cl;
 }
 
 ///
@@ -1243,8 +1244,8 @@ void app::calcul::CFeatGenerationOp::_snapCpOnClNearBy(
 		if (!hasClNearBy)
 			continue;
 
-		//on projette la Cp sur la Cl identifiée
-		ign::geometry::LineString lsCl2SnapOn = fCl2SnapOn.getGeometry().asLineString();
+		//on projette le Cp sur la Cl identifiée
+		ign::geometry::LineString const& lsCl2SnapOn = fCl2SnapOn.getGeometry().asLineString();
 		ign::geometry::Point ptSnap = epg::tools::geometry::project(lsCl2SnapOn, ptCp, snapDistOnVertexFromCl);
 		ptSnap.setZ(0);
 

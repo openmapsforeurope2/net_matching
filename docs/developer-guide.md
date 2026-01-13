@@ -89,7 +89,13 @@ Les étapes qui composent le traitement de raccordement sont les suivantes :
 <br>
 **240** - génération des _'connecting points'_
 <br>
-**250** - connection du réseau aux _'connecting points'_
+**250** - connection du réseau aux _'connectingacun des pays en linéaires bi-nationaux
+<br>
+**212** - accrochage des _'connecting lines'_ dont les extrémités sont proches pour éviter les petites coupures
+<br>
+**213** - suppression des _'connecting lines'_ dont les couples de linéaires sont incohérents selon l'angle ou la distance
+<br>
+**214** - calcul de la géométrie des _'connecti points'_
 <br>
 **255** - généralisation des surfaces étroites en linéaires bi-nationaux
 <br>
@@ -452,7 +458,6 @@ En outre, chaque connecting line isolée (non connectée à d'autres connecting 
 
 ![213](images/213_with_key.png)
 
-x
 #### 214 : UpdateGeomConnectingLines
 
 Le traitement mis en oeuvre dans cette étape consiste à calculer de nouvelles géométries pour les connecting line qui sont les géométries moyennes calculées à partir des paires de portion d'arc fusionnées. 
@@ -493,7 +498,7 @@ ign::geometry::LineString app::calcul::CFeatGenerationOp::_getGeomCL(
 	ign::geometry::LineString const& lsToProject,
 	double distMaxBorder,    -----------------------------------------------> pas utilisé
 	double snapOnVertexBorder)
-x
+
 
 #### 220 : ConnectionConnectingLines
 
@@ -518,7 +523,77 @@ Paramètre utilisés:
 | CFC_SNAP_DIST               | distance de snapping des extrémités d'une connecting line sur les extrémités d'un arc associé |
 
 La première étape du traitement consiste à calculer l'ensemble des déplacements qu'il faudra appliquer au réseau, un déplacement étant représenté par un vecteur associé à la localisation d'un noeud. On profite de cette étape pour découper les arcs en supprimant les parties fusionnées. On effectue un traitement pays par pays. Pour chacun des pays on parcourt les connecting lines. Pour chaque connecting line on récupère l'identifiant de l'arc associé correspondant au pays traité (prenons ici ID pour valeur de cet identifiant). L'objectif étant de supprimer les portions d'arcs fusionnées, on créé une géométrie de travail MERGED_CL correspondant à la fusion des connecting lines connexes à la connecting line traitée et liées au même arc ID, cela permettra de supprimer en un seul passage l'ensemble des portions d'arcs fusionnées contigues. On recherche ensuite dans le réseau le meilleur candidat parmis les arcs pouvant être associés. En effet l'arc associé n'a pas nécessairement pour identifiant ID car cet arc peut avoir été précédemment découpé (un même arc peut présenter plusieurs portions fusionnées non connexes). Pour cela on recherche parmis tous les arcs ayant pour parent l'arc ID celui qui est le plus proche de la géométrie MERGED_CL. Une fois l'arc identifié ID' on regarde si les extrémités de MERGED_CL peuvent être associées à celles de l'arc, sinon calcule les projections de ces extrémités sur l'arc et on découpe l'arc suivant ces points. Parmis les polylignes résultant de la découpe, on supprime celle qui sera remplacée par les connecting lines (celles composant la géométrie MERGED_CL). Les polylignes restantes sont utilisées pour créer de nouveaux objets en remplacement de l'arc ID' (ce sont les parties restantes non associées à cette fusion). Les déplacements sont enregistrés. Ils correspondent aux vecteurs allant des points de coupure ou extrémités de l'arc ID' vers leur extrémité associée de la géométrie MERGED_CL.
+<br>
 Dans un deuxième temps on charge un graphe composé des réseaux des deux pays et on applique les déplacements précédemment calculés aux noeuds du graphe. On applique une fonction de déformation avec amortissement aux arcs adjacents aux noeuds déplacés.
+<br>
 La dernière étape consiste à persister en base de données les modifications géométriques réalisées sur les arcs déformés. Les arcs effondrés en un points sont supprimés.
 
 ![220](images/220_with_key.png)
+
+
+#### 230 : ImportConnectingLines
+
+Lors de cette étape les objets contenus dans la table des connecting lines sont copiés dans la table du réseau traité.
+
+##### Données de travail :
+
+| table                          | entrée | sortie | entitée de travail | description                                                 |
+|--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
+| CL_TABLE                       | X      |        |                    | table des connecting lines                                  |
+| EDGE_TABLE_INIT                | X      | X      | X                  | table du réseau à traiter                                   |
+
+##### Principaux opérateurs de calcul utilisés :
+- app::calcul::CFeatConnectionOp
+
+##### Description du traitement :
+
+![230](images/230_with_key.png)
+
+
+#### 240 : GenerateConnectingPoint
+
+
+
+##### Données de travail :
+
+| table                          | entrée | sortie | entitée de travail | description                                                 |
+|--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
+| CP_TABLE                       | X      | X      | X                  | table des connecting points                                 |
+| EDGE_TABLE_INIT                | X      |        |                    | table du réseau à traiter                                   |
+
+##### Principaux opérateurs de calcul utilisés :
+- app::calcul::CFeatGenerationOp
+
+##### Description du traitement :
+
+Paramètre utilisés: 
+| paramètre                   |                                                                                               |
+|-----------------------------|-----------------------------------------------------------------------------------------------|
+| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line               |
+| CFC_SNAP_DIST               | distance de snapping des extrémités d'une connecting line sur les extrémités d'un arc associé |
+
+TYPE_INTERNATIONAL_BOUNDARY
+TYPE_COASTLINE
+CP_INTERSECTED_CL_DIST
+CP_UNDERSHOOT_DIST
+CP_CP_2_CL_SNAP_DIST
+CP_VERTEX_CL_SNAP_DIST
+LINKED_FEATURE_ID
+
+On parcourt les frontières internationale entre les deux pays
+On parcourt tout les arcs intersectant la frontière 
++ tous les arcs intersectant une connecting line !!!!
+Pour chaque arc :
+- on calcule l'intersection avec la frontière
+- on regarde si CL a proximité, si oui on calcule l'intersection avec la CL (ON NE CALCULE INTERSECTION QU'AVEC 1 CL ? COMMENT SAIT ON QUE LA CL QU'ON RECUPERE EST LA BONNE ?)
+si intersection CL et suffisemment proche de la frontière, on remplace l'intersection avec frontière pas celle avec CL
+- pour chaque point d'intersection on crée un CP (MEME SI LE POINT D'INTER AVEC CL EST LOIN DE LA FRONTIERE ?)
+
+On calcul les CP par resolution des undershoot
+on parcourt les arcs qui sont dans un buffer (dont rayon est tolérance pour undershoot) EST CE QU'ON PEUT AMELIORER EN NE PRENANT QUE LES ARCS DONT UNE DES EXTREMITES EST DANS LE BUFFER ?
+pour chaque arc qui n'intersect pas la frontiere :
+on regarde quelle est l'extremité la plus proche de la frontière (ON NE REGARDE PAS SI LE POINT EST BIEN A UNE DISTANCE < seuil undershoot !)
+on regarde si cette extremité n'est pas un dangle (REVOIR LA METHODE DE DETECTION DES DANGLES)
+ SI DANGLE pourquoi on ne regarde pas l'autre extremite si elle est aussi à une distance < seuil undershoot ?
+On calcule la projection axiale PA puis calcule la projection othogonale PO, si dPO < dPA/3 on prend PO
+On crée un CP au niveau du point d'intersection

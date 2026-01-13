@@ -158,7 +158,7 @@ namespace app
             GraphType graph;
             _loadEdgeGraph(graph);
 
-            // On calcule les déplacements
+            // On applique les déplacements
             std::set<std::string> sCollapsedEdges;
             std::vector<edge_descriptor> vDeformedEdges;
             _applyEdgeDisplacement(graph, mDisplacements, vDeformedEdges, sCollapsedEdges);
@@ -249,15 +249,11 @@ namespace app
 
             // epg parameters
             epg::params::EpgParameters const &epgParams = context->getEpgParameters();
-
             std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
             std::string const linkedFeatureIdName = epgParams.getValue(LINKED_FEATURE_ID).toString();
 
             // app params
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
-
-            std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE_NAME).toString();
-            std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
             double snapDistance = themeParameters->getValue(CFC_SNAP_DIST).toDouble();
 
             ign::feature::FeatureFilter filterCl(countryCodeName + " LIKE '%" + country + "%'");
@@ -339,7 +335,7 @@ namespace app
                     _addDisplacement(startPoint, mergedClGeom->startPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
 
                     //--
-                    size_t minId2 = minId == 0  ? 3 : 2;
+                    size_t minId2 = minId == 0 ? 3 : 2;
                     if (vDist[minId2] <= snapDistance)
                     {
                         startPoint = (minId2 == 2) ? edgeGeom.startPoint() : edgeGeom.endPoint();
@@ -378,7 +374,7 @@ namespace app
                     _addDisplacement(startPoint, mergedClGeom->endPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
 
                     //--
-                    size_t minId2 = minId == 2  ? 1 : 0;
+                    size_t minId2 = minId == 2 ? 1 : 0;
                     if (vDist[minId2] <= snapDistance)
                     {
                         startPoint = (minId2 == 0) ? edgeGeom.startPoint() : edgeGeom.endPoint();

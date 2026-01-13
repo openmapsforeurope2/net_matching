@@ -359,13 +359,13 @@ Un ensemble de sous-arcs est éligible à la génération d'une connecting line 
 
 #### 211 : MergeConnectingLinesOnBorder
 
-Le but est ici de fusionner deux à deux les connecting lines ou portions de connecting lines dont les arcs associés peuvent être appairés. A l'issu de ce traitement il ne doit subsister que des connectings associés à deux arcs des deux pays.
+Le but est ici de fusionner deux à deux les conneEDGE_TABLE_INITcting lines ou portions de connecting lines dont les arcs associés peuvent être appairés. A l'issu de ce traitement il ne doit subsister que des connecting lines associées à deux arcs des deux pays.
 
 ##### Données de travail :
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CL_TABLE                       |        | X      | X                  | table des connecting lines                                  |
+| CL_TABLE                       | X      | X      | X                  | table des connecting lines                                  |
 
 ##### Principaux opérateurs de calcul utilisés :
 - app::calcul::CFeatGenerationOp
@@ -401,7 +401,7 @@ Cette étape vise à corriger les discontinuités entre les connecting lines qui
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CL_TABLE                       |        | X      | X                  | table des connecting lines                                  |
+| CL_TABLE                       | X   x   | X      | X                  | table des connecting lines                                  |
 
 ##### Principaux opérateurs de calcul utilisés :
 - app::calcul::CFeatGenerationOp
@@ -427,7 +427,7 @@ Cette étape consiste à supprimer les connecting lines pour lesquelles les arcs
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CL_TABLE                       |        | X      | X                  | table des connecting lines                                  |
+| CL_TABLE                       | X      | X      | X                  | table des connecting lines                                  |
 | EDGE_TABLE_INIT                | X      |        |                    | table du réseau à traiter                                   |
 
 ##### Principaux opérateurs de calcul utilisés :
@@ -452,7 +452,7 @@ En outre, chaque connecting line isolée (non connectée à d'autres connecting 
 
 ![213](images/213_with_key.png)
 
-
+x
 #### 214 : UpdateGeomConnectingLines
 
 Le traitement mis en oeuvre dans cette étape consiste à calculer de nouvelles géométries pour les connecting line qui sont les géométries moyennes calculées à partir des paires de portion d'arc fusionnées. 
@@ -461,7 +461,7 @@ Le traitement mis en oeuvre dans cette étape consiste à calculer de nouvelles 
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CL_TABLE                       |        | X      | X                  | table des connecting lines                                  |
+| CL_TABLE                       | X      | X      | X                  | table des connecting lines                                  |
 | EDGE_TABLE_INIT                | X      |        |                    | table du réseau à traiter                                   |
 
 ##### Principaux opérateurs de calcul utilisés :
@@ -493,11 +493,32 @@ ign::geometry::LineString app::calcul::CFeatGenerationOp::_getGeomCL(
 	ign::geometry::LineString const& lsToProject,
 	double distMaxBorder,    -----------------------------------------------> pas utilisé
 	double snapOnVertexBorder)
+x
 
+#### 220 : ConnectionConnectingLines
 
+Le but de cette étape est de supprimer arcs ou parties d'arcs ayant fait l'objet d'une fusion et de réaliser les déplacements nécessaires afin de connecter le réseau aux connecting lines résultant de la fusion.
 
+##### Données de travail :
 
-LINKED_FEATURE_ID
-LAND_COVER_TYPE_NAME
-TYPE_LAND_AREA
-CFC_SNAP_DIST
+| table                          | entrée | sortie | entitée de travail | description                                                 |
+|--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
+| CL_TABLE                       | X      |        |                    | table des connecting lines                                  |
+| EDGE_TABLE_INIT                | X      | X      | X                  | table du réseau à traiter                                   |
+
+##### Principaux opérateurs de calcul utilisés :
+- app::calcul::CFeatConnectionOp
+
+##### Description du traitement :
+
+Paramètre utilisés: 
+| paramètre                   |                                                                                               |
+|-----------------------------|-----------------------------------------------------------------------------------------------|
+| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line               |
+| CFC_SNAP_DIST               | distance de snapping des extrémités d'une connecting line sur les extrémités d'un arc associé |
+
+La première étape du traitement consiste à calculer l'ensemble des déplacements qu'il faudra appliquer au réseau, un déplacement étant représenté par un vecteur associé à la localisation d'un noeud. On profite de cette étape pour découper les arcs en supprimant les parties fusionnées. On effectue un traitement pays par pays. Pour chacun des pays on parcourt les connecting lines. Pour chaque connecting line on récupère l'identifiant de l'arc associé correspondant au pays traité (prenons ici ID pour valeur de cet identifiant). L'objectif étant de supprimer les portions d'arcs fusionnées, on créé une géométrie de travail MERGED_CL correspondant à la fusion des connecting lines connexes à la connecting line traitée et liées au même arc ID, cela permettra de supprimer en un seul passage l'ensemble des portions d'arcs fusionnées contigues. On recherche ensuite dans le réseau le meilleur candidat parmis les arcs pouvant être associés. En effet l'arc associé n'a pas nécessairement pour identifiant ID car cet arc peut avoir été précédemment découpé (un même arc peut présenter plusieurs portions fusionnées non connexes). Pour cela on recherche parmis tous les arcs ayant pour parent l'arc ID celui qui est le plus proche de la géométrie MERGED_CL. Une fois l'arc identifié ID' on regarde si les extrémités de MERGED_CL peuvent être associées à celles de l'arc, sinon calcule les projections de ces extrémités sur l'arc et on découpe l'arc suivant ces points. Parmis les polylignes résultant de la découpe, on supprime celle qui sera remplacée par les connecting lines (celles composant la géométrie MERGED_CL). Les polylignes restantes sont utilisées pour créer de nouveaux objets en remplacement de l'arc ID' (ce sont les parties restantes non associées à cette fusion). Les déplacements sont enregistrés. Ils correspondent aux vecteurs allant des points de coupure ou extrémités de l'arc ID' vers leur extrémité associée de la géométrie MERGED_CL.
+Dans un deuxième temps on charge un graphe composé des réseaux des deux pays et on applique les déplacements précédemment calculés aux noeuds du graphe. On applique une fonction de déformation avec amortissement aux arcs adjacents aux noeuds déplacés.
+La dernière étape consiste à persister en base de données les modifications géométriques réalisées sur les arcs déformés. Les arcs effondrés en un points sont supprimés.
+
+![220](images/220_with_key.png)

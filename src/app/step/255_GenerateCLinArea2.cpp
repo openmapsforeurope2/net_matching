@@ -26,7 +26,6 @@ namespace app {
 		void GenerateCLinArea2::onCompute( bool verbose = false )
 		{
 			//--
-			//--
 			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
             double const clMinLength = themeParameters->getValue( CLA_CL_LENGTH_THRESHOLD_2 ).toDouble();
             double const clMinRatio = themeParameters->getValue( CLA_CL_MIN_RATIO_IN_AREA_2 ).toDouble();
@@ -36,7 +35,7 @@ namespace app {
 			ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true);
 
 			//--
-			app::calcul::CLInAreaGenerationOp::Compute(verbose, clMinRatio, clMinLength);
+			app::calcul::CLInAreaGenerationOp::Compute(clMinRatio, clMinLength, verbose);
 		}
 
 	}

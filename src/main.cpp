@@ -187,6 +187,7 @@ int main(int argc, char *argv[])
         //set BDD search path
         context->getDataBaseManager().setSearchPath(themeParameters->getValue(WORKING_SCHEMA).toString());
         ome2::utils::setTableName<app::params::ThemeParametersS>(LANDMASK_TABLE);
+        ome2::utils::setTableName<app::params::ThemeParametersS>(BOUNDARY_SMOOTHED_TABLE);
         ome2::utils::setTableName<epg::params::EpgParametersS>(TARGET_BOUNDARY_TABLE);
 
         //créer les tables CP et CL vides si elles n'existent pas

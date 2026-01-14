@@ -373,7 +373,7 @@ Le but est ici de fusionner deux à deux les conneEDGE_TABLE_INITcting lines ou 
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
 | CL_TABLE                       | X      | X      | X                  | table des connecting lines                                  |
 
-##### Principaux opérateurs de calcul utilisés :
+##### Princi_fsStandingpaux opérateurs de calcul utilisés :
 - app::calcul::CFeatGenerationOp
 
 ##### Description du traitement :
@@ -385,7 +385,7 @@ Paramètre utilisés:
 | CL_SNAP_PROJ_CL_2_EDGE_DIST | distance de snapping de la projection des extremités des connecting lines sur les points des polylignes des arcs associés |
 | LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line                                           |
 
-
+Les _connecting lines_ sont enregistrées dans une table dédiée.
 La première étape consiste à construire un graph planaire à partir des connecting lines. Les linéaires superposés sont ainsi agrégés et découpés pour former le graph, chaque connexion du graph est ainsi associée à un ou plusieurs arcs du réseau traité.
 Pour les connexions du graph possédant plusieurs arcs associés provenant des deux pays, on cherche les meilleurs couples d'arcs à appairer.
 Pour qu'un couple d'arcs soit appairable il faut que :
@@ -409,7 +409,7 @@ Cette étape vise à corriger les discontinuités entre les connecting lines qui
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
 | CL_TABLE                       | X   x   | X      | X                  | table des connecting lines                                  |
 
-##### Principaux opérateurs de calcul utilisés :
+##### Princi_fsStandingpaux opérateurs de calcul utilisés :
 - app::calcul::CFeatGenerationOp
 
 ##### Description du traitement :
@@ -485,9 +485,9 @@ Ce traitement se déroule en deux phases avec une phase intitiale:
 
 0- chargement d'un graph GL à partr du réseau initial de connecting lines.
 
-1- calcul des nouvelles géométries des connecting lines : si les arcs associés à la connecting line sont tous deux fictifs ou non-fictifs, on calcule une géométrie moyenne par interpolation des deux portions d'arcs associés. Si seulement l'un des deux arcs est fictif c'est la géométrie c'est la portion de cet arc associée à la connecting line qui sera pris pour nouvelle géométrie
+1- calcul des nouvelles géométries des conneLes _connecting lines_ sont enregistrées dans une table dédiée.cting lines : si les arcs associés à la connecting line sont tous deux fictifs ou non-fictifs, on calcule une géométrie moyenne par interpolation des deux portions d'arcs associés. Si seulement l'un des deux arcs est fictif c'est la géométrie c'est la portion de cet arc associée à la connecting line qui sera pris pour nouvelle géométrie
 
-2- rétablissement des connexions légitimes entre les connecting lines : les connecting lines initialement connectées sont déconnectées après calcul des nouvelles géométries. La création du graph initial GL, préalablement à la modification des géométries, a permis de mémoriser les relations d'adjacence entre les connecting lines qu'il nous faut maintenant rétablir. Tout d'abord nous chargeons deux graphs G1 et G2 à partir des réseaux des deux pays country1 et country2. Ensuite, nous parcourons tous les noeuds de degré supérieur à 2 du graph GL. Pour l'ensemble des connecting lines adjacentes à ce noeud (une connecting line est ici équivalente à un arc du graph) on détermine les groupes de connecting lines qui doivent effectivement rester connectées. Les connecting lines qui doivent être connectées sont celles dont les arcs associés sont identiques ou connectés dans leur réseau respectif (G1 ou G2). Les relations d'adjacence des arcs associés sont retrouvées en interrogeant les graphs G1 et G2. Par exemple, soit 2 connecting lines adjacentes cl1 et cl2 qui ont respectivement pour paires d'arcs associés (country1_1, country2_1) et (country1_1, country2_2). La connexion entre ces deux connecting lines doit être rétablie si les arcs country2_1 et country2_2 sont effectivement connectés dans le réseau du pays country2 (la relation d'adjacence est évidente en ce qui concerne les arcs issus du pays country1 puisque les 2 connecting lines sont associées au même arc country1_1). Si une relation d'adjacence est établie entre plusieurs connecting lines, un barycentre est calculé à partir des géométries des extrémités devant être reliées. Ces géométries sont ensuite remplacées par celle du barycentre.
+2- rétablissement des connexions légitimes entre les connecting lines : les connecting lines initialement connectées sont déconnectées après calcul des nouvelles géométries. La création du graph initial GL, préalablement à la modification des géométries, a permis de mémoriser les relations d'adjacence entre les connecting lines qu'il nous faut maintenant rétablir. Tout d'abord nous chargeons deux graphs G1 et G2 à partir des réseaux des deux pays country1 et country2. Ensuite, nous parcourons tous les noeuds de degré supérieur à 2 du graph GL. Pour l'ensemble des connecting lines adjacentes à ce noeud (une connecting line est ici équivalente à un arc du graph) on détermine les groupes de connecting lines qui doivent effectivement rester connectées. Les connecting lines qui doivent être connectées sont celles dont les arcs associés sont identiques ou connectés dans leur réseau respectif (G1 ou G2). Les relations d'adjacence des arcs associés sont retrouvées en interrogeant les graphs G1 et G2. Par exemple, soit 2 connecting lines adjacentes cl1 et cl2 qui ont respectivement pour paires d'arcs associés (country1_1, country2_1) et (country1_1, country2_2). La connexion entre ces deux connecting lines doLes _connecting lines_ sont enregistrées dans une table dédiée.it être rétablie si les arcs country2_1 et country2_2 sont effectivement connectés dans le réseau du pays country2 (la relation d'adjacence est évidente en ce qui concerne les arcs issus du pays country1 puisque les 2 connecting lines sont associées au même arc country1_1). Si une relation d'adjacence est établie entre plusieurs connecting lines, un barycentre est calculé à partir des géométries des extrémités devant être reliées. Ces géométries sont ensuite remplacées par celle du barycentre.
 
 ![214](images/214_with_key.png)
 
@@ -526,7 +526,7 @@ La première étape du traitement consiste à calculer l'ensemble des déplaceme
 <br>
 Dans un deuxième temps on charge un graphe composé des réseaux des deux pays et on applique les déplacements précédemment calculés aux noeuds du graphe. On applique une fonction de déformation avec amortissement aux arcs adjacents aux noeuds déplacés.
 <br>
-La dernière étape consiste à persister en base de données les modifications géométriques réalisées sur les arcs déformés. Les arcs effondrés en un points sont supprimés.
+La dernière étape consiste à persister en baLes _connecting lines_ sont enregistrées dans une table dédiée.se de données les modifications géométriques réalisées sur les arcs déformés. Les arcs effondrés en un points sont supprimés.
 
 ![220](images/220_with_key.png)
 
@@ -552,7 +552,8 @@ Lors de cette étape les objets contenus dans la table des connecting lines sont
 
 #### 240 : GenerateConnectingPoint
 
-
+Cette étape à pour objet la création des _connecting points_. Les _connecting points_ ont pour objetif d'assurer la connexion de deux arcs ou groupe d'arcs de deux pays au passage de leur frontière commune. Chaque _connecting point_ est associé à un seul arc. A l'issu du traitement on obtient des groupes de _connecting points_. Les connecting points d'un même groupe sont superposés. Un groupe possède au moins deux _connecting points_ et au moins un _connecting point_ de chacun des deux pays frontaliers traités.
+Les _connecting points_ sont enregistrées dans une table dédiée.
 
 ##### Données de travail :
 
@@ -569,24 +570,27 @@ Lors de cette étape les objets contenus dans la table des connecting lines sont
 Paramètre utilisés: 
 | paramètre                   |                                                                                               |
 |-----------------------------|-----------------------------------------------------------------------------------------------|
-| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line               |
-| CFC_SNAP_DIST               | distance de snapping des extrémités d'une connecting line sur les extrémités d'un arc associé |
+| LINKED_FEATURE_ID           | nom du champ indiquant l'identifiant de l'arc associé à un connecting point                   |
+| CP_INTERSECTED_CL_DIST      | distance entre l'intersection d'un arc et d'une CL et la frontiere en dessous de laquelle ces points d'intersection peuvent être considérés comme des CP |
+| CP_UNDERSHOOT_DIST          | distance maximale entre une extremité d'arc et un CP créé par résolution d'undershoot de cette extrémité |
+| CP_CP_2_CL_SNAP_DIST        | distance entre un CP et un CL à partir de laquelle le CP peut être projeté sur la CL          |
+| CP_VERTEX_CL_SNAP_DIST      | distance de snapping des CP projetés sur les points de la CL                                  |
+| CP_MERGE_DIST_CP            | distance maximum entre deux CP pour qu'ils soient fusionnable                                 |
+| CP_MERGE_DIST_TRACTOR_CP    | distance maximum entre deux CP pour qu'ils soient fusionnable si les arcs associés aux CP sont d'un type inclus dans la liste CP_VALUE_FORMWAY_BIGDIST2MERGE |
+| CP_VALUE_FORMWAY_BIGDIST2MERGE | liste des types d'arcs pour lesquels on applique le paramètre CP_MERGE_DIST_TRACTOR_CP pour la fusion des CPs |
+| FORM_OF_WAY_NAME            | nom du champ définissant le type de l'arc                                                     |
 
-TYPE_INTERNATIONAL_BOUNDARY
-TYPE_COASTLINE
-CP_INTERSECTED_CL_DIST
-CP_UNDERSHOOT_DIST
-CP_CP_2_CL_SNAP_DIST
-CP_VERTEX_CL_SNAP_DIST
-LINKED_FEATURE_ID
 
 On parcourt les frontières internationale entre les deux pays
+--> POUR TOUTES LES FRONTIERES ON PREND TOUS LES ARCS INTERSECTANT UNE CL
 On parcourt tout les arcs intersectant la frontière 
 + tous les arcs intersectant une connecting line !!!!
 Pour chaque arc :
 - on calcule l'intersection avec la frontière
 - on regarde si CL a proximité, si oui on calcule l'intersection avec la CL (ON NE CALCULE INTERSECTION QU'AVEC 1 CL ? COMMENT SAIT ON QUE LA CL QU'ON RECUPERE EST LA BONNE ?)
+QUELLE CAS DE FIGURE ESSAIT ON DE TRAITER LORSQU'ON CALCUL DES CP SUR DES CL ?
 si intersection CL et suffisemment proche de la frontière, on remplace l'intersection avec frontière pas celle avec CL
+POURQUOI CALCULER DISTANCE ENTRE (INTERSECTION CL) et (INTERSECTION BORDER) ?
 - pour chaque point d'intersection on crée un CP (MEME SI LE POINT D'INTER AVEC CL EST LOIN DE LA FRONTIERE ?)
 
 On calcul les CP par resolution des undershoot
@@ -596,4 +600,121 @@ on regarde quelle est l'extremité la plus proche de la frontière (ON NE REGARD
 on regarde si cette extremité n'est pas un dangle (REVOIR LA METHODE DE DETECTION DES DANGLES)
  SI DANGLE pourquoi on ne regarde pas l'autre extremite si elle est aussi à une distance < seuil undershoot ?
 On calcule la projection axiale PA puis calcule la projection othogonale PO, si dPO < dPA/3 on prend PO
-On crée un CP au niveau du point d'intersection
+On crée un CP au niveau du point projeté
+
+On cherche a regrouper les CP (SUR LES FRONTIERES ?)
+On recupere des amas de CP proche
+Les CP isolés sont supprimés
+Pour chaque amas on établit des associations entre paire des CP des 2 pays (meilleurs condidats reciproques)
+Les CP sont associables si distance < seuil> et si les arcs associé sont colinéaires
+Ls CP non associés sont supprimés
+Chaque paire constitue un groupe
+On associe si possible les CP restant au sein de nouveau groupe
+S'il reste des CP dont le candidat est déjà dans un groupe on rattache ce CP à ce groupe.
+Pour chaque groupe on calcul le barycentre que l'on projette sur la frontiere
+ --> POURQUOI ON CHERCHE LA FRONTIERE A LA DISTANCE DE SNAPPING ? QUE CE PASSE T IL SI PAS DE FRONTIERE ?
+ --> ON TRAITE AUSSI LES CP SU CL ?
+On affecte à chaque CP du groupe la géométrie du barycentre projeté
+
+--> A CE STADE ON A QUE DES CP GROUPES ET PROJETES SUR LA FRONTIERE
+--> LE RESTE A BIEN ETE SUPPRIME ?
+
+On snappe les CP sur les CL (CONCERNE LES CP TRAITES PRECEDEMMENT (SUR LES FRONTIERES) ?)
+POURQUOI ON SNAPPE SI DIST = 2 x CP_CP_2_CL_SNAP_DIST ?
+pour chaque CP on recherche s'il existe une CL proche
+si oui on projette le CP sur CL
+on découpe les CL selon les CP projettés
+
+
+
+_getCPfromIntersectBorder : est ce qu'on peut avoir 2 intersection : 1 avec la frontiere et 1 avec CL ? voir avec plusieur CL ? Dans de cas là il faudrait garder toutes les intersections ?
+
+Les CP créés par intersection d'arc et CL peuvent etre projetés sur la frontière dans _snapCPNearBy (le bary du groupe est projeté) pour être ensuite reprojeté sur la CL dans _snapCpOnClNearBy ???
+
+Les arcs connecté des CL ne devraient pas être considérés comme intersectant des CL
+
+on doit pouvoir avoir plusieurs cp pour un même arc, est ce le cas?
+
+3157439,98567  3964989,89977
+3140065,32  4003423,75
+3142239,65  3901962,88
+
+
+
+
+
+#### 250 : ConnectionConnectingPoint
+
+Lors de cette étape on va connecter les arcs au(x) connecting point(s) auquel(s) ils sont associés.
+
+##### Données de travail :
+
+| table                          | entrée | sortie | entitée de travail | description                                                 |
+|--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
+| CP_TABLE                       | X      |        |                    | table des connecting points                                 |
+| EDGE_TABLE_INIT                | X      | X      | X                  | table du réseau à traiter                                   |
+
+##### Principaux opérateurs de calcul utilisés :
+- app::calcul::CFeatConnectionOp
+
+##### Description du traitement :
+
+Paramètre utilisés: 
+| paramètre                   |                                                                                               |
+|-----------------------------|-----------------------------------------------------------------------------------------------|
+| LINKED_FEATURE_ID           | nom du champ indiquant l'identifiant de l'arc associé à un connecting point                   |
+| CFC_SNAP_DIST               | distance maximum entre un connecting point et une extremité de son arc associé pour pouvoir réaliser un déplacement de cette extrémité vers le connecting point (sinon une découpe de l'arc est réalisée)   |
+
+
+Traitement pays par pays
+On parcours tous les CP du pays 
+On recherche l'arc lié au CP ou son enfant le plus proche du CP si l'arc à déjà été découpé
+si la distance entre une des extremitées de l'arc et le CP est < CFC_SNAP_DIST ....
+sinon on projette le CP sur l'arc, si le projeté n'est pas sur une extrémité on découpe l'arc en utilisant le projeté comme point de coupure
+On enregistre déplacement = vecteur (point projeté ou extémité proche) vers CP
+
+On charge un gaph simple du réseau du pays
+On applique les déplacements sur ce graph. Vertex déplacé et edge adjacent déformés
+on enregistre en base les edge déformés
+on supprime les arcs effondrés
+
+
+#### 255 : GenerateCLinArea2
+
+Les étapes précédentes de création d'objets de raccordement (connecting points et lines) et de connexions des réseaux des deux pays à ces objets a pu créer de nouvelles opportunités d'appariemments par l'apparition de faces étroites composées d'arcs des deux pays représentant un même chemin du monde réel.
+Pour cette raison l'outil de création de _connecting lines_ dans des faces est relancé à ce stade du traitement.
+
+##### Données de travail :
+
+Ce référer à l'étape 204 du processus qui met en oeuvre le même traitement.
+
+##### Principaux opérateurs de calcul utilisés :
+- app::calcul::CLInAreaGenerationOp
+
+##### Description du traitement :
+
+Ce référer à l'étape 204 du processus qui met en oeuvre le même traitement.
+<br>
+La seule différence avec l'étape 204 est l'utilisation des paramètres CLA_CL_LENGTH_THRESHOLD_2 et CLA_CL_MIN_RATIO_IN_AREA_2 en remplacement des paramètres CLA_CL_LENGTH_THRESHOLD et CLA_CL_MIN_RATIO_IN_AREA ce qui modifie le comportement de l'outil en ce qui concerne la prise en charge des connecting lines.
+
+
+#### 260 : EdgeCleaning1
+
+Lors de cette étape on va connecter les arcs au(x) connecting point(s) auquel(s) ils sont associés.
+
+##### Données de travail :
+
+| table                          | entrée | sortie | entitée de travail | description                                                 |
+|--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
+| CP_TABLE                       | X      |        |                    | table des connecting points                                 |
+| EDGE_TABLE_INIT                | X      | X      | X                  | table du réseau à traiter                                   |
+
+##### Principaux opérateurs de calcul utilisés :
+- app::calcul::EdgeCleaningOp
+
+##### Description du traitement :
+
+Paramètre utilisés: 
+| paramètre                   |                                                                                               |
+|-----------------------------|-----------------------------------------------------------------------------------------------|
+| ECL_SQL_FILTER              |                   |

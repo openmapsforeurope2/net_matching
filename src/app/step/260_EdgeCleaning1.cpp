@@ -40,10 +40,9 @@ namespace step {
 
 		//--
 		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCodeW, verbose);
-        edgeCleaningOp.cleanFaces();
-        // edgeCleaningOp.cleanPathsOutOfCountry();
-        edgeCleaningOp.cleanParalelleEdges();
-        edgeCleaningOp.cleanFacesAndAntennaByCountry(eclSqlFilter, false /*tagTreatedFeatures*/);
+		edgeCleaningOp.cleanFaces();
+		edgeCleaningOp.cleanParalelleEdges();
+		edgeCleaningOp.cleanFacesAndAntennaByCountry(eclSqlFilter, false /*tagTreatedFeatures*/);
 
 		//--
 		_themeParams.setParameter(CP_TABLE, ign::data::String(cpRefTableName));

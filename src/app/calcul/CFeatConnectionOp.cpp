@@ -284,7 +284,7 @@ namespace app
                     continue;
                 }
 
-                //fusionner les cl adjacentes avec le même edgeLink, récuperer le géométrie fusionnée et lister les cl traitées pour ne pas les traiter de nouveau
+                //fusionner les cl adjacentes avec le même edgeLink, récuperer la géométrie fusionnée et lister les cl traitées pour ne pas les traiter de nouveau
                 std::pair<bool, ign::geometry::LineString> foundMergedClGeom = ome2::calcul::detail::ClMerger::merge(_fsCl, fCl, foundFeatureId.second, sTreatedCl);
                 ign::geometry::LineString const * mergedClGeom = foundMergedClGeom.first ? &foundMergedClGeom.second : &fCl.getGeometry().asLineString();
 
@@ -598,7 +598,7 @@ namespace app
                 ign::geometry::LineString const& edgeGeom = foundEdge.second.getGeometry().asLineString();
 
                 ign::geometry::Point startPoint;
-                // peut-on connecter l'edge aux extremités du connecting edge ?
+                // peut-on connecter l'edge au connecting point ?
                 double dCpStart = edgeGeom.startPoint().distance(cpGeom);
                 double dCpEnd = edgeGeom.endPoint().distance(cpGeom);
                 if (std::min(dCpStart, dCpEnd) > snapDistance) {

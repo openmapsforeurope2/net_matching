@@ -7,14 +7,10 @@
 #include <boost/timer.hpp>
 #include <boost/progress.hpp>
 
-// SOCLE
-#include <ign/geometry/graph/builder/SimpleGraphBuilder.h>
-
 // EPG
 #include <epg/Context.h>
 #include <epg/tools/TimeTools.h>
 #include <epg/tools/StringTools.h>
-#include <epg/utils/replaceTableName.h>
 #include <epg/tools/geometry/angle.h>
 #include <epg/sql/tools/numFeatures.h>
 #include <epg/tools/geometry/project.h>

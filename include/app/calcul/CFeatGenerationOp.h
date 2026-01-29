@@ -37,10 +37,10 @@ namespace calcul{
 	public:
 
 		/// @brief Constructeur
-		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param borderCode Code pays double (avec '#')
 		/// @param verbose Mode verbeux
 		CFeatGenerationOp(
-			std::string const& countryCodeDouble, 
+			std::string const& borderCode, 
 			bool verbose = false
 		);
 
@@ -48,58 +48,58 @@ namespace calcul{
 		~CFeatGenerationOp();
 
 		/// @brief Generation des connecting lines
-		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param borderCode Code pays double (avec '#')
 		/// @param verbose Mode verbeux
 		static void ComputeCL(
-			std::string const& countryCodeDouble,
+			std::string const& borderCode,
 			bool verbose = false
 		);
 
 		/// @brief Generation des connecting points
-		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param borderCode Code pays double (avec '#')
 		/// @param verbose Mode verbeux
 		static void ComputeCP(
-			std::string const& countryCodeDouble,
+			std::string const& borderCode,
 			bool verbose = false
 		);
 
 		/// @brief Generation des connecting lines pays par pays
-		/// @param countryCodeDouble 
+		/// @param borderCode 
 		/// @param verbose Mode verbeux
 		static void GenerateConnectingLinesByCountry(
-			std::string const& countryCodeDouble,
+			std::string const& borderCode,
 			bool verbose = false
 		);
 
 		/// @brief Fusion des connecting lines projetées sur les frontières
-		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param borderCode Code pays double (avec '#')
 		/// @param verbose Mode verbeux
 		static void MergeConnectingLinesOnBorder(
-			std::string const& countryCodeDouble,
+			std::string const& borderCode,
 			bool verbose = false
 		);
 
 		/// @brief Snap des connecting lines pour éviter des petites discontinuité 
-		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param borderCode Code pays double (avec '#')
 		/// @param verbose Mode verbeux
 		static void SnapConnectingLines(
-			std::string const& countryCodeDouble,
+			std::string const& borderCode,
 			bool verbose = false
 		);
 
 		/// @brief Suppression des connecting lines dont les objets d'origines ne sont pas cohérents (dist et angle)
-		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param borderCode Code pays double (avec '#')
 		/// @param verbose Mode verbeux
 		static void DeleteConnectingLines(
-			std::string const& countryCodeDouble,
+			std::string const& borderCode,
 			bool verbose = false
 		);
 
 		/// @brief Calcul de la géométrie des connecting lines par interpolation des géométries d'origine
-		/// @param countryCodeDouble Code pays double (avec '#')
+		/// @param borderCode Code pays double (avec '#')
 		/// @param verbose Mode verbeux
 		static void UpdateGeomConnectingLines(
-			std::string const& countryCodeDouble,
+			std::string const& borderCode,
 			bool verbose = false
 		);
 
@@ -110,21 +110,19 @@ namespace calcul{
 		//--
 		ign::feature::sql::FeatureStorePostgis*  _fsBoundary;
 		//--
-		ign::feature::sql::FeatureStorePostgis*  _fsLandmask;
-		//--
 		ign::feature::sql::FeatureStorePostgis*  _fsCP;
 		//--
 		ign::feature::sql::FeatureStorePostgis*  _fsCL;
 		//--
-		std::string                              _reqFilterEdges2generateCF;
+		std::string                              _sqlFilterForCpGeneration;
 		//--
 		epg::log::EpgLogger*                     _logger;
 		//--
 		epg::log::ShapeLogger*                   _shapeLogger;
 		//--
-		std::string                              _countryCodeDouble;
+		std::string                              _borderCode;
 		//--
-		std::vector<std::string>                 _vCountriesCodeName;
+		std::vector<std::string>                 _vCountryCode;
 		//--
 		epg::sql::tools::IdGeneratorInterfacePtr _idGeneratorCP;
 		//--
@@ -134,7 +132,9 @@ namespace calcul{
 		//--
 		epg::tools::MultiLineStringTool*         _mlsBorderSmoothed;
 		//--
-		std::set<std::string>                    _sFormwayValues4BigDist2Merge;
+		std::set<std::string>                    _sFormOfWayException;
+		//--
+		std::string                              _tagFromCl;
 		//--
 		bool                                     _verbose;
 		
@@ -163,7 +163,7 @@ namespace calcul{
 
 		//--
 		void _init(
-			std::string const& countryCodeDouble,
+			std::string const& borderCode,
 			bool verbose
 		);
 
@@ -203,15 +203,12 @@ namespace calcul{
 
 		//--
 		void _addToUndershootNearBorder(
-			ign::geometry::LineString const& lsBorder,
-			ign::geometry::Geometry const& buffBorder,
-			double distUnderShoot
+			ign::geometry::LineString const& lsBorder
 		) const;
 
 		//--
 		void _getCPfromIntersectBorder(
-			ign::geometry::LineString const& lsBorder,
-			double distCLIntersected
+			ign::geometry::LineString const& lsBorder
 		) const;
 
 		//--
@@ -260,15 +257,12 @@ namespace calcul{
 		// @SK est ce que les params pourraient etre const ?
 		bool _isEdgeConnected2cl(
 			ign::geometry::Geometry const& geomObjNearCl,
-			ign::geometry::Envelope const& envArroundGeom,
 			ign::feature::Feature & fCl2SnapOn,
 			double distMinCl
 		) const;
 
 		//--
 		void _snapCpOnClNearBy(
-			double distCp2snapCl,
-			double snapDistOnVertexFromCl,
 			std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> & mClSplitedByCp
 		) const;
 
@@ -288,20 +282,9 @@ namespace calcul{
 		void _deleteClByAngleAndDistEdges() const;
 
 		//--
-		void _mergeIntersectingCL2(
-			double distMergeCL,
-			double snapOnVertexBorder
-		) const;
-
-		//--
 		void _mergeIntersectingClWithGraph(
 			double distMaxEdges,
 			double snapProjCl2edge
-		) const;
-
-		//--
-		ign::geometry::LineString _getBorderFromEdge(
-			ign::geometry::LineString const& lsEdgeOnBorder
 		) const;
 
 		//--

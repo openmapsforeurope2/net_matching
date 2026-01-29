@@ -497,11 +497,12 @@ namespace app
                     double ratio2 = _getRatio(graph, mlEdges.rbegin()->first, mlEdges.rbegin()->second);
                     bool hasConnection2 = sHasConnection.find(mlEdges.rbegin()->first) != sHasConnection.end();
 
-                    if ( ratio1 > ratio2 && !hasConnection2 ) {
-                        _removeEdges(graph, mlEdges.rbegin()->second, sEdge2Remove);
-                    } else if ( !hasConnection1 ) {
-                        _removeEdges(graph, mlEdges.begin()->second, sEdge2Remove);
-                    }
+                    if ( hasConnection1 && hasConnection2 ) 
+                        continue;
+                    if ( !hasConnection1 && !hasConnection2 )
+                        _removeEdges(graph, ratio1 > ratio2 ? mlEdges.rbegin()->second : mlEdges.begin()->second, sEdge2Remove);
+                    else
+                        _removeEdges(graph, hasConnection1 ? mlEdges.rbegin()->second : mlEdges.begin()->second, sEdge2Remove);
                 }
 			}
             for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
@@ -1857,9 +1858,12 @@ namespace app
             for (graph.edges(eit, eend); eit != eend; ++eit)
             {
                 ++display;
+
                 if ( sVisitedEdge.find(*eit) != sVisitedEdge.end() ) continue;
+
                 std::vector< oriented_edge_descriptor > vParallelEdges;
                 graph.edges( graph.source(*eit), graph.target(*eit), vParallelEdges );
+                
                 if(vParallelEdges.size() < 2) continue;
 
                 double maxRatio = -1;

@@ -338,6 +338,7 @@ L'objectif de cette étape et de générer, pour chaque pays, les connecting lin
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
 | CL_TABLE                       |        | X      | X                  | table des connecting lines                                  |
 | EDGE_TABLE_INIT                | X      |        |                    | table du réseau à traiter                                   |
+| TARGET_BOUNDARY_TABLE          | X      |        |                    | table des frontières                                        |
 
 ##### Principaux opérateurs de calcul utilisés :
 - app::calcul::CFeatGenerationOp
@@ -561,6 +562,7 @@ Les _connecting points_ sont enregistrées dans une table dédiée.
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
 | CP_TABLE                       | X      | X      | X                  | table des connecting points                                 |
 | EDGE_TABLE_INIT                | X      |        |                    | table du réseau à traiter                                   |
+| TARGET_BOUNDARY_TABLE          | X      |        |                    | table des frontières                                        |
 
 ##### Principaux opérateurs de calcul utilisés :
 - app::calcul::CFeatGenerationOp
@@ -576,8 +578,8 @@ Paramètre utilisés:
 | CP_CP_2_CL_SNAP_DIST        | distance entre un CP et un CL à partir de laquelle le CP peut être projeté sur la CL          |
 | CP_VERTEX_CL_SNAP_DIST      | distance de snapping des CP projetés sur les points de la CL                                  |
 | CP_MERGE_DIST_CP            | distance maximum entre deux CP pour qu'ils soient fusionnable                                 |
-| CP_MERGE_DIST_TRACTOR_CP    | distance maximum entre deux CP pour qu'ils soient fusionnable si les arcs associés aux CP sont d'un type inclus dans la liste CP_VALUE_FORMWAY_BIGDIST2MERGE |
-| CP_VALUE_FORMWAY_BIGDIST2MERGE | liste des types d'arcs pour lesquels on applique le paramètre CP_MERGE_DIST_TRACTOR_CP pour la fusion des CPs |
+| CP_MERGE_DIST_TRACTOR_CP    | distance maximum entre deux CP pour qu'ils soient fusionnable si les arcs associés aux CP sont d'un type inclus dans la liste CP_FORM_OF_WAY_EXCEPTION |
+| CP_FORM_OF_WAY_EXCEPTION | liste des types d'arcs pour lesquels on applique le paramètre CP_MERGE_DIST_TRACTOR_CP pour la fusion des CPs |
 | FORM_OF_WAY_NAME            | nom du champ définissant le type de l'arc                                                     |
 
 
@@ -654,6 +656,7 @@ Lors de cette étape on va connecter les arcs au(x) connecting point(s) auquel(s
 | CP_TABLE                       | X      |        |                    | table des connecting points                                 |
 | EDGE_TABLE_INIT                | X      | X      | X                  | table du réseau à traiter                                   |
 
+
 ##### Principaux opérateurs de calcul utilisés :
 - app::calcul::CFeatConnectionOp
 
@@ -708,6 +711,7 @@ Lors de cette étape on va connecter les arcs au(x) connecting point(s) auquel(s
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
 | CP_TABLE                       | X      |        |                    | table des connecting points                                 |
 | EDGE_TABLE_INIT                | X      | X      | X                  | table du réseau à traiter                                   |
+| TARGET_BOUNDARY_TABLE          | X      |        |                    | table des frontières                                        |
 
 ##### Principaux opérateurs de calcul utilisés :
 - app::calcul::EdgeCleaningOp
@@ -718,3 +722,59 @@ Paramètre utilisés:
 | paramètre                   |                                                                                               |
 |-----------------------------|-----------------------------------------------------------------------------------------------|
 | ECL_SQL_FILTER              |                   |
+ECL_SLIM_SURFACE_WIDTH
+ECL_PARALELLE_EDGE_MAX_DIST
+W_TAG_NAME
+
+edgeCleaningOp.cleanFaces();
+edgeCleaningOp.cleanParalelleEdges();
+edgeCleaningOp.cleanFacesAndAntennaByCountry(eclSqlFilter, false /*tagTreatedFeatures*/);
+
+cleanFaces: (éliminer les redondances : modélisation par les deux pays du même chemin qui n'ont pas été fusionné)
+chargement graphe planaire
+pour chaque face : detection face étroites (détermination des cotés et points extrèmes)
+Si face étroite et contour ne contient pas de CL et l'ensemble des composantes de chaque coté appartient à un seul pays et les 2 coté appartient à deux pays différents
++ nombre de ending point != 2
++ pas de connexion des deux cotés au reste du réseau (OK si 1 ou 0 coté)
+VOIR SI ENDING POINT = passage d'un noeud de degré > 2 touchant une CL ?
+
+Si un chemin est connecté au reseau et l'autre non, on supprime le chemin que n'a pas de connexion
+Si les deux chemins n'ont pas de connexion supprime celui qui a le ratio "dans le pays" le plus petit
+
+cleanParalelleEdges:
+suppression d'artefacts
+Chargement d'un graph simple (un arc du graph = un arc du réseau)
+pour tous les arcs possédant les mêmes sommet
+on parcourt une première fois tous les arcs pour determiner l'arc de référence (celui qui à le plus grand ratio dans le pays ou CL)
+on parcourt une second fois les arcs pour calculer leur écartement maximum à l'arc de référence (hausdorff). Si cet écartement est inférieur à un seuil on le supprime.
+
+cleanFacesAndAntennaByCountry:
+Traitement pays par pays
+chargement d'un graphe planaire
+pour tous les sommet de degree 1 qui ne sont pas des CP:
+On récupère l'antenne (chemin jusqu'à un sommet de degree != 2 ou jusqu'a CP ou CL -> on inclus pas les CL dans les antennes)
+On enregistre pour les sommets concernés la liste des antennes qui y convergent
+On parcourt ces sommet
+On parcourt les antennes de ce sommet
+
+si antenne connecté à CF est length < ECL_ANTENNA_MIN_LENGTH : supprimée
+on calcul les portion dans et hors pays : si premiere partie dans pays et sa length >= ECL_ANTENNA_MIN_LENGTH_IN_COUNTRY --> on garde
+  si le ratio de cette partie < ECL_ANTENNA_RATIO_THRESHOLD --> on supprime
+  sinon si le ratio d'antenne contenu dans pays+buff < ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD --> on supprime
+
+La derniere antenne n'est pas supprimé si elle conduit à l'apparition d'une nouvelle antenne plus longue (sera traitée dans itération suivante)
+VOIR POURQUOI on sort de la suppression des antennes à la première antenne non supprimé ?? l.1579 : isRemoved
+
+
+ECL_ANTENNA_RATIO_THRESHOLD
+ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD
+ECL_ANTENNA_MIN_LENGTH
+ECL_ANTENNA_MIN_LENGTH_IN_COUNTRY
+
+
+toujours avec le même graphe, nettoyage des faces
+l.809
+ECL_SLIM_SURFACE_WIDTH
+ECL_ARTIFACT_WIDTH
+ECL_SLIM_SURFACE_MAX_AREA
+ECL_SLIM_SURFACE_MAX_NB_POINTS

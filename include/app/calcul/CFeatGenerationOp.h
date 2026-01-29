@@ -7,8 +7,11 @@
 // EPG
 #include <epg/log/EpgLogger.h>
 #include <epg/log/ShapeLogger.h>
-#include <epg/sql/tools/IdGeneratorFactory.h>
 #include <epg/tools/MultiLineStringTool.h>
+#include <epg/tools/geometry/SegmentIndexedGeometry.h>
+#include <epg/sql/tools/IdGeneratorFactory.h>
+
+// OME2
 #include <ome2/calcul/utils/AttributeMerger.h>
 
 
@@ -162,10 +165,7 @@ namespace calcul{
 		void _updateGeomConnectingLines() const;
 
 		//--
-		void _init(
-			std::string const& borderCode,
-			bool verbose
-		);
+		void _init();
 
 		//--
 		void _getBorderCutByAngle(
@@ -201,15 +201,54 @@ namespace calcul{
 			size_t idLast
 		) const;
 
+		// //--
+		// void _addToUndershootNearBorder(
+		// 	ign::geometry::LineString const& lsBorder
+		// ) const;
+
 		//--
-		void _addToUndershootNearBorder(
-			ign::geometry::LineString const& lsBorder
+		void _getCPfromCl() const;
+
+		//--
+		ign::geometry::MultiLineString _getBorderGeom() const;
+
+		//--
+		bool _isDangle(
+			ign::feature::Feature const& fEdge,
+			CFeatGenerationOp::ENDING ending
 		) const;
 
 		//--
-		void _getCPfromIntersectBorder(
-			ign::geometry::LineString const& lsBorder
+		void _getCPfromBorderUnderShoot(
+			ign::geometry::Geometry const& borderGeom,
+			epg::tools::geometry::SegmentIndexedGeometry const& segIndexBorder
 		) const;
+
+		//--
+		void _getCPfromBorder(
+			ign::geometry::Geometry const& borderGeom
+		) const;
+
+		//--
+		void _removeDuplicateCP() const;
+
+		//--
+		std::pair<bool, ign::feature::Feature> _hasDuplicateCandidate(
+			ign::geometry::Point const& cpGeom,
+			bool fromCl
+		) const;
+
+		//--
+		void _recordCp(
+			ign::geometry::Geometry const& cpGeom,
+			ign::feature::Feature const& linkedEdgeFeat,
+			std::string tag = ""
+		) const;
+
+		// //--
+		// void _getCPfromIntersectBorder(
+		// 	ign::geometry::LineString const& lsBorder
+		// ) const;
 
 		//--
 		void _snapCl2Cl(double distMaxClClosest) const;
@@ -231,7 +270,14 @@ namespace calcul{
 		) const;
 
 		//--
-		void _snapCPNearBy(double snapOnVertexBorder) const;
+		void _snapCPNearBy(
+			epg::tools::geometry::SegmentIndexedGeometry const& segIndexBorder
+		) const;
+
+		//--
+		std::pair<bool, ign::feature::Feature> _hasCPfromCL(
+			std::list<std::string> const& lCp
+		) const;
 
 		//--
 		bool _areMergeable(
@@ -254,22 +300,26 @@ namespace calcul{
 		) const;
 
 		//--
-		// @SK est ce que les params pourraient etre const ?
-		bool _isEdgeConnected2cl(
-			ign::geometry::Geometry const& geomObjNearCl,
-			ign::feature::Feature & fCl2SnapOn,
-			double distMinCl
+		std::vector<ign::geometry::LineString> _getIntersectingCls(
+			ign::geometry::Geometry const& geom
 		) const;
 
-		//--
-		void _snapCpOnClNearBy(
-			std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> & mClSplitedByCp
-		) const;
+		// //--
+		// bool _isEdgeConnected2cl(
+		// 	ign::geometry::Geometry const& geomObjNearCl,
+		// 	ign::feature::Feature & fCl2SnapOn,
+		// 	double distMinCl
+		// ) const;
 
-		//--
-		void _cutClByCp(
-			std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> const& mClSplittedByCp
-		) const;
+		// //--
+		// void _snapCpOnClNearBy(
+		// 	std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> & mClSplitedByCp
+		// ) const;
+
+		// //--
+		// void _cutClByCp(
+		// 	std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> const& mClSplittedByCp
+		// ) const;
 
 		//--
 		bool _getNearestCP(
@@ -287,13 +337,13 @@ namespace calcul{
 			double snapProjCl2edge
 		) const;
 
-		//--
-		bool _isNextEdgeInAntennas(
-			ign::feature::Feature const& fEdge,
-			ign::geometry::Point const& ptCurr,
-			ign::feature::Feature & edgeNext,
-			ign::geometry::Point & ptNext
-		) const;
+		// //--
+		// bool _isNextEdgeInAntennas(
+		// 	ign::feature::Feature const& fEdge,
+		// 	ign::geometry::Point const& ptCurr,
+		// 	ign::feature::Feature & edgeNext,
+		// 	ign::geometry::Point & ptNext
+		// ) const;
 
 		//--
 		void _updateGeomCL(double snapOnVertex) const;
@@ -311,8 +361,8 @@ namespace calcul{
 			double snapOnVertex
 		) const;
 
-		//--
-		void _getClDoublonGeom() const;
+		// //--
+		// void _getClDoublonGeom() const;
 
 		//--
 		void _loadGraphCL(GraphType & graphCL) const;

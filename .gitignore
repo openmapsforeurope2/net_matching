@@ -1,4 +1,6 @@
 bin
+build-unix-debug
+build-unix-release
 build-unix
 log.txt
 log

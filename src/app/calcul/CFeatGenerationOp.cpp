@@ -309,8 +309,8 @@ namespace app
 			_logger->log(epg::log::TITLE, "[ BEGIN CP GENERATION FOR " + _borderCode + " ] : " + epg::tools::TimeTools::getTime());
 
 			//--
-			// ign::geometry::MultiLineString mlsBorder = _getBorderGeom();
-			// epg::tools::geometry::SegmentIndexedGeometry segIndexBorder(&mlsBorder);
+			ign::geometry::MultiLineString mlsBorder = _getBorderGeom();
+			epg::tools::geometry::SegmentIndexedGeometry segIndexBorder(&mlsBorder);
 
 			//--
 			_getCPfromCl();

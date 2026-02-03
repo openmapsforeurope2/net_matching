@@ -309,8 +309,8 @@ namespace app
 			_logger->log(epg::log::TITLE, "[ BEGIN CP GENERATION FOR " + _borderCode + " ] : " + epg::tools::TimeTools::getTime());
 
 			//--
-			ign::geometry::MultiLineString mlsBorder = _getBorderGeom();
-			epg::tools::geometry::SegmentIndexedGeometry segIndexBorder(&mlsBorder);
+			// ign::geometry::MultiLineString mlsBorder = _getBorderGeom();
+			// epg::tools::geometry::SegmentIndexedGeometry segIndexBorder(&mlsBorder);
 
 			//--
 			_getCPfromCl();
@@ -1875,7 +1875,7 @@ namespace app
 			size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterCL);
 			boost::progress_display display(numFeatures, std::cout, "[ cutting cl by cp % complete ]\n");
 
-			ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);
+			ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterCL);
 			while (itCL->hasNext()) {
 				++display;
 

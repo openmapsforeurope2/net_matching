@@ -1034,7 +1034,7 @@ namespace app
 			std::string const wTagName = themeParameters->getValue(W_TAG_NAME).toString();
 
 			//--
-			ign::feature::FeatureFilter filterCp(wTagName + " <> '" + _tagFromCl +"'");
+			ign::feature::FeatureFilter filterCp(wTagName + " IS DISTINCT FROM '" + _tagFromCl +"'");
 
 			//--
 			ign::feature::FeatureIteratorPtr itCp = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCp);
@@ -1085,6 +1085,7 @@ namespace app
 			//--
 			epg::Context* context = epg::ContextS::getInstance();
 			std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
+			std::string const idName = context->getEpgParameters().getValue(ID).toString();
 
 			//--
 			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
@@ -1099,13 +1100,11 @@ namespace app
 			ign::feature::FeatureFilter filterCp;
 			filterCp.setExtent(cpGeom.getEnvelope().expandBy(pairingDist));
 			epg::tools::FilterTools::addAndConditions(filterCp, linkedFeatIdName + " = '" + linkedEdgeId + "'");
+			epg::tools::FilterTools::addAndConditions(filterCp, idName + " != '" + fCp.getId() + "'");
 			if(fromCl)
 				epg::tools::FilterTools::addAndConditions(filterCp, wTagName + " = '" + _tagFromCl + "'");
 
 			//--
-			size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCP, filterCp);
-			boost::progress_display display(numFeatures, std::cout, "[ deleting duplicate CP % complete ]\n");
-
 			ign::feature::FeatureIteratorPtr itCp = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCp);
 
 			double minDist = std::numeric_limits<double>::infinity();
@@ -1603,7 +1602,7 @@ namespace app
 						
 						//--
 						std::vector<ign::geometry::LineString> vBorderSegments;
-						segIndexBorder.getSegments( newGeom.getEnvelope().expandBy(2*maxDistMerge), vBorderSegments );
+						segIndexBorder.getSegments( centroidPoint.getEnvelope().expandBy(2*maxDistMerge), vBorderSegments );
 						ign::geometry::MultiLineString mlsBorderSegments(vBorderSegments);
 
 						newGeom = epg::tools::geometry::project(mlsBorderSegments, centroidPoint, snapOnVertexBorder);
@@ -1850,7 +1849,7 @@ namespace app
 
 			// on recupere tous les CP issu de CL et on les regroupe par CL
 			std::map<std::string, ign::geometry::MultiPoint> mClCps;
-			ign::feature::FeatureFilter filterCp(wTagName + " <> '" + _tagFromCl +"'");
+			ign::feature::FeatureFilter filterCp(wTagName + " IS DISTINCT FROM '" + _tagFromCl +"'");
 			ign::feature::FeatureIteratorPtr itCp = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCp);
 			while (itCp->hasNext()) {
 				ign::feature::Feature fCp = itCp->next();

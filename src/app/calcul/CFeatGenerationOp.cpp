@@ -1408,16 +1408,24 @@ namespace app
 			double const distMergeTractorCP = themeParameters->getValue(CP_MERGE_DIST_TRACTOR_CP).toDouble();
 			double const maxDistMerge = std::max(distMergeCP, distMergeTractorCP);
 
+			//--
 			ign::feature::FeatureFilter filterCP;
 			for (size_t i = 0; i < _vCountryCode.size(); ++i) {
 				epg::tools::FilterTools::addOrConditions(filterCP, countryCodeName + " = '" + _vCountryCode[i] + "'");
 			}
+
+			//--
+			size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCP, filterCP);
+			boost::progress_display display(numFeatures, std::cout, "[ snapping CP near by % complete ]\n");
+
 			ign::feature::FeatureIteratorPtr itCP = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCP);
 
 			std::set<std::string> sCP2Snap;
 			std::string separator = "#";
 			while (itCP->hasNext())
 			{
+				++display;
+				
 				ign::feature::Feature fCPCurr = itCP->next();
 				std::string idCP = fCPCurr.getId();
 
@@ -1849,7 +1857,7 @@ namespace app
 
 			// on recupere tous les CP issu de CL et on les regroupe par CL
 			std::map<std::string, ign::geometry::MultiPoint> mClCps;
-			ign::feature::FeatureFilter filterCp(wTagName + " IS DISTINCT FROM '" + _tagFromCl +"'");
+			ign::feature::FeatureFilter filterCp(wTagName + " = '" + _tagFromCl +"'");
 			ign::feature::FeatureIteratorPtr itCp = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCp);
 			while (itCp->hasNext()) {
 				ign::feature::Feature fCp = itCp->next();
@@ -1864,7 +1872,7 @@ namespace app
 
 			//--
 			ign::feature::FeatureFilter filterCL(countryCodeName + " = '" + _borderCode + "'");
-			size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCL);
+			size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterCL);
 			boost::progress_display display(numFeatures, std::cout, "[ cutting cl by cp % complete ]\n");
 
 			ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);

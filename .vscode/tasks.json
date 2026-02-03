@@ -82,7 +82,7 @@
         {
             "label": "run the code",
             "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching_dev ./bin/net_matching --c config/epg_parameters.ini --t road_link --s 20260203 --sp 210-230 be fr",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching_dev ./bin/net_matching --c config/epg_parameters.ini --t road_link --s 20260203 --sp 240 be fr",
             "group": "build",
             "problemMatcher": []
         },

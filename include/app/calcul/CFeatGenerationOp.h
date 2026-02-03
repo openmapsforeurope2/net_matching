@@ -234,7 +234,7 @@ namespace calcul{
 
 		//--
 		std::pair<bool, ign::feature::Feature> _hasDuplicateCandidate(
-			ign::geometry::Point const& cpGeom,
+			ign::feature::Feature const& fCp,
 			bool fromCl
 		) const;
 
@@ -320,6 +320,9 @@ namespace calcul{
 		// void _cutClByCp(
 		// 	std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> const& mClSplittedByCp
 		// ) const;
+
+		//--
+		void _cutClByCp() const;
 
 		//--
 		bool _getNearestCP(

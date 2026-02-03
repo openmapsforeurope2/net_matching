@@ -58,25 +58,16 @@ namespace app
 		CFeatGenerationOp::~CFeatGenerationOp()
 		{
 			_shapeLogger->closeShape("CLBeforeMerge");
-			_shapeLogger->closeShape("ClMergedBeforeUpdate");
 			_shapeLogger->closeShape("ClDeletedNoCandidatefound");
-			_shapeLogger->closeShape("ClDoublon");
 			_shapeLogger->closeShape("ClDeleteByAngleDistEdges");
 			_shapeLogger->closeShape("ClDebug");
 			_shapeLogger->closeShape("edgeClCutByCp");
 			_shapeLogger->closeShape("lsBorderCutByAngle");
 			_shapeLogger->closeShape("clSnapclPoint");
 			_shapeLogger->closeShape("clDeleteByLength");
-			_shapeLogger->closeShape("clNoDeleteByLength");
-			_shapeLogger->closeShape("CPSnappedOnCL");
-			_shapeLogger->closeShape("CPFromInterWithCL");
-			_shapeLogger->closeShape("debug_edges_with_2_endings_near_border");
-			_shapeLogger->closeShape("debug_edges_interseting_border_with_ending_near_border");
-			_shapeLogger->closeShape("debug_intersection_replacement_cl");
-			_shapeLogger->closeShape("debug_intersection_replacement_border");
 			_shapeLogger->closeShape("debug_merging_of_2_cp_on_cl");
 			_shapeLogger->closeShape("debug_merging_of_cp_on_cl_and_cp_border");
-			_shapeLogger->closeShape("debug_cp_projection_on_cl");
+			_shapeLogger->closeShape("debug_duplicate");
 
 			delete _mlsBorderSmoothed;	
 		}
@@ -327,17 +318,7 @@ namespace app
 			_removeDuplicateCP();
 			_getCPfromBorderUnderShoot(mlsBorder, segIndexBorder);
 			_snapCPNearBy(segIndexBorder);
-
-			//DEBUG : dans la fonction ci-avant les CP mergé sont snappé sur la frontière (parmi eux ceux qui sont issus d'une fusion avec un CP sur CL)
-			//DEBUG est il possible d'élimner la fonction _snapCpOnClNearBy si la fusion de CP edge/CL est gérée dans _snapCPNearBy ? (conservation de la géométrie du CP issu de CL)
-			
-			// //--
-			// std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> mClSplittedByCp;
-			// _snapCpOnClNearBy(mClSplittedByCp);
-			// // DEBUG : est ce que la succession de projection CL --> BORDER --> CL peut poser problème ?
-
-			// //--
-			// _cutClByCp(mClSplittedByCp);
+			_cutClByCp();
 
 			_logger->log(epg::log::TITLE, "[ END CP GENERATION FOR " + _borderCode + " ] : " + epg::tools::TimeTools::getTime());
 		}
@@ -372,25 +353,16 @@ namespace app
 			//--
 			_shapeLogger = epg::log::ShapeLoggerS::getInstance();
 			_shapeLogger->addShape("CLBeforeMerge", epg::log::ShapeLogger::LINESTRING);
-			_shapeLogger->addShape("ClMergedBeforeUpdate", epg::log::ShapeLogger::LINESTRING);
 			_shapeLogger->addShape("ClDeletedNoCandidatefound", epg::log::ShapeLogger::LINESTRING);
-			_shapeLogger->addShape("ClDoublon", epg::log::ShapeLogger::LINESTRING);
 			_shapeLogger->addShape("ClDeleteByAngleDistEdges", epg::log::ShapeLogger::LINESTRING);
 			_shapeLogger->addShape("ClDebug", epg::log::ShapeLogger::LINESTRING);
 			_shapeLogger->addShape("edgeClCutByCp", epg::log::ShapeLogger::LINESTRING); 
 			_shapeLogger->addShape("lsBorderCutByAngle", epg::log::ShapeLogger::LINESTRING);
 			_shapeLogger->addShape("clSnapclPoint", epg::log::ShapeLogger::POINT);
 			_shapeLogger->addShape("clDeleteByLength", epg::log::ShapeLogger::LINESTRING);
-			_shapeLogger->addShape("clNoDeleteByLength", epg::log::ShapeLogger::LINESTRING);
-			_shapeLogger->addShape("CPSnappedOnCL", epg::log::ShapeLogger::POINT);
-			_shapeLogger->addShape("CPFromInterWithCL", epg::log::ShapeLogger::POINT);
-			_shapeLogger->addShape("debug_edges_with_2_endings_near_border", epg::log::ShapeLogger::LINESTRING);
-			_shapeLogger->addShape("debug_edges_interseting_border_with_ending_near_border", epg::log::ShapeLogger::LINESTRING);
-			_shapeLogger->addShape("debug_intersection_replacement_cl", epg::log::ShapeLogger::POINT);
-			_shapeLogger->addShape("debug_intersection_replacement_border", epg::log::ShapeLogger::POINT);
 			_shapeLogger->addShape("debug_merging_of_2_cp_on_cl", epg::log::ShapeLogger::POINT);
 			_shapeLogger->addShape("debug_merging_of_cp_on_cl_and_cp_border", epg::log::ShapeLogger::POINT);
-			_shapeLogger->addShape("debug_cp_projection_on_cl", epg::log::ShapeLogger::LINESTRING);
+			_shapeLogger->addShape("debug_duplicate", epg::log::ShapeLogger::LINESTRING);
 
 			//--
 			epg::tools::StringTools::Split(_borderCode, "#", _vCountryCode);
@@ -1075,19 +1047,25 @@ namespace app
 				++display;
 
 				ign::feature::Feature fCp = itCp->next();
-				ign::geometry::Point const& cpGeom = fCp.getGeometry().asPoint();
 				std::string cpId = fCp.getId();
 
-				std::pair<bool, ign::feature::Feature> foundFromCLCandidate = _hasDuplicateCandidate(cpGeom, true);
+				std::pair<bool, ign::feature::Feature> foundFromCLCandidate = _hasDuplicateCandidate(fCp, true);
 
 				if( !foundFromCLCandidate.first )
 					continue;
 
-				std::pair<bool, ign::feature::Feature> foundFromBorderCandidate = _hasDuplicateCandidate(foundFromCLCandidate.second.getGeometry().asPoint(), false);
+				std::pair<bool, ign::feature::Feature> foundFromBorderCandidate = _hasDuplicateCandidate(foundFromCLCandidate.second, false);
 
 				if( !foundFromBorderCandidate.first || foundFromBorderCandidate.second.getId() != cpId ) {
 					_logger->log(epg::log::WARN, "candidate association failure for CP : "+cpId);
 					continue;
+				}
+
+				//DEBUG
+				{
+					ign::feature::Feature fDuplicate;
+					fDuplicate.setGeometry(ign::geometry::LineString(fCp.getGeometry().asPoint(), foundFromCLCandidate.second.getGeometry().asPoint()));
+					_shapeLogger->writeFeature("debug_duplicate", fDuplicate);
 				}
 
 				lCpToDelete.push_back(cpId);
@@ -1101,19 +1079,26 @@ namespace app
 		///
 		///
 		std::pair<bool, ign::feature::Feature> CFeatGenerationOp::_hasDuplicateCandidate(
-			ign::geometry::Point const& cpGeom,
+			ign::feature::Feature const& fCp,
 			bool fromCl
 		) const {
+			//--
+			epg::Context* context = epg::ContextS::getInstance();
+			std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
 
 			//--
 			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 			double const pairingDist = themeParameters->getValue(CP_INTERSECTED_CL_DIST).toDouble();
 			std::string const wTagName = themeParameters->getValue(W_TAG_NAME).toString();
-			
 
+			//--
+			ign::geometry::Point const& cpGeom = fCp.getGeometry().asPoint();
+			std::string const linkedEdgeId = fCp.getAttribute(linkedFeatIdName).toString();
+			
 			//--
 			ign::feature::FeatureFilter filterCp;
 			filterCp.setExtent(cpGeom.getEnvelope().expandBy(pairingDist));
+			epg::tools::FilterTools::addAndConditions(filterCp, linkedFeatIdName + " = '" + linkedEdgeId + "'");
 			if(fromCl)
 				epg::tools::FilterTools::addAndConditions(filterCp, wTagName + " = '" + _tagFromCl + "'");
 
@@ -1604,7 +1589,8 @@ namespace app
 					std::list<std::string> lCp;
 					for (auto r_it = range.first; r_it != range.second; ++r_it)
 						lCp.push_back(r_it->second);
-
+					
+					//construire une map de CP mCp a partir de mCPNear et lCp
 					std::pair<bool, ign::feature::Feature> foundCPfromCL = _hasCPfromCL(lCp);
 					if( foundCPfromCL.first ) {
 						newGeom = foundCPfromCL.second.getGeometry().asPoint();
@@ -1645,6 +1631,9 @@ namespace app
 		std::pair<bool, ign::feature::Feature> CFeatGenerationOp::_hasCPfromCL(
 			std::list<std::string> const& lCp
 		) const {
+			for( std::list<std::string>::const_iterator lit = lCp.begin() ; lit != lCp.end() ; ++lit ) {
+
+			}
 			return std::make_pair(false, ign::feature::Feature());
 		}
 
@@ -1843,6 +1832,77 @@ namespace app
 		// 		_shapeLogger->writeFeature("CPSnappedOnCL", mit->second);
 		// 	}
 		// }
+
+		///
+		///
+		///
+		void CFeatGenerationOp::_cutClByCp() const {
+			std::list<std::string> lCl2Delete;
+
+			//--
+			epg::Context* context = epg::ContextS::getInstance();
+			std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
+			std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+
+			//--
+			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+			std::string const wTagName = themeParameters->getValue(W_TAG_NAME).toString();
+
+			// on recupere tous les CP issu de CL et on les regroupe par CL
+			std::map<std::string, ign::geometry::MultiPoint> mClCps;
+			ign::feature::FeatureFilter filterCp(wTagName + " <> '" + _tagFromCl +"'");
+			ign::feature::FeatureIteratorPtr itCp = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCp);
+			while (itCp->hasNext()) {
+				ign::feature::Feature fCp = itCp->next();
+				ign::geometry::Point const& ptCp = fCp.getGeometry().asPoint();
+				std::string const& linkedEdgeId = fCp.getAttribute(linkedFeatIdName).toString();
+
+				std::map<std::string, ign::geometry::MultiPoint>::iterator mit = mClCps.find(linkedEdgeId);
+				if ( mit == mClCps.end() )
+					mit = mClCps.insert(std::make_pair(linkedEdgeId, ign::geometry::MultiPoint())).first;
+				mit->second.addGeometry(ptCp);
+			}
+
+			//--
+			ign::feature::FeatureFilter filterCL(countryCodeName + " = '" + _borderCode + "'");
+			size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCL, filterCL);
+			boost::progress_display display(numFeatures, std::cout, "[ cutting cl by cp % complete ]\n");
+
+			ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCL, filterCL);
+			while (itCL->hasNext()) {
+				++display;
+
+				ign::feature::Feature fCL = itCL->next();
+				ign::geometry::LineString const lsCl = fCL.getGeometry().asLineString();
+
+				std::map<std::string, ign::geometry::MultiPoint>::const_iterator mit = mClCps.find(fCL.getId());
+				
+				if( mit == mClCps.end() )
+					continue;
+
+				app::geometry::tools::LineStringSplitter clSplitter(lsCl, 0.1); //on snappe à 10cm si il y a plusieurs coupures
+				clSplitter.addCuttingGeometry(mit->second);
+
+				std::vector<ign::geometry::LineString> subCl = clSplitter.getSubLineStringsZ();
+
+				if (subCl.size() == 1)
+					continue;
+
+				lCl2Delete.push_back(mit->first);
+
+				for (size_t i = 0; i < subCl.size(); ++i) {
+					fCL.setGeometry(subCl[i]);
+					_fsEdge->createFeature(fCL);
+
+					//--
+					_shapeLogger->writeFeature("edgeClCutByCp", fCL);
+					_logger->log(epg::log::INFO, "edge create by _cutClByCp: " + fCL.getId());
+				}
+			}
+
+			for (std::list<std::string>::iterator lit = lCl2Delete.begin(); lit != lCl2Delete.end(); ++lit)
+				_fsEdge->deleteFeature(*lit);
+		}
 
 		///
 		///

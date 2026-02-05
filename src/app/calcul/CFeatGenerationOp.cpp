@@ -1850,25 +1850,11 @@ namespace app
 			epg::Context* context = epg::ContextS::getInstance();
 			std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
 			std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+			std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
 
 			//--
 			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 			std::string const wTagName = themeParameters->getValue(W_TAG_NAME).toString();
-
-			// on recupere tous les CP issu de CL et on les regroupe par CL
-			std::map<std::string, ign::geometry::MultiPoint> mClCps;
-			ign::feature::FeatureFilter filterCp(wTagName + " = '" + _tagFromCl +"'");
-			ign::feature::FeatureIteratorPtr itCp = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCp);
-			while (itCp->hasNext()) {
-				ign::feature::Feature fCp = itCp->next();
-				ign::geometry::Point const& ptCp = fCp.getGeometry().asPoint();
-				std::string const& linkedEdgeId = fCp.getAttribute(linkedFeatIdName).toString();
-
-				std::map<std::string, ign::geometry::MultiPoint>::iterator mit = mClCps.find(linkedEdgeId);
-				if ( mit == mClCps.end() )
-					mit = mClCps.insert(std::make_pair(linkedEdgeId, ign::geometry::MultiPoint())).first;
-				mit->second.addGeometry(ptCp);
-			}
 
 			//--
 			ign::feature::FeatureFilter filterCL(countryCodeName + " = '" + _borderCode + "'");
@@ -1881,21 +1867,28 @@ namespace app
 
 				ign::feature::Feature fCL = itCL->next();
 				ign::geometry::LineString const lsCl = fCL.getGeometry().asLineString();
-
-				std::map<std::string, ign::geometry::MultiPoint>::const_iterator mit = mClCps.find(fCL.getId());
 				
-				if( mit == mClCps.end() )
+				//on cherche les CP a proximité
+				ign::geometry::MultiPoint mpCp;
+				ign::feature::FeatureFilter filterCp("ST_DISTANCE(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + lsCl.toString() + "'),3035)) < 0.1");
+				epg::tools::FilterTools::addAndConditions(filterCp, wTagName + " = '" + _tagFromCl +"'");
+				ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterCp);
+				while (itCL->hasNext()) {
+					mpCp.addGeometry(itCL->next().getGeometry().asPoint());
+				}
+
+				if( mpCp.numGeometries() == 0 )
 					continue;
 
 				app::geometry::tools::LineStringSplitter clSplitter(lsCl, 0.1); //on snappe à 10cm si il y a plusieurs coupures
-				clSplitter.addCuttingGeometry(mit->second);
+				clSplitter.addCuttingGeometry(mpCp);
 
 				std::vector<ign::geometry::LineString> subCl = clSplitter.getSubLineStringsZ();
 
 				if (subCl.size() == 1)
 					continue;
 
-				lCl2Delete.push_back(mit->first);
+				lCl2Delete.push_back(fCL.getId());
 
 				for (size_t i = 0; i < subCl.size(); ++i) {
 					fCL.setGeometry(subCl[i]);

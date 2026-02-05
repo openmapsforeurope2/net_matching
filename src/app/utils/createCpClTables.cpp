@@ -26,7 +26,7 @@ namespace utils{
                 << " AS TABLE " << edgeTableName
                 << " WITH NO DATA;"
                 << "ALTER TABLE " << cpTableName << " ALTER COLUMN "
-                << geomName << " type geometry(PointZ, 0);"
+                << geomName << " type geometry(PointZ, 3035);"
                 << "ALTER TABLE " << cpTableName << " ALTER COLUMN "
                 << idName << " type varchar(255);"
                 << "ALTER TABLE " << cpTableName << " ALTER COLUMN "
@@ -45,7 +45,7 @@ namespace utils{
                 << " AS TABLE " << edgeTableName
                 << " WITH NO DATA;"
                 << "ALTER TABLE " << clTableName << " ALTER COLUMN "
-                << geomName << " type geometry(LineStringZ, 0);"
+                << geomName << " type geometry(LineStringZ, 3035);"
                 << "ALTER TABLE " << clTableName << " ALTER COLUMN "
                 << idName << " type varchar(255);"
                 << "ALTER TABLE " << clTableName << " ALTER COLUMN "
@@ -53,6 +53,7 @@ namespace utils{
                 << "ALTER TABLE " << clTableName << " ALTER COLUMN "
                 << "w_national_identifier" << " type varchar(255);"
                 << "ALTER TABLE " << clTableName << " ADD COLUMN " << context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString() << " character varying(255);";
+            
             context->getDataBaseManager().getConnection()->update(ss.str());
         }
     }

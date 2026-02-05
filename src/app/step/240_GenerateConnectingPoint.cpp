@@ -4,6 +4,7 @@
 #include <epg/Context.h>
 #include <epg/log/ScopeLogger.h>
 #include <epg/utils/CopyTableUtils.h>
+#include <ome2/utils/CopyTableUtils.h>
 
 // APP
 #include <app/calcul/CFeatGenerationOp.h>
@@ -18,6 +19,7 @@ namespace app {
 		void GenerateConnectingPoint::init()
 		{
 			addWorkingEntity(CP_TABLE);
+			addWorkingEntity(EDGE_TABLE_INIT);
 		}
 
 		///
@@ -28,7 +30,7 @@ namespace app {
 			//--
 			std::string idName = _epgParams.getValue( ID ).toString();
 			std::string geomName = _epgParams.getValue( GEOM ).toString();
-			std::string edgeRefTableName = _epgParams.getValue( EDGE_TABLE ).toString();
+
 			//--
 			params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
 			std::string countryCodeW = _themeParams.getParameter(COUNTRY_CODE_W).getValue().toString();
@@ -43,17 +45,19 @@ namespace app {
 				getCurrentWorkingTableName(CP_TABLE),
 				"", false, true
 			);
+
+			//--
+			_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));
+			ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true);
 			
 			//--
 			_themeParams.setParameter(CP_TABLE, ign::data::String(getCurrentWorkingTableName(CP_TABLE)));
-			_epgParams.setParameter(EDGE_TABLE, ign::data::String(getLastWorkingTableName(EDGE_TABLE_INIT)));
 
 			//--
 			app::calcul::CFeatGenerationOp::ComputeCP(countryCodeW, verbose);
 
 			//--
 			_themeParams.setParameter(CP_TABLE, ign::data::String(cpRefTableName));
-			_epgParams.setParameter(EDGE_TABLE, ign::data::String(edgeRefTableName));
 		}
 
 	}

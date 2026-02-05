@@ -1598,7 +1598,7 @@ namespace app
 						lCp.push_back(r_it->second);
 					
 					//construire une map de CP mCp a partir de mCPNear et lCp
-					std::pair<bool, ign::feature::Feature> foundCPfromCL = _hasCPfromCL(lCp);
+					std::pair<bool, ign::feature::Feature> foundCPfromCL = _hasCPfromCL(lCp, mCPNear);
 					if( foundCPfromCL.first ) {
 						newGeom = foundCPfromCL.second.getGeometry().asPoint();
 					} else {
@@ -1636,10 +1636,19 @@ namespace app
 		///
 		///
 		std::pair<bool, ign::feature::Feature> CFeatGenerationOp::_hasCPfromCL(
-			std::list<std::string> const& lCp
+			std::list<std::string> const& lCp,
+			std::map<std::string, ign::feature::Feature> const& mCPNear
 		) const {
-			for( std::list<std::string>::const_iterator lit = lCp.begin() ; lit != lCp.end() ; ++lit ) {
+			//--
+			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+			std::string const wTagName = themeParameters->getValue(W_TAG_NAME).toString();
 
+			for( std::list<std::string>::const_iterator lit = lCp.begin() ; lit != lCp.end() ; ++lit ) {
+				std::map<std::string, ign::feature::Feature>::const_iterator mit = mCPNear.find(*lit);
+				if( mit != mCPNear.end() ) {
+					if( mit->second.getAttribute(wTagName).toString() == _tagFromCl )
+						return std::make_pair(true, mit->second);
+				}
 			}
 			return std::make_pair(false, ign::feature::Feature());
 		}

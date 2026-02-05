@@ -276,7 +276,8 @@ namespace calcul{
 
 		//--
 		std::pair<bool, ign::feature::Feature> _hasCPfromCL(
-			std::list<std::string> const& lCp
+			std::list<std::string> const& lCp,
+			std::map<std::string, ign::feature::Feature> const& mCPNear
 		) const;
 
 		//--

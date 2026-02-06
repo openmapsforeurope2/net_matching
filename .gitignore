@@ -3,7 +3,7 @@ build-unix-debug
 build-unix-release
 build-unix
 log.txt
-log
+log*
 gmon.out
 core
 config/db_conf*

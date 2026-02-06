@@ -1897,6 +1897,13 @@ namespace app
 				if (subCl.size() == 1)
 					continue;
 
+				for( size_t i = 0 ; i < subCl.size() ; ++i ) {
+					if ( i > 0 )
+						subCl[i].startPoint() = _getClosestGeometry( mpCp, lsCl, subCl[i].startPoint() );
+					if ( i < subCl.size()-1 )
+						subCl[i].endPoint() = _getClosestGeometry( mpCp, lsCl, subCl[i].endPoint() );
+				}
+
 				lCl2Delete.push_back(fCL.getId());
 
 				for (size_t i = 0; i < subCl.size(); ++i) {
@@ -1911,6 +1918,24 @@ namespace app
 
 			for (std::list<std::string>::iterator lit = lCl2Delete.begin(); lit != lCl2Delete.end(); ++lit)
 				_fsEdge->deleteFeature(*lit);
+		}
+
+		ign::geometry::Point CFeatGenerationOp::_getClosestGeometry(
+			ign::geometry::MultiPoint const& mlp,
+			ign::geometry::LineString const& ls,
+			ign::geometry::Point const& pt
+		) const {
+			double distMin = std::numeric_limits<double>::infinity();
+			int indexMin = -1;
+			for( size_t i = 0 ; i < mlp.numGeometries() ; ++i ) {
+				ign::geometry::Point projPt = epg::tools::geometry::project(ls, mlp.pointN(i), 0);
+				double dist = projPt.distance(pt);
+				if( dist < distMin ) {
+					distMin = dist;
+					indexMin = i;
+				}
+			}
+			return mlp.pointN(indexMin);
 		}
 
 		///
@@ -1986,6 +2011,7 @@ namespace app
 			while (itArroundCP->hasNext())
 			{
 				ign::feature::Feature fCPArround = itArroundCP->next();
+
 				_getNearestCP(fCPArround, distMergeCP, mCPNear);
 				//DEBUG REDONDANT AVEC DEBUG 1 ?
 				mCPNear[fCPArround.getId()] = fCPArround;

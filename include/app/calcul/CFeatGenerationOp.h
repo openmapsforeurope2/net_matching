@@ -326,6 +326,13 @@ namespace calcul{
 		void _cutClByCp() const;
 
 		//--
+		ign::geometry::Point _getClosestGeometry(
+			ign::geometry::MultiPoint const& mlp,
+			ign::geometry::LineString const& ls,
+			ign::geometry::Point const& pt
+		) const;
+
+		//--
 		bool _getNearestCP(
 			ign::feature::Feature const& fCP,
 			double distMergeCP,

@@ -16,12 +16,37 @@
 #include <app/step/tools/initSteps.h>
 #include <app/utils/createCpClTables.h>
 
+// #include <libpq-fe.h>
+// #include <sstream>
 
 namespace po = boost::program_options;
 
 int main(int argc, char *argv[])
 {
     // ign::geometry::PrecisionModel::SetDefaultPrecisionModel(ign::geometry::PrecisionModel(ign::geometry::PrecisionModel::FIXED, 1.0e5, 1.0e7) );
+
+    // std::ostringstream oss;
+	// oss << " host = '" << std::getenv("PGHOST") << "'";
+	// oss << " port = '" << std::getenv("PGPORT") << "'";
+	// oss << " dbname = '" << std::getenv("PGDATABASE") << "'";
+	// oss << " user = '" << std::getenv("PGUSER") << "'";
+	// oss << " password = '" << std::getenv("PGPASSWORD") << "'";
+    // oss << " connect_timeout = '5' ";
+	// oss << " sslmode = '" << std::getenv("PGSSLMODE") << "'";
+
+	// //ouverture de la connection
+	// PGconn* conn = PQconnectdb( oss.str().c_str() );
+
+    // if (PQstatus(conn) != CONNECTION_OK) {
+    //     std::cerr << "Échec de la connexion : " << PQerrorMessage(conn) << std::endl;
+    //     PQfinish(conn);
+    //     return 1;
+    // }
+
+    // std::cout << "Connexion réussie à la base de données." << std::endl;
+    // std::cout << "Serveur : " << PQhost(conn) << ":" << PQport(conn) << std::endl;
+    // std::cout << "Base : " << PQdb(conn) << std::endl;
+
 
     epg::Context* context = epg::ContextS::getInstance();
 
@@ -35,12 +60,10 @@ int main(int argc, char *argv[])
     std::string     table = "";
     bool            verbose = true;
 
-
     epg::step::StepSuite< app::params::ThemeParametersS > stepSuiteWaterCourseLink, stepSuiteRoadLink, stepSuiteRailwayLink;
 	app::step::tools::initStepsWatercourseLink(stepSuiteWaterCourseLink);
 	app::step::tools::initStepsRoadLink(stepSuiteRoadLink);
 	app::step::tools::initStepsRailwayLink(stepSuiteRailwayLink);
-
 
 	std::ostringstream OperatorDetail;
 	OperatorDetail << "set step :" << std::endl
@@ -50,7 +73,6 @@ int main(int argc, char *argv[])
 		<< stepSuiteWaterCourseLink.toString()
         << "railway_link:" << std::endl
 		<< stepSuiteRailwayLink.toString();
-
 
     po::options_description desc("Allowed options");
     desc.add_options()

@@ -5,10 +5,11 @@ ARG NB_PROC
 
 RUN apt-get update -y \
  && apt-get -y install git \
- && apt-get -y install g++ \
- && apt-get -y install gcc \
- && apt-get -y install cmake \
- && apt-get -y install make \
+                       g++ \
+                       gcc \ 
+                       cmake \
+                       make \
+                       pax-utils \
  && rm -rf /var/lib/apt/lists/*
 
 ENV APP_DIR_SRC=/usr/local/src/net_matching/                                              
@@ -25,15 +26,17 @@ RUN git checkout $GIT_BRANCH \
  && cd .. && rm -r build-unix-release
 
 RUN mkdir -p /deps \
- && ldd /usr/local/src/net_matching/bin/net_matching \
- | awk '{print $3}' \
+ && lddtree -l /usr/local/src/net_matching/bin/net_matching \
  | grep '^/' \
- | xargs -I{} cp {} /deps
+ | xargs -I{} cp -v {} /deps
 
 # ──────────────────────────────
 # Image finale minimale
 # ──────────────────────────────
 FROM debian:12
+
+RUN apt-get update -y \
+ && apt-get -y install libssl3
 
 # Dependencies
 RUN mkdir -p /usr/local/src/deps

@@ -187,6 +187,14 @@ namespace calcul{
 		) const;
 
 		//--
+		double _getAngle(
+			ign::geometry::Point const& ptSource1,
+			ign::geometry::Point const& ptTarget1,
+			ign::geometry::Point const& ptSource2,
+			ign::geometry::Point const& ptTarget2
+		) const;
+
+		//--
 		ign::geometry::LineString _getGeomCL(
 			epg::tools::MultiLineStringTool & mslBorder,
 			ign::geometry::LineString const& lsStart2EndToPrject,

@@ -872,7 +872,7 @@ namespace app
 			ign::geometry::Geometry const& borderGeom,
 			epg::tools::geometry::SegmentIndexedGeometry const& segIndexBorder
 		) const {
-			double samiThreshold = 10;
+			// double samiThreshold = 10;
 			
 			//--
 			epg::Context* context = epg::ContextS::getInstance();
@@ -913,22 +913,22 @@ namespace app
 				ign::geometry::LineString const& lsEdge = fEdge.getGeometry().asLineString();
 
 				//--
-				std::vector<ign::geometry::LineString> vBorderCuttingParts;
-				segIndexBorder.getSegments( lsEdge.getEnvelope(), vBorderCuttingParts );
+				// std::vector<ign::geometry::LineString> vBorderCuttingParts;
+				// segIndexBorder.getSegments( lsEdge.getEnvelope(), vBorderCuttingParts );
 
-				app::geometry::tools::LineStringSplitter splitter(lsEdge);
-				ign::geometry::MultiLineString mlsCuttingParts(vBorderCuttingParts);
-				splitter.addCuttingGeometry(mlsCuttingParts);
-				std::vector< ign::geometry::LineString > vEdgePart = splitter.getSubLineStrings();
+				// app::geometry::tools::LineStringSplitter splitter(lsEdge);
+				// ign::geometry::MultiLineString mlsCuttingParts(vBorderCuttingParts);
+				// splitter.addCuttingGeometry(mlsCuttingParts);
+				// std::vector< ign::geometry::LineString > vEdgePart = splitter.getSubLineStrings();
 
 				std::map<double, ENDING> mEnding;
 
 				double distanceStart = lsEdge.startPoint().distance(borderGeom);
-				if( distanceStart < distUnderShoot && _isDangle(fEdge, START) && vEdgePart.front().length() > samiThreshold )
+				if( distanceStart < distUnderShoot && _isDangle(fEdge, START) /*&& vEdgePart.front().length() > samiThreshold*/ )
 					mEnding.insert(std::make_pair(distanceStart, START));
 
 				double distanceEnd = lsEdge.endPoint().distance(borderGeom);
-				if( distanceEnd < distUnderShoot && _isDangle(fEdge, END) && vEdgePart.back().length() > samiThreshold )
+				if( distanceEnd < distUnderShoot && _isDangle(fEdge, END) /*&& vEdgePart.back().length() > samiThreshold*/ )
 					mEnding.insert(std::make_pair(distanceEnd, END));
 
 				//DEBUG
@@ -967,10 +967,15 @@ namespace app
 
 					//proj ortho
 					ign::geometry::Point projPt2 = epg::tools::geometry::project(mlsBorderSegments, endingPoint, 0);
-					double distance2 = endingPoint.distance(projPt2);
-					if (distance2 < distMin/3 && distance2 < distUnderShoot/3) {
-						distMin = distance2;
-						projPt = projPt2;
+					//on verifie que la projection n'est pas un rebroussement
+					ign::geometry::Point projPt2Reverse = epg::tools::geometry::project(lsEdge, projPt2, 0);
+					double angle = _getAngle(endingPoint, projPt2, endingPoint, projPt2Reverse);
+					if( angle > 1.3963 ) {/*80 degrees*/
+						double distance2 = endingPoint.distance(projPt2);
+						if (distance2 < distMin/3 && distance2 < distUnderShoot/3) {
+							distMin = distance2;
+							projPt = projPt2;
+						}
 					}
 
 					//--
@@ -1367,6 +1372,23 @@ namespace app
 
 			return angleEdgWBorder;
 			//	//double angleSubEdgBorder = epg::tools::geometry::angle(vecBorder, vecSubEdge);
+		}
+
+		///
+		///
+		///
+		double CFeatGenerationOp::_getAngle(
+			ign::geometry::Point const& ptSource1,
+			ign::geometry::Point const& ptTarget1,
+			ign::geometry::Point const& ptSource2,
+			ign::geometry::Point const& ptTarget2
+		) const {
+			if( ptSource1.distance(ptTarget1) < 1e-5 || ptSource2.distance(ptTarget2) < 1e-5 )
+				return std::numeric_limits<double>::infinity();
+			ign::math::Vec2d v1(ptTarget1.x() - ptSource1.x(), ptTarget1.y() - ptSource1.y());
+			ign::math::Vec2d v2(ptTarget2.x() - ptSource2.x(), ptTarget2.y() - ptSource2.y());
+
+			return epg::tools::geometry::angle(v1, v2);
 		}
 
 		///

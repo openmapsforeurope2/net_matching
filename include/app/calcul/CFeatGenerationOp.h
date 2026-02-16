@@ -283,7 +283,12 @@ namespace calcul{
 		) const;
 
 		//--
-		std::pair<bool, ign::feature::Feature> _hasCPfromCL(
+		ign::geometry::Point _getBestCpFromClGeom(
+			std::list<ign::feature::Feature> const& lCpFromCl
+		) const;
+
+		//--
+		std::list<ign::feature::Feature> _pickUpCPfromCL(
 			std::list<std::string> const& lCp,
 			std::map<std::string, ign::feature::Feature> const& mCPNear
 		) const;

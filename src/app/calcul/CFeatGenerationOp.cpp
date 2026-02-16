@@ -1608,7 +1608,7 @@ namespace app
 				}
 
 				//TODO ajouter une fonction pour separer un group en plusieur s'il contient plusieur CP from_cl non superposé
-				// faire un test pour voir si ça existe
+				// faire un test pour voir si ça existe (3073514,03  3845868,64)
 
 				for (size_t i = 1 ; i <= group ; ++i) {
 					ign::geometry::Point newGeom;
@@ -1620,9 +1620,9 @@ namespace app
 						lCp.push_back(r_it->second);
 					
 					//construire une map de CP mCp a partir de mCPNear et lCp
-					std::pair<bool, ign::feature::Feature> foundCPfromCL = _hasCPfromCL(lCp, mCPNear);
-					if( foundCPfromCL.first ) {
-						newGeom = foundCPfromCL.second.getGeometry().asPoint();
+					std::list<ign::feature::Feature> lCPfromCL = _pickUpCPfromCL(lCp, mCPNear);
+					if( lCPfromCL.size() > 0 ) {
+						newGeom = _getBestCpFromClGeom(lCPfromCL);
 					} else {
 						ign::geometry::MultiPoint mlpCP;
 						for (std::list<std::string>::const_iterator lit = lCp.begin() ; lit != lCp.end(); ++lit) {
@@ -1657,10 +1657,42 @@ namespace app
 		///
 		///
 		///
-		std::pair<bool, ign::feature::Feature> CFeatGenerationOp::_hasCPfromCL(
+		ign::geometry::Point CFeatGenerationOp::_getBestCpFromClGeom(
+			std::list<ign::feature::Feature> const& lCpFromCl
+		) const {
+			//--
+			if ( lCpFromCl.size() == 1 )
+				return lCpFromCl.begin()->getGeometry().asPoint();
+
+			//--
+			ign::geometry::MultiPoint mlpt;
+			for ( std::list<ign::feature::Feature>::const_iterator lit = lCpFromCl.begin() ; lit != lCpFromCl.end() ; ++lit ) {
+				mlpt.addGeometry(lit->getGeometry().asPoint());
+			}
+			ign::geometry::Point centroid = mlpt.getCentroid();
+
+			//--
+			double distanceMin = std::numeric_limits<double>::infinity();
+			ign::geometry::Point ptMin;
+			for ( std::list<ign::feature::Feature>::const_iterator lit = lCpFromCl.begin() ; lit != lCpFromCl.end() ; ++lit ) {
+				double distance = centroid.distance(lit->getGeometry().asPoint());
+				if ( distance < distanceMin ) {
+					distanceMin = distance;
+					ptMin = lit->getGeometry().asPoint();
+				}
+			}
+			return ptMin;
+		}
+
+		///
+		///
+		///
+		std::list<ign::feature::Feature> CFeatGenerationOp::_pickUpCPfromCL(
 			std::list<std::string> const& lCp,
 			std::map<std::string, ign::feature::Feature> const& mCPNear
 		) const {
+			std::list<ign::feature::Feature> lCpFromCl;
+
 			//--
 			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 			std::string const wTagName = themeParameters->getValue(W_TAG_NAME).toString();
@@ -1669,10 +1701,10 @@ namespace app
 				std::map<std::string, ign::feature::Feature>::const_iterator mit = mCPNear.find(*lit);
 				if( mit != mCPNear.end() ) {
 					if( mit->second.getAttribute(wTagName).toString() == _tagFromCl )
-						return std::make_pair(true, mit->second);
+						lCpFromCl.push_back(mit->second);
 				}
 			}
-			return std::make_pair(false, ign::feature::Feature());
+			return lCpFromCl;
 		}
 
 		///

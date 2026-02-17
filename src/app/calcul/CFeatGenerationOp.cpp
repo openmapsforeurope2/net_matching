@@ -2038,6 +2038,11 @@ namespace app
 			mCPNear[fCP.getId()] = fCP;
 
 			//--
+			epg::Context* context = epg::ContextS::getInstance();
+			std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
+			std::string const idName = context->getEpgParameters().getValue(ID).toString();
+
+			//--
 			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
 			std::string const formOfWayName = themeParameters->getValue(FORM_OF_WAY_NAME).toString();
 			double const distMergeCP = themeParameters->getValue(CP_MERGE_DIST_CP).toDouble();
@@ -2048,18 +2053,11 @@ namespace app
 			double mergeDist = _sFormOfWayException.find(formOfWay) != _sFormOfWayException.end() ? distMergeTractorCP : distMergeCP;
 
 			//--
-			epg::Context* context = epg::ContextS::getInstance();
-
-			//--
-			std::string const idName = context->getEpgParameters().getValue(ID).toString();
-
-			//--
-			ign::feature::FeatureFilter filterArroundCP;
+			ign::feature::FeatureFilter filterArroundCP("ST_DISTANCE(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + fCP.getGeometry().toString() + "'),3035)) < "+ign::data::Double(mergeDist).toString());
 			for (std::map<std::string, ign::feature::Feature>::iterator mit = mCPNear.begin(); mit != mCPNear.end(); ++mit) {
 				epg::tools::FilterTools::addAndConditions(filterArroundCP, idName + " <> '" + mit->first + "'");	//(idName + " <> '" + fCP.getId() + "'");
 			}
 
-			filterArroundCP.setExtent(fCP.getGeometry().getEnvelope().expandBy(mergeDist));
 			ign::feature::FeatureIteratorPtr itArroundCP = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterArroundCP);
 
 			if (!itArroundCP->hasNext())
@@ -2069,6 +2067,7 @@ namespace app
 			{
 				ign::feature::Feature const& fCPArround = itArroundCP->next();
 				std::string const& formOfWayArround = fCPArround.getAttribute(formOfWayName).toString();
+
 				if (formOfWayArround != formOfWay) {
 					double mergeDistArround = _sFormOfWayException.find(formOfWayArround) != _sFormOfWayException.end() ? distMergeTractorCP : distMergeCP;
 					if (mergeDistArround < mergeDist) {
@@ -2077,7 +2076,6 @@ namespace app
 						if( dist > mergeDistArround )
 							continue;
 					}
-
 				}
 
 				_getNearestCP(fCPArround, mCPNear);

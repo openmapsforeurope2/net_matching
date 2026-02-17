@@ -909,6 +909,7 @@ namespace app
 			while (itEdge->hasNext())
 			{
 				++display;
+
 				ign::feature::Feature fEdge = itEdge->next();
 				ign::geometry::LineString const& lsEdge = fEdge.getGeometry().asLineString();
 
@@ -1424,12 +1425,6 @@ namespace app
 			std::string const linkedFeatIdName = context->getEpgParameters().getValue(LINKED_FEATURE_ID).toString();
 
 			//--
-			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-			double const distMergeCP = themeParameters->getValue(CP_MERGE_DIST_CP).toDouble();
-			double const distMergeTractorCP = themeParameters->getValue(CP_MERGE_DIST_TRACTOR_CP).toDouble();
-			double const maxDistMerge = std::max(distMergeCP, distMergeTractorCP);
-
-			//--
 			ign::feature::FeatureFilter filterCP;
 			for (size_t i = 0; i < _vCountryCode.size(); ++i) {
 				epg::tools::FilterTools::addOrConditions(filterCP, countryCodeName + " = '" + _vCountryCode[i] + "'");
@@ -1460,7 +1455,7 @@ namespace app
 				//DEBUG : recursivité a tester
 				//SUPPRIMER LE retour BOOL (tester si mCPNear.size() > 1)
 				std::map<std::string, ign::feature::Feature> mCPNear;
-				bool hasNearestCP = _getNearestCP(fCPCurr, maxDistMerge, mCPNear);
+				bool hasNearestCP = _getNearestCP(fCPCurr, mCPNear);
 
 				//DEBUG BEGIN
 				//que ce passe t il en cas de merging d'un CP sur CL avec CP sur border ?
@@ -1631,7 +1626,7 @@ namespace app
 						
 						//--
 						std::vector<ign::geometry::LineString> vBorderSegments;
-						segIndexBorder.getSegments( centroidPoint.getEnvelope().expandBy(2*maxDistMerge), vBorderSegments );
+						segIndexBorder.getSegments( mlpCP.getEnvelope(), vBorderSegments );
 						ign::geometry::MultiLineString mlsBorderSegments(vBorderSegments);
 
 						newGeom = epg::tools::geometry::project(mlsBorderSegments, centroidPoint, 0 /*border vertex snap dist*/);
@@ -2037,9 +2032,21 @@ namespace app
 		///
 		bool CFeatGenerationOp::_getNearestCP(
 			ign::feature::Feature const& fCP,
-			double distMergeCP,
 			std::map<std::string, ign::feature::Feature> & mCPNear
 		) const {
+			//--
+			mCPNear[fCP.getId()] = fCP;
+
+			//--
+			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+			std::string const formOfWayName = themeParameters->getValue(FORM_OF_WAY_NAME).toString();
+			double const distMergeCP = themeParameters->getValue(CP_MERGE_DIST_CP).toDouble();
+			double const distMergeTractorCP = themeParameters->getValue(CP_MERGE_DIST_TRACTOR_CP).toDouble();
+
+			//--
+			std::string const& formOfWay = fCP.getAttribute(formOfWayName).toString();
+			double mergeDist = _sFormOfWayException.find(formOfWay) != _sFormOfWayException.end() ? distMergeTractorCP : distMergeCP;
+
 			//--
 			epg::Context* context = epg::ContextS::getInstance();
 
@@ -2047,15 +2054,12 @@ namespace app
 			std::string const idName = context->getEpgParameters().getValue(ID).toString();
 
 			//--
-			//DEBUG 1
-			mCPNear[fCP.getId()] = fCP;
-			
 			ign::feature::FeatureFilter filterArroundCP;
 			for (std::map<std::string, ign::feature::Feature>::iterator mit = mCPNear.begin(); mit != mCPNear.end(); ++mit) {
 				epg::tools::FilterTools::addAndConditions(filterArroundCP, idName + " <> '" + mit->first + "'");	//(idName + " <> '" + fCP.getId() + "'");
 			}
 
-			filterArroundCP.setExtent(fCP.getGeometry().getEnvelope().expandBy(distMergeCP));
+			filterArroundCP.setExtent(fCP.getGeometry().getEnvelope().expandBy(mergeDist));
 			ign::feature::FeatureIteratorPtr itArroundCP = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCP, filterArroundCP);
 
 			if (!itArroundCP->hasNext())
@@ -2063,11 +2067,20 @@ namespace app
 
 			while (itArroundCP->hasNext())
 			{
-				ign::feature::Feature fCPArround = itArroundCP->next();
+				ign::feature::Feature const& fCPArround = itArroundCP->next();
+				std::string const& formOfWayArround = fCPArround.getAttribute(formOfWayName).toString();
+				if (formOfWayArround != formOfWay) {
+					double mergeDistArround = _sFormOfWayException.find(formOfWayArround) != _sFormOfWayException.end() ? distMergeTractorCP : distMergeCP;
+					if (mergeDistArround < mergeDist) {
+						double dist = fCPArround.getGeometry().asPoint().distance(fCP.getGeometry().asPoint());
 
-				_getNearestCP(fCPArround, distMergeCP, mCPNear);
-				//DEBUG REDONDANT AVEC DEBUG 1 ?
-				mCPNear[fCPArround.getId()] = fCPArround;
+						if( dist > mergeDistArround )
+							continue;
+					}
+
+				}
+
+				_getNearestCP(fCPArround, mCPNear);
 			}
 			return true;
 		}

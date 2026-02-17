@@ -348,7 +348,6 @@ namespace calcul{
 		//--
 		bool _getNearestCP(
 			ign::feature::Feature const& fCP,
-			double distMergeCP,
 			std::map < std::string, ign::feature::Feature> & mCPNear
 		) const;
 

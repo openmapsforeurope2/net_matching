@@ -956,7 +956,7 @@ namespace app
 					
 					for (std::vector< ign::geometry::Point >::iterator vit = vPtIntersect.begin(); vit != vPtIntersect.end(); ++vit) {
 						double abs = line.project(vit->toVec2d());
-						if (abs < 0) continue;
+						if (abs < 1) continue; /* contient les cas abs < 0  et 0 < abs < 1 */
 
 						double dist = endingPoint.distance(*vit);
 						if (dist < distMin) {

@@ -1425,7 +1425,6 @@ namespace app
 
 			//--
 			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-			double const snapOnVertexBorder = themeParameters->getValue(CL_SNAP_ON_VERTEX_BORDER_DIST).toDouble();
 			double const distMergeCP = themeParameters->getValue(CP_MERGE_DIST_CP).toDouble();
 			double const distMergeTractorCP = themeParameters->getValue(CP_MERGE_DIST_TRACTOR_CP).toDouble();
 			double const maxDistMerge = std::max(distMergeCP, distMergeTractorCP);
@@ -1635,7 +1634,7 @@ namespace app
 						segIndexBorder.getSegments( centroidPoint.getEnvelope().expandBy(2*maxDistMerge), vBorderSegments );
 						ign::geometry::MultiLineString mlsBorderSegments(vBorderSegments);
 
-						newGeom = epg::tools::geometry::project(mlsBorderSegments, centroidPoint, snapOnVertexBorder);
+						newGeom = epg::tools::geometry::project(mlsBorderSegments, centroidPoint, 0 /*border vertex snap dist*/);
 
 						//DEBUG voir pour calculer le Z
 						newGeom.setZ(0);

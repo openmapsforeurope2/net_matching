@@ -1673,9 +1673,9 @@ namespace app
 			//--
 			// si une CL commune : calcul du point cible = moyenne des abscisses
 			std::map<std::string, ign::feature::Feature> mConnectedClRef = _getConnectecCl(lCpFromCl.begin()->getGeometry().asPoint());
-			for ( std::list<ign::feature::Feature>::const_iterator lit = ++lCpFromCl.begin() ; lit != lCpFromCl.end() ; ) {
+			for ( std::list<ign::feature::Feature>::const_iterator lit = std::next(lCpFromCl.begin()) ; lit != lCpFromCl.end() ; ++lit ) {
 				std::map<std::string, ign::feature::Feature> mConnectedCl = _getConnectecCl(lit->getGeometry().asPoint());
-				for ( std::map<std::string, ign::feature::Feature>::const_iterator mit = mConnectedClRef.begin() ; mit != mConnectedClRef.end() ; ++mit ) {
+				for ( std::map<std::string, ign::feature::Feature>::const_iterator mit = mConnectedClRef.begin() ; mit != mConnectedClRef.end() ; ) {
 					if( mConnectedCl.find(mit->first) == mConnectedCl.end() ) {
 						mit = mConnectedClRef.erase(mit);
 					} else {
@@ -1744,6 +1744,7 @@ namespace app
 				if( fCl.getGeometry().distance(pt) < precision )
 					mConnectedCl.insert(std::make_pair(fCl.getId(), fCl));
 			}
+			return mConnectedCl;
 		}
 
 		///

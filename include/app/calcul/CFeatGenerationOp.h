@@ -282,9 +282,21 @@ namespace calcul{
 			epg::tools::geometry::SegmentIndexedGeometry const& segIndexBorder
 		) const;
 
+		void _addNoDuplicate(
+			ign::geometry::MultiPoint & mpt,
+			ign::geometry::Point const& pt,
+			double precision = 1e-5
+		) const;
+
 		//--
 		ign::geometry::Point _getBestCpFromClGeom(
 			std::list<ign::feature::Feature> const& lCpFromCl
+		) const;
+
+		//--
+		std::map<std::string, ign::feature::Feature> _getConnectecCl(
+			ign::geometry::Point const& pt,
+			double precision = 1e-5
 		) const;
 
 		//--

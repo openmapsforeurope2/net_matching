@@ -1452,7 +1452,6 @@ namespace app
 					continue;
 
 				// on recupere recursivement les CP proches
-				//DEBUG : recursivité a tester
 				//SUPPRIMER LE retour BOOL (tester si mCPNear.size() > 1)
 				std::map<std::string, ign::feature::Feature> mCPNear;
 				bool hasNearestCP = _getNearestCP(fCPCurr, mCPNear);
@@ -1620,7 +1619,7 @@ namespace app
 					} else {
 						ign::geometry::MultiPoint mlpCP;
 						for (std::list<std::string>::const_iterator lit = lCp.begin() ; lit != lCp.end(); ++lit) {
-							mlpCP.addGeometry(mCPNear[*lit].getGeometry().asPoint());
+							_addNoDuplicate(mlpCP, mCPNear[*lit].getGeometry().asPoint());
 						}
 						ign::geometry::Point centroidPoint = mlpCP.getCentroid();
 						
@@ -1651,6 +1650,19 @@ namespace app
 		///
 		///
 		///
+		void CFeatGenerationOp::_addNoDuplicate(
+			ign::geometry::MultiPoint & mpt,
+			ign::geometry::Point const& pt,
+			double precision
+		) const {
+			if( !mpt.isEmpty() && mpt.distance(pt) < precision )
+				return;
+			mpt.addGeometry(pt);
+		}
+
+		///
+		///
+		///
 		ign::geometry::Point CFeatGenerationOp::_getBestCpFromClGeom(
 			std::list<ign::feature::Feature> const& lCpFromCl
 		) const {
@@ -1659,9 +1671,36 @@ namespace app
 				return lCpFromCl.begin()->getGeometry().asPoint();
 
 			//--
+			// si une CL commune : calcul du point cible = moyenne des abscisses
+			std::map<std::string, ign::feature::Feature> mConnectedClRef = _getConnectecCl(lCpFromCl.begin()->getGeometry().asPoint());
+			for ( std::list<ign::feature::Feature>::const_iterator lit = ++lCpFromCl.begin() ; lit != lCpFromCl.end() ; ) {
+				std::map<std::string, ign::feature::Feature> mConnectedCl = _getConnectecCl(lit->getGeometry().asPoint());
+				for ( std::map<std::string, ign::feature::Feature>::const_iterator mit = mConnectedClRef.begin() ; mit != mConnectedClRef.end() ; ++mit ) {
+					if( mConnectedCl.find(mit->first) == mConnectedCl.end() ) {
+						mit = mConnectedClRef.erase(mit);
+					} else {
+						++mit;
+					}
+				}
+				if( mConnectedClRef.size() == 0 )
+					break;
+			}
+
+			if( mConnectedClRef.size() == 1 ) {
+				ign::geometry::LineString const& clGeom = mConnectedClRef.begin()->second.getGeometry().asLineString();
+				geometry::tools::LengthIndexedLineString indexedClGeom(clGeom);
+				double meanAbs = 0;
+				for ( std::list<ign::feature::Feature>::const_iterator lit = ++lCpFromCl.begin() ; lit != lCpFromCl.end() ; ++lit ) {
+					meanAbs += indexedClGeom.project(lit->getGeometry().asPoint());
+				}
+				meanAbs /= lCpFromCl.size();
+				return indexedClGeom.locateAlong(meanAbs);
+			}
+
+			//--
 			ign::geometry::MultiPoint mlpt;
 			for ( std::list<ign::feature::Feature>::const_iterator lit = lCpFromCl.begin() ; lit != lCpFromCl.end() ; ++lit ) {
-				mlpt.addGeometry(lit->getGeometry().asPoint());
+				_addNoDuplicate(mlpt, lit->getGeometry().asPoint());
 			}
 			ign::geometry::Point centroid = mlpt.getCentroid();
 
@@ -1676,6 +1715,35 @@ namespace app
 				}
 			}
 			return ptMin;
+		}
+
+		///
+		///
+		///
+		std::map<std::string, ign::feature::Feature> CFeatGenerationOp::_getConnectecCl(
+			ign::geometry::Point const& pt,
+			double precision
+		) const {
+			std::map<std::string, ign::feature::Feature> mConnectedCl;
+
+			//--
+			epg::Context* context = epg::ContextS::getInstance();
+			std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+			std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
+
+			//--
+			ign::feature::FeatureFilter filterCl(countryCodeName + " = '" + _borderCode + "'");
+			filterCl.setExtent(pt.getEnvelope().expandBy(precision));
+
+			//--
+			ign::feature::FeatureIteratorPtr itCl = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterCl);
+			while (itCl->hasNext())
+			{
+				ign::feature::Feature fCl = itCl->next();
+
+				if( fCl.getGeometry().distance(pt) < precision )
+					mConnectedCl.insert(std::make_pair(fCl.getId(), fCl));
+			}
 		}
 
 		///
@@ -1968,6 +2036,9 @@ namespace app
 				_fsEdge->deleteFeature(*lit);
 		}
 
+		///
+		///
+		///
 		ign::geometry::Point CFeatGenerationOp::_getClosestGeometry(
 			ign::geometry::MultiPoint const& mlp,
 			ign::geometry::LineString const& ls,

@@ -282,7 +282,7 @@ namespace calcul{
 			epg::tools::geometry::SegmentIndexedGeometry const& segIndexBorder
 		) const;
 
-		void _addNoDuplicate(
+		bool _addNoDuplicate(
 			ign::geometry::MultiPoint & mpt,
 			ign::geometry::Point const& pt,
 			double precision = 1e-5

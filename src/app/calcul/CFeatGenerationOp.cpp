@@ -1446,7 +1446,15 @@ namespace app
 				std::string idCP = fCPCurr.getId();
 
 				//DEBUG
-				// _logger->log(epg::log::DEBUG, idCP);
+				// if ( fCPCurr.getGeometry().distance(ign::geometry::Point(3803179.324, 3104038.058)) < 0.5 ) {
+				// 	 bool test = true;
+				// }
+				// if ( fCPCurr.getGeometry().distance(ign::geometry::Point(3803180.104, 3104037.315)) < 0.5 ) {
+				// 	 bool test = true;
+				// }
+				// if ( fCPCurr.getGeometry().distance(ign::geometry::Point(3803183.32, 3104039.89)) < 1 ) {
+				// 	 bool test = true;
+				// }
 
 				if (sCP2Snap.find(idCP) != sCP2Snap.end())
 					continue;
@@ -1650,14 +1658,16 @@ namespace app
 		///
 		///
 		///
-		void CFeatGenerationOp::_addNoDuplicate(
+		bool CFeatGenerationOp::_addNoDuplicate(
 			ign::geometry::MultiPoint & mpt,
 			ign::geometry::Point const& pt,
 			double precision
 		) const {
 			if( !mpt.isEmpty() && mpt.distance(pt) < precision )
-				return;
+				return false;
+
 			mpt.addGeometry(pt);
+			return true;
 		}
 
 		///
@@ -1672,8 +1682,11 @@ namespace app
 
 			//--
 			// si une CL commune : calcul du point cible = moyenne des abscisses
+			ign::geometry::MultiPoint mlptNoDuplicate;
+			_addNoDuplicate(mlptNoDuplicate, lCpFromCl.begin()->getGeometry().asPoint());
 			std::map<std::string, ign::feature::Feature> mConnectedClRef = _getConnectecCl(lCpFromCl.begin()->getGeometry().asPoint());
 			for ( std::list<ign::feature::Feature>::const_iterator lit = std::next(lCpFromCl.begin()) ; lit != lCpFromCl.end() ; ++lit ) {
+				_addNoDuplicate(mlptNoDuplicate, lit->getGeometry().asPoint());
 				std::map<std::string, ign::feature::Feature> mConnectedCl = _getConnectecCl(lit->getGeometry().asPoint());
 				for ( std::map<std::string, ign::feature::Feature>::const_iterator mit = mConnectedClRef.begin() ; mit != mConnectedClRef.end() ; ) {
 					if( mConnectedCl.find(mit->first) == mConnectedCl.end() ) {
@@ -1686,23 +1699,19 @@ namespace app
 					break;
 			}
 
-			if( mConnectedClRef.size() == 1 ) {
+			if( mConnectedClRef.size() == 1 && mlptNoDuplicate.numGeometries() > 1 ) {
 				ign::geometry::LineString const& clGeom = mConnectedClRef.begin()->second.getGeometry().asLineString();
 				geometry::tools::LengthIndexedLineString indexedClGeom(clGeom);
 				double meanAbs = 0;
-				for ( std::list<ign::feature::Feature>::const_iterator lit = ++lCpFromCl.begin() ; lit != lCpFromCl.end() ; ++lit ) {
-					meanAbs += indexedClGeom.project(lit->getGeometry().asPoint());
+				for ( size_t i = 0 ; i < mlptNoDuplicate.numGeometries() ; ++i ) {
+						meanAbs += indexedClGeom.project(mlptNoDuplicate.pointN(i));
 				}
-				meanAbs /= lCpFromCl.size();
+				meanAbs /= mlptNoDuplicate.numGeometries();
 				return indexedClGeom.locateAlong(meanAbs);
 			}
 
 			//--
-			ign::geometry::MultiPoint mlpt;
-			for ( std::list<ign::feature::Feature>::const_iterator lit = lCpFromCl.begin() ; lit != lCpFromCl.end() ; ++lit ) {
-				_addNoDuplicate(mlpt, lit->getGeometry().asPoint());
-			}
-			ign::geometry::Point centroid = mlpt.getCentroid();
+			ign::geometry::Point centroid = mlptNoDuplicate.getCentroid();
 
 			//--
 			double distanceMin = std::numeric_limits<double>::infinity();

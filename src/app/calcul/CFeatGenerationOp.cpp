@@ -1018,7 +1018,8 @@ namespace app
 
 				ign::feature::Feature fEdge = itEdge->next();
 				ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
-
+				
+				//TODO : optimisation possible en utilisant segIndexBorder
 				ign::geometry::GeometryPtr intersectionGeomPtr(edgeGeom.Intersection(borderGeom));
 
 				_recordCp(*intersectionGeomPtr, fEdge);
@@ -1095,7 +1096,7 @@ namespace app
 
 			//--
 			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
-			double const pairingDist = themeParameters->getValue(CP_INTERSECTED_CL_DIST).toDouble();
+			double const pairingDist = themeParameters->getValue(CP_FROM_CL_FROM_BORDER_PAIRING_DIST).toDouble();
 			std::string const wTagName = themeParameters->getValue(W_TAG_NAME).toString();
 
 			//--

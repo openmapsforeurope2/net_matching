@@ -553,7 +553,7 @@ Lors de cette étape les objets contenus dans la table des connecting lines sont
 
 #### 240 : GenerateConnectingPoint
 
-Cette étape à pour objet la création des _connecting points_. Les _connecting points_ ont pour objetif d'assurer la connexion de deux arcs ou groupe d'arcs de deux pays au passage de leur frontière commune. Chaque _connecting point_ est associé à un seul arc. A l'issu du traitement on obtient des groupes de _connecting points_. Les connecting points d'un même groupe sont superposés. Un groupe possède au moins deux _connecting points_ et au moins un _connecting point_ de chacun des deux pays frontaliers traités.
+Cette étape à pour objet la création des _connecting points_. Les _connecting points_ ont pour objectif d'assurer la connexion de deux arcs ou groupe d'arcs de deux pays au passage de leur frontière commune. Chaque _connecting point_ est associé à un seul arc. A l'issu du traitement on obtient des groupes de _connecting points_. Les connecting points d'un même groupe sont superposés. Un groupe possède au moins deux _connecting points_ et au moins un _connecting point_ de chacun des deux pays frontaliers traités.
 Les _connecting points_ sont enregistrées dans une table dédiée.
 
 ##### Données de travail :
@@ -561,7 +561,7 @@ Les _connecting points_ sont enregistrées dans une table dédiée.
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
 | CP_TABLE                       | X      | X      | X                  | table des connecting points                                 |
-| EDGE_TABLE_INIT                | X      |        |                    | table du réseau à traiter                                   |
+| EDGE_TABLE_INIT                | X      | x      | x                  | table du réseau à traiter                                   |
 | TARGET_BOUNDARY_TABLE          | X      |        |                    | table des frontières                                        |
 
 ##### Principaux opérateurs de calcul utilisés :
@@ -570,17 +570,58 @@ Les _connecting points_ sont enregistrées dans une table dédiée.
 ##### Description du traitement :
 
 Paramètre utilisés: 
-| paramètre                   |                                                                                               |
-|-----------------------------|-----------------------------------------------------------------------------------------------|
-| LINKED_FEATURE_ID           | nom du champ indiquant l'identifiant de l'arc associé à un connecting point                   |
-| CP_INTERSECTED_CL_DIST      | distance entre l'intersection d'un arc et d'une CL et la frontiere en dessous de laquelle ces points d'intersection peuvent être considérés comme des CP |
-| CP_UNDERSHOOT_DIST          | distance maximale entre une extremité d'arc et un CP créé par résolution d'undershoot de cette extrémité |
-| CP_CP_2_CL_SNAP_DIST        | distance entre un CP et un CL à partir de laquelle le CP peut être projeté sur la CL          |
-| CP_VERTEX_CL_SNAP_DIST      | distance de snapping des CP projetés sur les points de la CL                                  |
+| paramètre                           |                                                                                               |
+|-------------------------------------|-----------------------------------------------------------------------------------------------|
+| LINKED_FEATURE_ID                   | nom du champ indiquant l'identifiant de l'arc associé à un connecting point                   |
+| CP_FROM_CL_FROM_BORDER_PAIRING_DIST | distance entre un connecting point issu l'intersection avec une connecting line et un connecting point issu de l'intersection avec la frontière en dessous de laquelle ces deux connecting points peuvent être considérés comme des doublons |
+| CP_UNDERSHOOT_DIST          | distance maximale entre une extremité d'arc et un connecting point créé par résolution d'undershoot de cette extrémité |
 | CP_MERGE_DIST_CP            | distance maximum entre deux CP pour qu'ils soient fusionnable                                 |
-| CP_MERGE_DIST_TRACTOR_CP    | distance maximum entre deux CP pour qu'ils soient fusionnable si les arcs associés aux CP sont d'un type inclus dans la liste CP_FORM_OF_WAY_EXCEPTION |
-| CP_FORM_OF_WAY_EXCEPTION | liste des types d'arcs pour lesquels on applique le paramètre CP_MERGE_DIST_TRACTOR_CP pour la fusion des CPs |
+| CP_MERGE_DIST_TRACTOR_CP    | distance maximum entre deux CP pour qu'ils soient fusionnable si les arcs associés aux connecting point sont d'un type inclus dans la liste CP_FORM_OF_WAY_EXCEPTION |
+| CP_FORM_OF_WAY_EXCEPTION | liste des types d'arcs pour lesquels on applique le paramètre CP_MERGE_DIST_TRACTOR_CP pour la fusion des connectins points |
 | FORM_OF_WAY_NAME            | nom du champ définissant le type de l'arc                                                     |
+| W_TAG_NAME                  | champ de travail permettant de différentier les connecting points issus de l'intersection avec les connecting lines de ceux issu de l'intersection avec les frontières.
+
+
+1) La première étape consiste à créer les _connecting points_ par intersection des arcs avec les _connecting lines_.
+<br>
+2) Lors de la deuxième étape on crée les _connecting points_ par intersection avec les frontières.
+<br>
+Pour distinguer ces deux types de _connecting points_ (enregistrés dans la même table _CP_TABLE_), on utiliser le champs de travail W_TAG_NAME (ce champ est renseigné pour les _connecting points_ calculés par intersection avec les _connecting lines_).
+<br>
+3) A ce stade du traitement on cherche à identifier les paires de _CP issu de CL/CP issu de frontière_ liés au même arc (enregistré dans le champ LINKED_FEATURE_ID) et suffisamment proches (distance inférieure à _CP_FROM_CL_FROM_BORDER_PAIRING_DIST_) pour être considérés comme représentant le même noeud de connection.
+Pour cela on parcourt les CP issus de frontiere et pour chacun on cherche le CP issu de CL possédant le même LINKED_FEATURE_ID le plus proche dans un rayon de longueur _CP_FROM_CL_FROM_BORDER_PAIRING_DIST_. Considérons CP1, un CP issu de frontière. Si un candidat issu de CL est trouvé on regarde alors si, de manière réciproque, ce dernier à pour plus proche CP issu de frontiere CP1. Si tel est le cas les deux CPs sont considérés comme des doublons et, afin de préserver la cohérence et la connectivité du réseau, le CP issu de frontiere est supprimé.
+<br>
+4) Il reste maintenant à créer les _connecting points_ par résolution des sous-dépassements. Cette résolution consiste à calculer un point de croisement entre l'arc en sous-dépassement et la frontière par projection de l'extrémité pendante de l'arc (axialement ou orthogonalement) sur la frontière.
+Pour cela on parcourt tous les arcs dont ou moins une des extrémitées et située dans le buffer de rayon _CP_UNDERSHOOT_DIST_ calculé autour des frontières.
+Pour chacun de ces arcs on regarde pour chacune de ses extrémités si :
+- elle est pendante (i.e. : non connecté au reste du réseau)
+- sa distance à la frontière est inféreieure à _CP_UNDERSHOOT_DIST_
+Pour chacune des extrémités pendante et suffisamment proche on calcule:
+- la projection axiale sur la frontière par prolongation du dernier segment de l'arc (ou du premier selon l'extrémité considérée).
+- la projection orthogonale sur la frontière. On vérifie que le point projeté ne constitue pas un rebroussement au regard de l'orientation de l'arc. En effet, si l'arc s'éloigne de la frontière on ne souhaite pas qu'un _connecting point_ soit calculé. Afin de savoir si la projection orthogonale de l'extremité P est légitime on re-projette le point projeté sur la frontière P1 sur l'arc afin d'obtenir le point re-projeté P2. On peut alors calculer l'angle (P1 P P2). Si cet angle est trop faible (en dessous d'un seuil) on considère que la projection orthogonale n'est pas légitime.
+
+Les projections axiale et orthogonale ne possèdent pas les même seuils de validité : pour être valable la longueur de la projection axiale doit être inférieure à _CP_UNDERSHOOT_DIST_ alors que pour la projection orthogonale le seuil est descendu à un tier de cette valeur.
+
+Si les deux projections on pu être calculées et validées, la projection axiale est privilégiée, sauf si longueur de la projection orthogonale est inférieure à un tier de la longueur de la projection axiale, auquel cas c'est la projection orthogonale qui est préférée à la projection axiale.
+Si une seule projection sur les deux à pu être calculée et validée, c'est cette projection qui est appliquée.
+
+5) Une fois que tous le _connecting points_ potentiels ont été calculés, on opère un regroupement des _connecting points_ proches. Pour cela on parcourt les CP est on recupère pour chasue CP les candidats au regroupement de manière récursive. Le distance de recherche des CP proches pour un CP dépend de sa nature : si la valeur de son champ _FORM_OF_WAY_NAME_ est conmpris dans la liste _CP_FORM_OF_WAY_EXCEPTION_ on applique la distance _CP_MERGE_DIST_TRACTOR_CP_, sinon on applique la distance _CP_MERGE_DIST_CP_. Pour que deux _connecting points_ fassent parti du même regroupement il faut qu'ils soient des candidats réciproques.
+
+Une fois un groupe obtenu, on cherche dans un premier temps à constituer les meilleurs paires de CP des deux pays. Pour cela on calcule un tableau des distances entre les CPs d'un pays par rapport aux CPs de l'autre pays. On regarde également pour chaque couple possible de CP si la fusion est légitime. La fusion de deux CP est possible si :
+- les arcs associés au deux CP sont collinéaires : les arcs A1 et A2 sont ici considérés comme collinéaires si le demi-hausdorff de A1 ver A2 est inférieur un seuil ou si le demi hausdorff de A2 vers A1 est inférieur à ce même seuil.
+- les CP sont compatibles en terme de distance. On vérifie que CP1 et fusionnable à CP2 et réciproquement compte tenu de leur nature (valeur du champ _FORM_OF_WAY_NAME_) et des seuils de distance qui leur sont donc appliqués pour que la fusion soit autorisée.
+Dans un premier temps on calcule les groupes constituées des deux meilleurs candidats réciproques. Ensuite, pour les le CP restant, on les associent au groupe auquel les meilleur candidat est déjà associé.
+
+Une fois les groupe constitué on calcule la géométrie cible vers laquelle tous le CP d'un groupe seront déplacés. Plusieurs cas de figure peuvent se présenter:
+- le groupe posséde un ou plusieurs CP issu de CL: 
+* si tous les CPs issus de CL sont connectés à une CL commune et qu'ils ne sont pas tous superposés, on calcul un point sur cette CL correspondant à la moyenne des abscisses des CP sur cette CL.
+* si tous les CP issus de CL sont superposés le point cible est la géométrie commune de ces CP issus de CL
+* s'il y a plusieurs CPs issus de CL, non superposés et pour lesquels il n'existe pas de CL commune à laquelle il serait tous connectés, on calcul le barycentre de ces CP issus de CL (plusieurs CPs superposés comptent pour un seul pour le calcul du barycentre) et on choisi la géométrie du CP issu de CL le plus proche du barycentre comme géométrie cible
+- le groupe ne possède pas de CP issu de CL : la géométrie cible est la projection sur la frontière du barycentre des CP (plusieurs CPs superposés comptent pour un seul pour le calcul du barycentre)
+
+6) Au cours de l'étape précédente la géométrie des CPs peut avoir été déplacée à l'intérieur d'une CL. Pour assurer la cohérence et préserver la connectivité du réseau les CL concernées doivent être découpées au niveau de ces CPs.
+Pour cela, on parcourt les CL est pour chacune on récupère les CPs avec lesquels elle est en contact. On calcule les sous-arcs issus de la découpe de la CL par les CP. On remplace alors dans la table des arcs _EDGE_TABLE_INIT_ la CL originelle par les nouvelles CLs résultant de la découpe.
+
 
 
 On parcourt les frontières internationale entre les deux pays

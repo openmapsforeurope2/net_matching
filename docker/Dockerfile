@@ -36,7 +36,7 @@ RUN mkdir -p /deps \
 FROM debian:12
 
 RUN apt-get update -y \
- && apt-get -y install libssl3
+ && apt-get -y install libssl3 rclone
 
 # Dependencies
 RUN mkdir -p /usr/local/src/deps

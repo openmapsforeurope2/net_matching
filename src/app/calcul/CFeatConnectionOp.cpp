@@ -546,8 +546,10 @@ namespace app
         ///
         ///
         ///
-        void CFeatConnectionOp::_computeCpDisplacements(std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements, std::string const& country) const 
-        {
+        void CFeatConnectionOp::_computeCpDisplacements(
+            std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements,
+            std::string const& country
+        ) const {
             epg::Context *context = epg::ContextS::getInstance();
 
             // epg parameters

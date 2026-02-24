@@ -492,15 +492,6 @@ Ce traitement se déroule en deux phases avec une phase intitiale:
 
 ![214](images/214_with_key.png)
 
-
-TODO 
-ign::geometry::LineString app::calcul::CFeatGenerationOp::_getGeomCL(
-	epg::tools::MultiLineStringTool & mslBorder,
-	ign::geometry::LineString const& lsToProject,
-	double distMaxBorder,    -----------------------------------------------> pas utilisé
-	double snapOnVertexBorder)
-
-
 #### 220 : ConnectionConnectingLines
 
 Le but de cette étape est de supprimer arcs ou parties d'arcs ayant fait l'objet d'une fusion et de réaliser les déplacements nécessaires afin de connecter le réseau aux connecting lines résultant de la fusion.
@@ -586,29 +577,41 @@ Paramètre utilisés:
 <br>
 2) Lors de la deuxième étape on crée les _connecting points_ par intersection avec les frontières.
 <br>
+
+![240_1_1](images/240_1_1_with_key.png)
+
 Pour distinguer ces deux types de _connecting points_ (enregistrés dans la même table _CP_TABLE_), on utiliser le champs de travail W_TAG_NAME (ce champ est renseigné pour les _connecting points_ calculés par intersection avec les _connecting lines_).
 <br>
 3) A ce stade du traitement on cherche à identifier les paires de _CP issu de CL/CP issu de frontière_ liés au même arc (enregistré dans le champ LINKED_FEATURE_ID) et suffisamment proches (distance inférieure à _CP_FROM_CL_FROM_BORDER_PAIRING_DIST_) pour être considérés comme représentant le même noeud de connection.
 Pour cela on parcourt les CP issus de frontiere et pour chacun on cherche le CP issu de CL possédant le même LINKED_FEATURE_ID le plus proche dans un rayon de longueur _CP_FROM_CL_FROM_BORDER_PAIRING_DIST_. Considérons CP1, un CP issu de frontière. Si un candidat issu de CL est trouvé on regarde alors si, de manière réciproque, ce dernier à pour plus proche CP issu de frontiere CP1. Si tel est le cas les deux CPs sont considérés comme des doublons et, afin de préserver la cohérence et la connectivité du réseau, le CP issu de frontiere est supprimé.
 <br>
+
+![240_1_2](images/240_1_2_with_key.png)
+
 4) Il reste maintenant à créer les _connecting points_ par résolution des sous-dépassements. Cette résolution consiste à calculer un point de croisement entre l'arc en sous-dépassement et la frontière par projection de l'extrémité pendante de l'arc (axialement ou orthogonalement) sur la frontière.
 Pour cela on parcourt tous les arcs dont ou moins une des extrémitées et située dans le buffer de rayon _CP_UNDERSHOOT_DIST_ calculé autour des frontières.
 Pour chacun de ces arcs on regarde pour chacune de ses extrémités si :
 - elle est pendante (i.e. : non connecté au reste du réseau)
-- sa distance à la frontière est inféreieure à _CP_UNDERSHOOT_DIST_
+- sa distance à la frontière est inférieure à _CP_UNDERSHOOT_DIST_
 Pour chacune des extrémités pendante et suffisamment proche on calcule:
 - la projection axiale sur la frontière par prolongation du dernier segment de l'arc (ou du premier selon l'extrémité considérée).
 - la projection orthogonale sur la frontière. On vérifie que le point projeté ne constitue pas un rebroussement au regard de l'orientation de l'arc. En effet, si l'arc s'éloigne de la frontière on ne souhaite pas qu'un _connecting point_ soit calculé. Afin de savoir si la projection orthogonale de l'extremité P est légitime on re-projette le point projeté sur la frontière P1 sur l'arc afin d'obtenir le point re-projeté P2. On peut alors calculer l'angle (P1 P P2). Si cet angle est trop faible (en dessous d'un seuil) on considère que la projection orthogonale n'est pas légitime.
 
-Les projections axiale et orthogonale ne possèdent pas les même seuils de validité : pour être valable la longueur de la projection axiale doit être inférieure à _CP_UNDERSHOOT_DIST_ alors que pour la projection orthogonale le seuil est descendu à un tier de cette valeur.
+Les projections axiale et orthogonale ne possèdent pas les même seuils de validité : pour être valable la longueur de la projection axiale doit être inférieure à _CP_UNDERSHOOT_DIST_ alors que, pour la projection orthogonale, le seuil est descendu à un tier de cette valeur.
 
 Si les deux projections on pu être calculées et validées, la projection axiale est privilégiée, sauf si longueur de la projection orthogonale est inférieure à un tier de la longueur de la projection axiale, auquel cas c'est la projection orthogonale qui est préférée à la projection axiale.
 Si une seule projection sur les deux à pu être calculée et validée, c'est cette projection qui est appliquée.
 
+![240_2_3](images/240_2_3_with_key.png)
+
+![240_3](images/240_3_with_key.png)
+
+![240_1_3](images/240_1_3_with_key.png)
+
 5) Une fois que tous le _connecting points_ potentiels ont été calculés, on opère un regroupement des _connecting points_ proches. Pour cela on parcourt les CP est on recupère pour chasue CP les candidats au regroupement de manière récursive. Le distance de recherche des CP proches pour un CP dépend de sa nature : si la valeur de son champ _FORM_OF_WAY_NAME_ est conmpris dans la liste _CP_FORM_OF_WAY_EXCEPTION_ on applique la distance _CP_MERGE_DIST_TRACTOR_CP_, sinon on applique la distance _CP_MERGE_DIST_CP_. Pour que deux _connecting points_ fassent parti du même regroupement il faut qu'ils soient des candidats réciproques.
 
-Une fois un groupe obtenu, on cherche dans un premier temps à constituer les meilleurs paires de CP des deux pays. Pour cela on calcule un tableau des distances entre les CPs d'un pays par rapport aux CPs de l'autre pays. On regarde également pour chaque couple possible de CP si la fusion est légitime. La fusion de deux CP est possible si :
-- les arcs associés au deux CP sont collinéaires : les arcs A1 et A2 sont ici considérés comme collinéaires si le demi-hausdorff de A1 ver A2 est inférieur un seuil ou si le demi hausdorff de A2 vers A1 est inférieur à ce même seuil.
+Une fois un groupe obtenu, on cherche dans un premier temps à constituer les meilleures paires de CP des deux pays. Pour cela on calcule un tableau des distances entre les CPs d'un pays par rapport aux CPs de l'autre pays. On regarde également pour chaque couple possible de CP si la fusion est légitime. La fusion de deux CP est possible si :
+- les arcs associés aux deux CP sont collinéaires : les arcs A1 et A2 sont ici considérés comme collinéaires si le demi-hausdorff de A1 ver A2 est inférieur un seuil ou si le demi hausdorff de A2 vers A1 est inférieur à ce même seuil.
 - les CP sont compatibles en terme de distance. On vérifie que CP1 et fusionnable à CP2 et réciproquement compte tenu de leur nature (valeur du champ _FORM_OF_WAY_NAME_) et des seuils de distance qui leur sont donc appliqués pour que la fusion soit autorisée.
 Dans un premier temps on calcule les groupes constituées des deux meilleurs candidats réciproques. Ensuite, pour les le CP restant, on les associent au groupe auquel les meilleur candidat est déjà associé.
 
@@ -619,71 +622,12 @@ Une fois les groupe constitué on calcule la géométrie cible vers laquelle tou
 * s'il y a plusieurs CPs issus de CL, non superposés et pour lesquels il n'existe pas de CL commune à laquelle il serait tous connectés, on calcul le barycentre de ces CP issus de CL (plusieurs CPs superposés comptent pour un seul pour le calcul du barycentre) et on choisi la géométrie du CP issu de CL le plus proche du barycentre comme géométrie cible
 - le groupe ne possède pas de CP issu de CL : la géométrie cible est la projection sur la frontière du barycentre des CP (plusieurs CPs superposés comptent pour un seul pour le calcul du barycentre)
 
+![240_2_1](images/240_2_1_with_key.png)
+
 6) Au cours de l'étape précédente la géométrie des CPs peut avoir été déplacée à l'intérieur d'une CL. Pour assurer la cohérence et préserver la connectivité du réseau les CL concernées doivent être découpées au niveau de ces CPs.
 Pour cela, on parcourt les CL est pour chacune on récupère les CPs avec lesquels elle est en contact. On calcule les sous-arcs issus de la découpe de la CL par les CP. On remplace alors dans la table des arcs _EDGE_TABLE_INIT_ la CL originelle par les nouvelles CLs résultant de la découpe.
 
-
-
-On parcourt les frontières internationale entre les deux pays
---> POUR TOUTES LES FRONTIERES ON PREND TOUS LES ARCS INTERSECTANT UNE CL
-On parcourt tout les arcs intersectant la frontière 
-+ tous les arcs intersectant une connecting line !!!!
-Pour chaque arc :
-- on calcule l'intersection avec la frontière
-- on regarde si CL a proximité, si oui on calcule l'intersection avec la CL (ON NE CALCULE INTERSECTION QU'AVEC 1 CL ? COMMENT SAIT ON QUE LA CL QU'ON RECUPERE EST LA BONNE ?)
-QUELLE CAS DE FIGURE ESSAIT ON DE TRAITER LORSQU'ON CALCUL DES CP SUR DES CL ?
-si intersection CL et suffisemment proche de la frontière, on remplace l'intersection avec frontière pas celle avec CL
-POURQUOI CALCULER DISTANCE ENTRE (INTERSECTION CL) et (INTERSECTION BORDER) ?
-- pour chaque point d'intersection on crée un CP (MEME SI LE POINT D'INTER AVEC CL EST LOIN DE LA FRONTIERE ?)
-
-On calcul les CP par resolution des undershoot
-on parcourt les arcs qui sont dans un buffer (dont rayon est tolérance pour undershoot) EST CE QU'ON PEUT AMELIORER EN NE PRENANT QUE LES ARCS DONT UNE DES EXTREMITES EST DANS LE BUFFER ?
-pour chaque arc qui n'intersect pas la frontiere :
-on regarde quelle est l'extremité la plus proche de la frontière (ON NE REGARDE PAS SI LE POINT EST BIEN A UNE DISTANCE < seuil undershoot !)
-on regarde si cette extremité n'est pas un dangle (REVOIR LA METHODE DE DETECTION DES DANGLES)
- SI DANGLE pourquoi on ne regarde pas l'autre extremite si elle est aussi à une distance < seuil undershoot ?
-On calcule la projection axiale PA puis calcule la projection othogonale PO, si dPO < dPA/3 on prend PO
-On crée un CP au niveau du point projeté
-
-On cherche a regrouper les CP (SUR LES FRONTIERES ?)
-On recupere des amas de CP proche
-Les CP isolés sont supprimés
-Pour chaque amas on établit des associations entre paire des CP des 2 pays (meilleurs condidats reciproques)
-Les CP sont associables si distance < seuil> et si les arcs associé sont colinéaires
-Ls CP non associés sont supprimés
-Chaque paire constitue un groupe
-On associe si possible les CP restant au sein de nouveau groupe
-S'il reste des CP dont le candidat est déjà dans un groupe on rattache ce CP à ce groupe.
-Pour chaque groupe on calcul le barycentre que l'on projette sur la frontiere
- --> POURQUOI ON CHERCHE LA FRONTIERE A LA DISTANCE DE SNAPPING ? QUE CE PASSE T IL SI PAS DE FRONTIERE ?
- --> ON TRAITE AUSSI LES CP SU CL ?
-On affecte à chaque CP du groupe la géométrie du barycentre projeté
-
---> A CE STADE ON A QUE DES CP GROUPES ET PROJETES SUR LA FRONTIERE
---> LE RESTE A BIEN ETE SUPPRIME ?
-
-On snappe les CP sur les CL (CONCERNE LES CP TRAITES PRECEDEMMENT (SUR LES FRONTIERES) ?)
-POURQUOI ON SNAPPE SI DIST = 2 x CP_CP_2_CL_SNAP_DIST ?
-pour chaque CP on recherche s'il existe une CL proche
-si oui on projette le CP sur CL
-on découpe les CL selon les CP projettés
-
-
-
-_getCPfromIntersectBorder : est ce qu'on peut avoir 2 intersection : 1 avec la frontiere et 1 avec CL ? voir avec plusieur CL ? Dans de cas là il faudrait garder toutes les intersections ?
-
-Les CP créés par intersection d'arc et CL peuvent etre projetés sur la frontière dans _snapCPNearBy (le bary du groupe est projeté) pour être ensuite reprojeté sur la CL dans _snapCpOnClNearBy ???
-
-Les arcs connecté des CL ne devraient pas être considérés comme intersectant des CL
-
-on doit pouvoir avoir plusieurs cp pour un même arc, est ce le cas?
-
-3157439,98567  3964989,89977
-3140065,32  4003423,75
-3142239,65  3901962,88
-
-
-
+![240_2_2](images/240_2_2_with_key.png)
 
 
 #### 250 : ConnectionConnectingPoint
@@ -707,21 +651,20 @@ Paramètre utilisés:
 | paramètre                   |                                                                                               |
 |-----------------------------|-----------------------------------------------------------------------------------------------|
 | LINKED_FEATURE_ID           | nom du champ indiquant l'identifiant de l'arc associé à un connecting point                   |
-| CFC_SNAP_DIST               | distance maximum entre un connecting point et une extremité de son arc associé pour pouvoir réaliser un déplacement de cette extrémité vers le connecting point (sinon une découpe de l'arc est réalisée)   |
+| CFC_SNAP_DIST               | distance de snapping d'une extrémité d'un arc vers un connecting point                        |
 
+Le traitement est réalisé pays par pays. 
+Pour chaque pays on parcourt donc les _connecting points_ qui lui sont associés.
+La première étape consiste à calculer les déplacements et éventuelles découpe des arcs de manière à connecter ces derniers à leurs CPs associés s'ils en possèdent.
+Pour chaque _connecting point_ on recherche l'arc qui lui est associé et dont l'identifiant est enregistré dans le champ _LINKED_FEATURE_ID_. Si cet arc n'existe pas c'est qu'il a déjà été découpé lors d'une précédente opération de calcul de déplacement vers un autre CP. En effet, un arc pouvant être lié à plusieurs CP et le calcul du déplacement lié à un CP pouvant engendrer la découpe de l'arc, lorsque l'on recherche l'arc lié a un CP, ce dernier peut ne plus exister s'il a été précédemment découpé. On recherche alors parmis ses enfants (arcs résultants de découpes antérieures) lequel est le plus proche.
+Une fois que l'on a identifié l'arc lié au CP, on calcule la distance entre le CP et les extrémité de l'arc. Deux cas peuvent alors se présenter :
+- si la plus proche de ces extrémités est à une distance du CP inférieure au seuil _CFC_SNAP_DIST_ le déplacement enregistré est le vecteur allant de cette extrémité vers le CP. Aucune découpe de l'arc n'est alors réalisée.
+- si aucune des extrémités n'est à une distance du CP inférieure au seuil _CFC_SNAP_DIST_, alors on projète le CP sur l'arc et l'arc est découpé en ce point. Le déplacement enregistré est le vecteur allant du point projeté vers le CP.
 
-Traitement pays par pays
-On parcours tous les CP du pays 
-On recherche l'arc lié au CP ou son enfant le plus proche du CP si l'arc à déjà été découpé
-si la distance entre une des extremitées de l'arc et le CP est < CFC_SNAP_DIST ....
-sinon on projette le CP sur l'arc, si le projeté n'est pas sur une extrémité on découpe l'arc en utilisant le projeté comme point de coupure
-On enregistre déplacement = vecteur (point projeté ou extémité proche) vers CP
+Maintenant que les déplacements ont été calculés la seconde étape consiste à appliquer ces déplacements sur le réseau en veillant à en préserver la cohérence et la connectivité.
+Pour cela un graphe simple (non planaire) du réseau du pays est chargé et un opérateur de déformation du réseau selon un champ de vecteur est appliqué : les déplacements sont appliqués aux noeuds du réseau et les arcs adjacents sont déformés en conséquence en appliquant une fonction de déformation amortie.
 
-On charge un gaph simple du réseau du pays
-On applique les déplacements sur ce graph. Vertex déplacé et edge adjacent déformés
-on enregistre en base les edge déformés
-on supprime les arcs effondrés
-
+Pour finir les arcs déformés sont enregistrés en base de données et les arcs effondrés en un point sont supprimés.
 
 #### 255 : GenerateCLinArea2
 

@@ -202,11 +202,9 @@ Enfin pour chacun des arcs possédant un ou plusieurs points de coupure, on proc
 ![201_a](images/201_a_with_key.png)
 
 Pour la corrections des connexion, comme précédemment, on charge l'ensemble des informations nécessaires au traitement en mémoire (géométries des arcs, informations sur les sommets...).
-Le principe du traitement consiste à itérer sur les sommets et pour chaque sommet parcouru (qui devient le sommet de référence), chercher les autres sommets situés à une distance inférieures au seuil _CC_DIST_THRESHOLD_, puis, pour chacun des arcs auquels appartiennent ces sommets, on remplace sur les géométrie stockées en mémoire l'extrémité correspondante par la géométrie du point de référence.
+Le principe du traitement consiste à itérer sur les sommets et pour chaque sommet parcouru (qui devient le sommet de référence), chercher les autres sommets situés à une distance inférieures au seuil _CC_DIST_THRESHOLD_, puis, pour chacun des arcs auquels appartiennent ces sommets, on remplace sur les géométries stockées en mémoire l'extrémité correspondante par la géométrie du point de référence.
 L'ensemble des arcs modifiés sont enregistré en base de données en fin de traitement.
 A noter que le point de référence (sommet restant fixe, vers lequel les autres sommets sont déplacés) est arbitrairement choisi parmi l'ensemble des sommets devant être connectés car cela dépend de l'ordre dans lequel l'algorithme parcourt les sommets.
-
-![201_b](images/201_b_with_key.png)
 
 ### 202 : FillFictitiousField
 
@@ -653,16 +651,28 @@ Paramètre utilisés:
 | LINKED_FEATURE_ID           | nom du champ indiquant l'identifiant de l'arc associé à un connecting point                   |
 | CFC_SNAP_DIST               | distance de snapping d'une extrémité d'un arc vers un connecting point                        |
 
-Le traitement est réalisé pays par pays. 
+Le traitement est réalisé pays par pays.
 Pour chaque pays on parcourt donc les _connecting points_ qui lui sont associés.
-La première étape consiste à calculer les déplacements et éventuelles découpe des arcs de manière à connecter ces derniers à leurs CPs associés s'ils en possèdent.
+La première étape consiste à calculer les déplacements et éventuelles découpes des arcs de manière à connecter ces derniers à leurs CPs associés s'ils en possèdent.
 Pour chaque _connecting point_ on recherche l'arc qui lui est associé et dont l'identifiant est enregistré dans le champ _LINKED_FEATURE_ID_. Si cet arc n'existe pas c'est qu'il a déjà été découpé lors d'une précédente opération de calcul de déplacement vers un autre CP. En effet, un arc pouvant être lié à plusieurs CP et le calcul du déplacement lié à un CP pouvant engendrer la découpe de l'arc, lorsque l'on recherche l'arc lié a un CP, ce dernier peut ne plus exister s'il a été précédemment découpé. On recherche alors parmis ses enfants (arcs résultants de découpes antérieures) lequel est le plus proche.
 Une fois que l'on a identifié l'arc lié au CP, on calcule la distance entre le CP et les extrémité de l'arc. Deux cas peuvent alors se présenter :
 - si la plus proche de ces extrémités est à une distance du CP inférieure au seuil _CFC_SNAP_DIST_ le déplacement enregistré est le vecteur allant de cette extrémité vers le CP. Aucune découpe de l'arc n'est alors réalisée.
 - si aucune des extrémités n'est à une distance du CP inférieure au seuil _CFC_SNAP_DIST_, alors on projète le CP sur l'arc et l'arc est découpé en ce point. Le déplacement enregistré est le vecteur allant du point projeté vers le CP.
 
+![250_1_1](images/250_1_1_with_key.png)
+<br>
+![250_1_2](images/250_1_2_with_key.png)
+<br>
+![250_2_1](images/250_2_1_with_key.png)
+<br>
+![250_2_2](images/250_2_2_with_key.png)
+<br>
+![250_2_3](images/250_2_3_with_key.png)
+
 Maintenant que les déplacements ont été calculés la seconde étape consiste à appliquer ces déplacements sur le réseau en veillant à en préserver la cohérence et la connectivité.
 Pour cela un graphe simple (non planaire) du réseau du pays est chargé et un opérateur de déformation du réseau selon un champ de vecteur est appliqué : les déplacements sont appliqués aux noeuds du réseau et les arcs adjacents sont déformés en conséquence en appliquant une fonction de déformation amortie.
+
+![250_2_4](images/250_2_4_with_key.png)
 
 Pour finir les arcs déformés sont enregistrés en base de données et les arcs effondrés en un point sont supprimés.
 

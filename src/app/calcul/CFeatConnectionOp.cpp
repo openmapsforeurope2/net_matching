@@ -625,6 +625,13 @@ namespace app
                     if (vNewEdgeGeom.size() > 1) {
                         _fsEdge->deleteFeature(edgeId);
 
+                        //DEBUG
+                        {
+                            ign::feature::Feature feat;
+                            feat.setGeometry(ign::geometry::LineString(cpGeom, startPoint));
+                            _shapeLogger->writeFeature("cp_cut_edge_"+country, feat);
+                        }
+
                         auto r_mit = mParentChilds.right.find(edgeId);
                         std::string parentId = r_mit != mParentChilds.right.end() ? r_mit->second : edgeId;
                         if (r_mit != mParentChilds.right.end()) mParentChilds.right.erase(r_mit);
@@ -655,6 +662,7 @@ namespace app
         void CFeatConnectionOp::_computeCp(std::string const& country) const
         {
             _shapeLogger->addShape("cp_displacements_"+country, epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("cp_cut_edge_"+country, epg::log::ShapeLogger::LINESTRING);
 
             std::map<ign::geometry::Point, ign::math::Vec2d> mDisplacements;
             _computeCpDisplacements(mDisplacements, country);
@@ -677,6 +685,7 @@ namespace app
             }
 
             _shapeLogger->closeShape("cp_displacements_"+country);
+            _shapeLogger->closeShape("cp_cut_edge_"+country);
         }
 
         ///

@@ -416,9 +416,8 @@ namespace app
             GraphType & graph = graphManager.getGraph();
             boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning faces  % complete ]\n");
             face_iterator fit, fend;
-			for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
+			for( graph.faces( fit, fend ) ; fit != fend ; ++fit, ++display )
 			{
-                ++display;
 				ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
 
 				if (_isSlimSurface(faceGeom, slimSurfaceWidth)) {
@@ -477,32 +476,35 @@ namespace app
                     if (sHasConnection.size() > 1) continue;
 
                     if ( mlEdges.size() > 2 ) {
-                        _logger->log(epg::log::WARN, "More than 2 paths found path [edge id] "+graph.origins(startEdge.descriptor)[0]);
+                        _logger->log(epg::log::WARN, "More than 2 paths found [edge id] "+graph.origins(startEdge.descriptor)[0]);
                         continue;
                     }
 
                     if ( mlEdges.size() == 1 ) {
-                        _logger->log(epg::log::WARN, "Only 1 path found path [edge id] "+graph.origins(startEdge.descriptor)[0]);
+                        _logger->log(epg::log::WARN, "Only 1 path found [edge id] "+graph.origins(startEdge.descriptor)[0]);
                         continue;
                     }
 
                     if ( mlEdges.size() == 0 ) {
-                        _logger->log(epg::log::WARN, "No path found path [edge id] "+graph.origins(startEdge.descriptor)[0]);
+                        _logger->log(epg::log::WARN, "No path found [edge id] "+graph.origins(startEdge.descriptor)[0]);
                         continue;
                     }
 
                     // quel chemin doit-on garder ?
-                    double ratio1 = _getRatio(graph, mlEdges.begin()->first, mlEdges.begin()->second);
                     bool hasConnection1 = sHasConnection.find(mlEdges.begin()->first) != sHasConnection.end();
-                    double ratio2 = _getRatio(graph, mlEdges.rbegin()->first, mlEdges.rbegin()->second);
                     bool hasConnection2 = sHasConnection.find(mlEdges.rbegin()->first) != sHasConnection.end();
 
                     if ( hasConnection1 && hasConnection2 ) 
                         continue;
-                    if ( !hasConnection1 && !hasConnection2 )
-                        _removeEdges(graph, ratio1 > ratio2 ? mlEdges.rbegin()->second : mlEdges.begin()->second, sEdge2Remove);
-                    else
+                    
+                    if ( hasConnection1 || hasConnection2 )
                         _removeEdges(graph, hasConnection1 ? mlEdges.rbegin()->second : mlEdges.begin()->second, sEdge2Remove);
+                    else {
+                        double ratio1 = _getRatio(graph, mlEdges.begin()->first, mlEdges.begin()->second);
+                        double ratio2 = _getRatio(graph, mlEdges.rbegin()->first, mlEdges.rbegin()->second);
+
+                        _removeEdges(graph, ratio1 > ratio2 ? mlEdges.rbegin()->second : mlEdges.begin()->second, sEdge2Remove);
+                    }   
                 }
 			}
             for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
@@ -1475,7 +1477,6 @@ namespace app
         ///
         bool EdgeCleaningOp::_cleanAntennas(
             detail::EdgeCleaningGraphManager & graphManager,
-            /*std::set<vertex_descriptor> & sTreatedDangles,*/
             std::set<std::string> & sTreatedFeatures,
             bool isPlanarGraph,
             bool withCl
@@ -1498,7 +1499,6 @@ namespace app
         ///
         bool EdgeCleaningOp::_cleanGraphAntennas(
             detail::EdgeCleaningGraphManager & graphManager, 
-            /*std::set<vertex_descriptor> & sTreatedDangles,*/ 
             std::set<std::string> & sTreatedFeatures,
             bool isPlanarGraph,
             bool withCl
@@ -1538,45 +1538,28 @@ namespace app
             std::map<vertex_descriptor, std::vector<std::list<oriented_edge_descriptor>>>::iterator mit;
             for (mit = mVertexAntennas.begin() ; mit != mVertexAntennas.end() ; mit++, ++display2) 
             {
+                //DEBUG
+                // if( graph.getGeometry(mit->first).distance(ign::geometry::Point(3995673.931, 2942688.692)) < 1) {
+                //     bool test = true;
+                // }
                 bool bConnected2CF = sVerticesConnected2CF.find(mit->first) != sVerticesConnected2CF.end() || _vertexIsConnected2Cl(graphManager, mit->first);
 
-                std::vector<std::list<oriented_edge_descriptor>>::const_iterator minVit;
-                bool isRemoved = false;
-                std::set<std::string> sNotTreated;
-                do {
-                    std::vector<std::list<oriented_edge_descriptor>>::const_iterator vit;
-                    if ( mit->second.size() > 1) {
-                        double minLength = std::numeric_limits<double>::max();
-                        std::string minEdge = "";
-                        for (vit = mit->second.begin() ; vit != mit->second.end() ; ++vit) {
-                            std::string edgeFeatId = graph.origins(vit->begin()->descriptor)[0];
-                            sNotTreated.insert(edgeFeatId);
-                            double length = _getAntennaLength(graph, *vit);
-
-                            if (length < minLength) {
-                                minLength = length;
-                                minVit = vit;
-                                minEdge = edgeFeatId;
-                            } 
-                        }
-                        sNotTreated.erase(minEdge);
+                std::map<double, std::list<oriented_edge_descriptor>> mLengthAntenna;
+                for (std::vector<std::list<oriented_edge_descriptor>>::const_iterator vit = mit->second.begin() ; vit != mit->second.end() ; ++vit) {
+                    double length = _getAntennaLength(graph, *vit);
+                    mLengthAntenna.insert(std::make_pair(length, *vit));
+                }
+                std::set<std::string> sNotRemoved;
+                for (std::map<double, std::list<oriented_edge_descriptor>>::const_iterator mit2 = mLengthAntenna.begin() ; mit2 != mLengthAntenna.end() ; ++mit2) {
+                    if( _cleanAntenna(graphManager, mit2->second, bConnected2CF) ) {
+                        bHasRemovedAntenna = true;
                     } else {
-                        minVit = mit->second.begin();
+                        std::string edgeFeatId = graph.origins(mit2->second.begin()->descriptor)[0];
+                        sNotRemoved.insert(edgeFeatId);
                     }
-                    
-                    isRemoved = _cleanAntenna(graphManager, *minVit, bConnected2CF);
-
-                    if( isRemoved ) {
-                        for( std::set<std::string>::const_iterator sit = sNotTreated.begin() ; sit != sNotTreated.end() ; ++sit ) {
-                            sTreatedFeatures.erase(*sit);
-                        }
-                    } 
-
-                    if (isRemoved) {
-                         bHasRemovedAntenna = true;
-                         mit->second.erase(minVit);
-                    }
-                } while (isRemoved && graph.degree(mit->first) > 2 && mit->second.size() > 0);
+                }
+                if ( sNotRemoved.size() == 1 )
+                    sTreatedFeatures.erase(*sNotRemoved.begin());
             }
 
             return bHasRemovedAntenna;

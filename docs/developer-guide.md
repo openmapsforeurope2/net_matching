@@ -206,6 +206,8 @@ Le principe du traitement consiste à itérer sur les sommets et pour chaque som
 L'ensemble des arcs modifiés sont enregistré en base de données en fin de traitement.
 A noter que le point de référence (sommet restant fixe, vers lequel les autres sommets sont déplacés) est arbitrairement choisi parmi l'ensemble des sommets devant être connectés car cela dépend de l'ordre dans lequel l'algorithme parcourt les sommets.
 
+![201_b](images/201_b_with_key.png)
+
 ### 202 : FillFictitiousField
 
 Cette étape est spécifique au réseau hydrographique. Elle consiste à renseigner et/ou corriger le champ _EDGE_FICTITIOUS_NAME_ (indiquant si un arc est fictif) qui peut être manquant ou mal renseigné dans les donnnées sources livrées par les producteurs nationaux.
@@ -692,12 +694,12 @@ Ce référer à l'étape 204 du processus qui met en oeuvre le même traitement.
 
 Ce référer à l'étape 204 du processus qui met en oeuvre le même traitement.
 <br>
-La seule différence avec l'étape 204 est l'utilisation des paramètres CLA_CL_LENGTH_THRESHOLD_2 et CLA_CL_MIN_RATIO_IN_AREA_2 en remplacement des paramètres CLA_CL_LENGTH_THRESHOLD et CLA_CL_MIN_RATIO_IN_AREA ce qui modifie le comportement de l'outil en ce qui concerne la prise en charge des connecting lines.
+La seule différence avec l'étape 204 est l'utilisation des paramètres CLA_CL_LENGTH_THRESHOLD_2 et CLA_CL_MIN_RATIO_IN_AREA_2 en remplacement des paramètres CLA_CL_LENGTH_THRESHOLD et CLA_CL_MIN_RATIO_IN_AREA ce qui modifie le comportement de l'outil en ce qui concerne le traitement des connecting lines pouvant composer le contour des faces.
 
 
 #### 260 : EdgeCleaning1
 
-Lors de cette étape on va connecter les arcs au(x) connecting point(s) auquel(s) ils sont associés.
+Cette étape correspond à une phase de nettoyage dont le but est d'élmininer les redondances, artefacts ....on non légitimes, pas dans le bon  pays antenne
 
 ##### Données de travail :
 
@@ -713,43 +715,76 @@ Lors de cette étape on va connecter les arcs au(x) connecting point(s) auquel(s
 ##### Description du traitement :
 
 Paramètre utilisés: 
-| paramètre                   |                                                                                               |
-|-----------------------------|-----------------------------------------------------------------------------------------------|
-| ECL_SQL_FILTER              |                   |
-ECL_SLIM_SURFACE_WIDTH
-ECL_PARALELLE_EDGE_MAX_DIST
-W_TAG_NAME
+| paramètre                   |                                                                   |
+|-----------------------------|-------------------------------------------------------------------|
+| ECL_SQL_FILTER              | clause WHERE sql pour filtrer les arcs à nettoyer                 |
+| ECL_SLIM_SURFACE_WIDTH      | seuil de largeur des surfaces fines                               |
+| ECL_PARALELLE_EDGE_MAX_DIST | 
+| ECL_LANDMASK_BUFFER
+| ECL_ANTENNA_RATIO_THRESHOLD
+| ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD
+| ECL_ANTENNA_MIN_LENGTH
+| ECL_ANTENNA_MIN_LENGTH_IN_COUNTRY
+| ECL_ARTIFACT_WIDTH                        =2
+| ECL_SLIM_SURFACE_MAX_AREA                 optimisation
+| ECL_SLIM_SURFACE_MAX_NB_POINTS            optimisation
+| W_TAG_NAME                  |
 
-edgeCleaningOp.cleanFaces();
-edgeCleaningOp.cleanParalelleEdges();
-edgeCleaningOp.cleanFacesAndAntennaByCountry(eclSqlFilter, false /*tagTreatedFeatures*/);
 
-cleanFaces: (éliminer les redondances : modélisation par les deux pays du même chemin qui n'ont pas été fusionné)
-chargement graphe planaire
-pour chaque face : detection face étroites (détermination des cotés et points extrèmes)
-Si face étroite et contour ne contient pas de CL et l'ensemble des composantes de chaque coté appartient à un seul pays et les 2 coté appartient à deux pays différents
-+ nombre de ending point != 2
-+ pas de connexion des deux cotés au reste du réseau (OK si 1 ou 0 coté)
-VOIR SI ENDING POINT = passage d'un noeud de degré > 2 touchant une CL ?
+Différentes opérations de nettoyages sont réalisées lors de cette étape :
 
-Si un chemin est connecté au reseau et l'autre non, on supprime le chemin que n'a pas de connexion
-Si les deux chemins n'ont pas de connexion supprime celui qui a le ratio "dans le pays" le plus petit
+1) Nettoyage des faces.
 
-cleanParalelleEdges:
-suppression d'artefacts
-Chargement d'un graph simple (un arc du graph = un arc du réseau)
-pour tous les arcs possédant les mêmes sommet
-on parcourt une première fois tous les arcs pour determiner l'arc de référence (celui qui à le plus grand ratio dans le pays ou CL)
-on parcourt une second fois les arcs pour calculer leur écartement maximum à l'arc de référence (hausdorff). Si cet écartement est inférieur à un seuil on le supprime.
+L'objectif est d'éliminer les redondances (plusieurs représentations d'un même objet du monde réel). En effet, a ce stade peuvent encore co-exister des modélisations des deux pays d'un même objet formant des faces qui n'auraient pas été fusionnées lors des étapes précédentes.
 
-cleanFacesAndAntennaByCountry:
-Traitement pays par pays
-chargement d'un graphe planaire
-pour tous les sommet de degree 1 qui ne sont pas des CP:
-On récupère l'antenne (chemin jusqu'à un sommet de degree != 2 ou jusqu'a CP ou CL -> on inclus pas les CL dans les antennes)
-On enregistre pour les sommets concernés la liste des antennes qui y convergent
-On parcourt ces sommet
-On parcourt les antennes de ce sommet
+La première étape consiste à créer les faces en construisant un graphe planaire avec les réseaux des deux pays.
+Il nous faut ensuite parcourir les faces du graphe. On analyse chaque face afin de déterminer s'il s'agit d'une face 'étroite'.
+Une face étroite est une face de 'forme longiligne' dont la largeur moyenne n'excède pas un certain seuil (ici _ECL_SLIM_SURFACE_WIDTH_).
+Dans un premier temps on va chercher à determiner quels sont les extrémités de la face longiligne. Pour cela on va commencer pas générer le squelette de la face puis construire un graphe constitué des arêtes de ce squelette et enfin calculer les chemins entre touts les noeuds de degré 1 du squelette. Les extrémités sont les points correspondants aux noeuds source et cible du chemin le plus long.
+Une fois obtenus les points extrèmes on peut extraire du contour de la face les deux côtés de la face longiligne.
+Pour qu'une face soit considérer qu'un face est fine il faut que :
+- la largeur moyenne soit inférieure à _ECL_SLIM_SURFACE_WIDTH_. La largeur moyenne est calculée de la manière suivante : meanLength = 2 * (PolygonArea / PolygonExterirorRingLength)
+- la distance de hausdorff entre les deux côtés de la face soit inférieure à 3 * _ECL_SLIM_SURFACE_WIDTH_
+
+Si une face étroite est détectée, on parcourt les arcs de son contour en enregistrant :
+- les chemins de chaque pays
+- les connexions du contour à des _connecting lines_
+- les connexions des chemins au reste du réseau (connexion hors extrémitées du chemin à des arcs du même pays autre que _connecting line_)
+
+Le traitement de la face est abandonné si :
+- le contour contient une _connecting line_
+- le contour ne possède pas deux et seulement deux noeuds connectés à des _connecting lines_
+- il n'existe pas un chemin pour chacun des deux pays
+- les deux chemins sont connecté au réseau
+
+Si la face peut être traitée, il faut déterminer lequel des deux chemins doit être conservé et lequel doit être supprimé.
+Si un des deux chemins est connecté au réseau c'est celui là qui sera conservé.
+Si aucun des deux chemins n'est connecté au réseau on calcule les ratios de chaque chemin (le ratio d'un chemin correspond ici à la proportion du chemin qui est localisé dans son pays d'origine).
+Le chemin qui est conservé est celui qui à le ratio le plus grand.
+
+
+2) Nettoyage des arcs parallèles.
+
+On cherche ici à éliminer les arcs très proches qui sont des artefacts générés lors d'étapes antérieures.
+
+On construit tout d'abord un graphe simple (non planaire) à partir des réseaux des deux pays. Dans ce graphe un arc du graphe correspond à un arc d'un des réseaux.
+
+On parcourt ensuite les arcs du graphe et pour chaque arc on regarde s'il existe des arcs parallèles (arcs possédant les mêmes sommets).
+Si plusieurs arcs paralèlles existent, on choisi parmis eux un arc de référence. Si l'un des arcs correspond à une _connecting line_ c'est lui que l'on choisi, sinon on prend celui qui à le plus grand ratio.
+Ensuite, on calcule la distance de hausdorff entre l'arc de référence et chacun des autres arcs. Si cette distance est inférieure au seuil _ECL_PARALELLE_EDGE_MAX_DIST_ l'arc est supprimé.
+
+
+3) Nettoyage des antennes et des isthmes (faces connectées au réseau par un seul arc)
+
+Le taitement s'effectue pays par pays.
+On construit dans un premier temps un graph planaire à partir du réseau d'un pays.
+Ensuite, on parcourt les noeuds du graphe, et, pour chaque noeud de degré 1 on récupère l'antenne qui correspond au chemin partant de ce noeud et qui s'achève au premier noeud de degré différent de 2, _connecting point_ ou sommet de _connecting line_ rencontré.
+On enregistre les antennes en les regroupant par noeud de convergence.
+
+Une fois cette phase d'enregistrement des antennes achevée, on parcourt les noeuds de convergence.
+Pour chaque noeud on parcourt les antennes qui lui y converge.
+
+
 
 si antenne connecté à CF est length < ECL_ANTENNA_MIN_LENGTH : supprimée
 on calcul les portion dans et hors pays : si premiere partie dans pays et sa length >= ECL_ANTENNA_MIN_LENGTH_IN_COUNTRY --> on garde
@@ -760,10 +795,7 @@ La derniere antenne n'est pas supprimé si elle conduit à l'apparition d'une no
 VOIR POURQUOI on sort de la suppression des antennes à la première antenne non supprimé ?? l.1579 : isRemoved
 
 
-ECL_ANTENNA_RATIO_THRESHOLD
-ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD
-ECL_ANTENNA_MIN_LENGTH
-ECL_ANTENNA_MIN_LENGTH_IN_COUNTRY
+
 
 
 toujours avec le même graphe, nettoyage des faces

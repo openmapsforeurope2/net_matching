@@ -2,12 +2,15 @@ FROM libepg
 
 RUN apt-get update -y \
  && apt-get -y install g++ \
- && apt-get -y install gcc \
- && apt-get -y install cmake \
- && apt-get -y install make \
- && apt-get -y install gdb \
+                       gcc \
+                       cmake \
+                       make \
+                       gdb \
  && rm -rf /var/lib/apt/lists/*
 
-ENV APP_DIR_SRC=/usr/local/src/net_matching/                                                     
+# pour que gdb ne se link pas aux libs conda importées
+ENV LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+ 
+ENV APP_DIR_SRC=/usr/local/src/net_matching/                                                 
 
 WORKDIR $APP_DIR_SRC

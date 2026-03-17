@@ -1,9 +1,11 @@
-cmake_minimum_required( VERSION 2.8.3 )
+cmake_minimum_required( VERSION 3.10 )
 cmake_policy(SET CMP0020 NEW)
 
 # Definition du projet
 set(PROJECT_NAME net_matching)
 project(${PROJECT_NAME})
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 FIND_PATH(SOCLE_EXTERN_ROOT NAMES SocleExterns.cmake
 	PATHS $ENV{SOCLE_EXTERN_ROOT}
@@ -12,12 +14,9 @@ FIND_PATH(SOCLE_EXTERN_ROOT NAMES SocleExterns.cmake
 	PATHS ../Lib/extern
 )
 
-IF (NOT SOCLE_EXTERN_ROOT)
-	MESSAGE(FATAL_ERROR "Could not locate IGN extern root, define env SOCLE_EXTERN_ROOT")
+IF (SOCLE_EXTERN_ROOT)
+	include( ${SOCLE_EXTERN_ROOT}/SocleExterns.cmake )
 ENDIF()
-
-include( ${SOCLE_EXTERN_ROOT}/SocleExterns.cmake )
-
 
 # disable warning substition /W3 par /W4
 IF (MSVC)
@@ -31,7 +30,11 @@ IF (MSVC)
 ENDIF (MSVC)
 
 # Maintenant on peut ajouter des lib avec une seule ligne de commande
-SET(Boost_USE_STATIC_LIBS ON)
+IF (SOCLE_EXTERN_ROOT)
+	SET(Boost_USE_STATIC_LIBS ON)
+ELSE()
+	SET(Boost_USE_STATIC_LIBS OFF)
+ENDIF()
 SET(Boost_USE_MULTITHREADED ON)
 add_definitions( "-DBOOST_THREAD_USE_LIB" )
 add_definitions( "-DBOOST_ALL_NO_LIB" )
@@ -41,14 +44,12 @@ find_package(Geos REQUIRED)
 find_package(CGAL COMPONENTS Core REQUIRED)
 find_package(GMP REQUIRED)
 find_package(MPFR REQUIRED)
-find_package( Pq REQUIRED )
-find_package( Qt5 COMPONENTS Widgets Gui Core Xml REQUIRED )
+find_package(Pq REQUIRED)
+find_package(Qt5 COMPONENTS Widgets Gui Core Xml REQUIRED)
 add_definitions(${QT_DEFINITIONS})
-find_package( Sqlite REQUIRED )
-
+find_package(Sqlite REQUIRED)
 
 find_package( IgnSocle COMPONENTS core numeric math tools data filesystem geometry sql feature graph transform shapefile cgal REQUIRED )
-
 
 # Ajout de LibEPG
 FIND_PATH(
@@ -59,13 +60,11 @@ FIND_PATH(
 		$ENV{LIB_EPG}
 )
 
-
 IF (NOT LibEPG)
         MESSAGE(FATAL_ERROR "Could not locate LibEPG")
 ENDIF()
 
 include (${LibEPG}/LibEPG.cmake)
-
 
 include_directories(
 	${Boost_INCLUDE_DIRS}
@@ -82,20 +81,6 @@ include_directories(
 	${Sqlite_INCLUDE_DIRS}
     ${IgnSocle_INCLUDE_DIRS}
     ${LibEPG_INCLUDE_DIRS}
-)
-
-link_directories(               
-	${Boost_LIBRARY_DIRS}
-	${QT_LiBRARY_DIRS}
-	${Pq_LIBRARY_DIRS}
-	${Geos_LIBRARY_DIRS}
-    ${Shapelib_LIBRARY_DIRS}
-	${CGAL_LIBRARY_DIRS}
-	${GMP_LIBRARY_DIRS}
-	${MPFR_LIBRARY_DIRS}
-	${Sqlite_LIBRARY_DIRS}
-    ${IgnSocle_LIBRARY_DIRS}
-    ${LibEPG_LIBRARY_DIRS}
 )
 
 #definition de l'output de l'executable	
@@ -118,29 +103,18 @@ add_executable(
 	${APP_HEADERS}
 	${APP_SOURCES}
 )
+
 set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX "d")
 
 #Configuration de l'edition de liens
-target_link_libraries(
-	${PROJECT_NAME} 
+target_link_directories(${PROJECT_NAME} PRIVATE ${LibEPG_LIBRARY_DIRS})
+target_link_libraries(${PROJECT_NAME} 
     ${LibEPG_LIBRARIES}
     ${IgnSocle_LIBRARIES}
 	${Pq_LIBRARIES}
-	${Sqlite_LIBRARIES}
-    ${Shapelib_LIBRARIES}
-	${CGAL_LIBRARIES}
-	#${CGAL_CORE_LIBRARIES}
-	#${CGAL_LIBRARY}
-	#${CGAL_CORE_LIBRARY}
-	${GMP_LIBRARIES}
-	${MPFR_LIBRARIES}
-	${Geos_LIBRARIES}
-	${Qt5Xml_LIBRARIES}
-	${Qt5Widgets_LIBRARIES}
-	${Qt5Gui_LIBRARIES}
-	${Qt5Core_LIBRARIES}
-	${Qt5Core_QTMAIN_LIBRARIES}
-	${Boost_LIBRARIES}
+	Boost::filesystem
+	Boost::program_options
+	Qt5::Core
 )
 
 #-- installation

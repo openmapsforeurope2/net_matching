@@ -14,12 +14,4 @@ fi
 echo $GIT_BRANCH
 echo $DOCKER_TAG
 
-NB_PROC=`grep processor /proc/cpuinfo | wc -l`
-NB_PROC=$(( $NB_PROC - 2))
-if [ $NB_PROC -lt 1 ]
-then
-    NB_PROC=1
-fi
-echo $NB_PROC
-
-DOCKER_BUILDKIT=1 docker build --no-cache --build-arg GIT_BRANCH=$GIT_BRANCH --build-arg NB_PROC=$NB_PROC -t $DOCKER_NAME:$DOCKER_TAG -f Dockerfile ./..
+DOCKER_BUILDKIT=1 docker build --no-cache -t $DOCKER_NAME:$DOCKER_TAG -f Dockerfile ./..

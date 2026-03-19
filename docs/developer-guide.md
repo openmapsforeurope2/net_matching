@@ -735,14 +735,14 @@ Différentes opérations de nettoyages sont réalisées lors de cette étape :
 
 1) Nettoyage des faces.
 
-L'objectif est d'éliminer les redondances (plusieurs représentations d'un même objet du monde réel). En effet, a ce stade peuvent encore co-exister des modélisations des deux pays d'un même objet formant des faces qui n'auraient pas été fusionnées lors des étapes précédentes.
+L'objectif est d'éliminer les redondances (plusieurs représentations d'un même objet du monde réel). En effet, à ce stade peuvent encore co-exister des modélisations des deux pays d'un même objet formant des faces qui n'auraient pas été fusionnées lors des étapes précédentes.
 
 La première étape consiste à créer les faces en construisant un graphe planaire avec les réseaux des deux pays.
 Il nous faut ensuite parcourir les faces du graphe. On analyse chaque face afin de déterminer s'il s'agit d'une face 'étroite'.
 Une face étroite est une face de 'forme longiligne' dont la largeur moyenne n'excède pas un certain seuil (ici _ECL_SLIM_SURFACE_WIDTH_).
-Dans un premier temps on va chercher à determiner quels sont les extrémités de la face longiligne. Pour cela on va commencer pas générer le squelette de la face puis construire un graphe constitué des arêtes de ce squelette et enfin calculer les chemins entre touts les noeuds de degré 1 du squelette. Les extrémités sont les points correspondants aux noeuds source et cible du chemin le plus long.
+Dans un premier temps on va chercher à determiner quelles sont les extrémités de la face longiligne. Pour cela on va commencer par générer le squelette de la face puis construire un graphe constitué des arêtes de ce squelette et enfin calculer les chemins entre touts les noeuds de degré 1 du squelette. Les extrémités sont les points correspondants aux noeuds source et cible du chemin le plus long.
 Une fois obtenus les points extrèmes on peut extraire du contour de la face les deux côtés de la face longiligne.
-Pour qu'une face soit considérer qu'un face est fine il faut que :
+Pour qu'une face soit qualifiée de face étroite il faut que :
 - la largeur moyenne soit inférieure à _ECL_SLIM_SURFACE_WIDTH_. La largeur moyenne est calculée de la manière suivante : meanLength = 2 * (PolygonArea / PolygonExterirorRingLength)
 - la distance de hausdorff entre les deux côtés de la face soit inférieure à 3 * _ECL_SLIM_SURFACE_WIDTH_
 
@@ -755,7 +755,7 @@ Le traitement de la face est abandonné si :
 - le contour contient une _connecting line_
 - le contour ne possède pas deux et seulement deux noeuds connectés à des _connecting lines_
 - il n'existe pas un chemin pour chacun des deux pays
-- les deux chemins sont connecté au réseau
+- les deux chemins sont connecté au réseau (hors connexion aux extrémités)
 
 Si la face peut être traitée, il faut déterminer lequel des deux chemins doit être conservé et lequel doit être supprimé.
 Si un des deux chemins est connecté au réseau c'est celui là qui sera conservé.

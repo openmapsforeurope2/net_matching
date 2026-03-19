@@ -62,6 +62,7 @@ namespace app
             _shapeLogger->closeShape("ecl_slim_face_1_path");
             _shapeLogger->closeShape("ecl_slim_face_2_path_same_country");
             _shapeLogger->closeShape("ecl_raw_medial_axis");
+            _shapeLogger->closeShape("ecl_slim_surface_of_2_countries");
         }
 
         ///
@@ -84,6 +85,7 @@ namespace app
             _shapeLogger->addShape("ecl_slim_face_1_path", epg::log::ShapeLogger::POLYGON);
             _shapeLogger->addShape("ecl_slim_face_2_path_same_country", epg::log::ShapeLogger::POLYGON);
             _shapeLogger->addShape("ecl_raw_medial_axis", epg::log::ShapeLogger::LINESTRING);
+            _shapeLogger->addShape("ecl_slim_surface_of_2_countries", epg::log::ShapeLogger::POLYGON);
 
             //--
             epg::Context *context = epg::ContextS::getInstance();
@@ -489,6 +491,11 @@ namespace app
                         _logger->log(epg::log::WARN, "No path found [edge id] "+graph.origins(startEdge.descriptor)[0]);
                         continue;
                     }
+
+                    // DEBUG
+                    ign::feature::Feature feat;
+                    feat.setGeometry(faceGeom);
+                    _shapeLogger->writeFeature("ecl_slim_surface_of_2_countries", feat);
 
                     // quel chemin doit-on garder ?
                     bool hasConnection1 = sHasConnection.find(mlEdges.begin()->first) != sHasConnection.end();

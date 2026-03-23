@@ -5,8 +5,6 @@ cmake_policy(SET CMP0020 NEW)
 set(PROJECT_NAME net_matching)
 project(${PROJECT_NAME})
 
-add_compile_options(-frounding-math -fno-fast-math)
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 FIND_PATH(SOCLE_EXTERN_ROOT NAMES SocleExterns.cmake
@@ -100,10 +98,15 @@ ENDIF(MSVC_IDE)
 #include de mes headers
 include_directories(include)
 
-add_executable(
-	${PROJECT_NAME} 
+add_executable(${PROJECT_NAME} 
 	${APP_HEADERS}
 	${APP_SOURCES}
+)
+
+target_compile_options(${PROJECT_NAME}
+    PUBLIC
+        -frounding-math
+        -fno-fast-math
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX "d")

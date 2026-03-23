@@ -5,6 +5,8 @@ cmake_policy(SET CMP0020 NEW)
 set(PROJECT_NAME net_matching)
 project(${PROJECT_NAME})
 
+add_compile_options(-frounding-math -fno-fast-math)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 FIND_PATH(SOCLE_EXTERN_ROOT NAMES SocleExterns.cmake

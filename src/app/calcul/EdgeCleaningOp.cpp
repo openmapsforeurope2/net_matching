@@ -116,7 +116,7 @@ namespace app
             double const landmaskBuffer = themeParameters->getValue(ECL_LANDMASK_BUFFER).toDouble();
 
             // on recupere un buffer autour de la frontiere
-            ign::geometry::GeometryPtr boundBuffPtr(new ign::geometry::Polygon());
+            std::unique_ptr<ign::geometry::Geometry> boundBuffPtr(new ign::geometry::Polygon());
             ign::feature::sql::FeatureStorePostgis* fsBoundary = context->getDataBaseManager().getFeatureStore(boundaryTableName, idName, geomName);
             ign::feature::FeatureIteratorPtr itBoundary = ome2::feature::sql::NotDestroyedTools::GetFeatures(*fsBoundary,ign::feature::FeatureFilter(countryCodeName +" = '"+_countryCode+"'"));
             while (itBoundary->hasNext())
@@ -124,7 +124,7 @@ namespace app
                 ign::feature::Feature fBoundary = itBoundary->next();
                 ign::geometry::LineString const& ls = fBoundary.getGeometry().asLineString();
 
-                ign::geometry::GeometryPtr tmpBuffPtr(ls.buffer(10000));
+                std::unique_ptr<ign::geometry::Geometry> tmpBuffPtr(ls.buffer(10000));
 
                 boundBuffPtr.reset(boundBuffPtr->Union(*tmpBuffPtr));
             }
@@ -152,8 +152,8 @@ namespace app
                     IGN_THROW_EXCEPTION("No landmask found for country "+*vit);
 
                 //on calcul la geometry de travail
-                _mCountryGeomPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(boundBuffPtr->Intersection(mpLandmask)) ));
-                _mCountryGeomWithBuffPtr.insert(std::make_pair(*vit, ign::geometry::GeometryPtr(_mCountryGeomPtr[*vit]->buffer(landmaskBuffer))));
+                _mCountryGeomPtr.insert(std::make_pair(*vit, std::unique_ptr<ign::geometry::Geometry>(boundBuffPtr->Intersection(mpLandmask)) ));
+                _mCountryGeomWithBuffPtr.insert(std::make_pair(*vit, std::unique_ptr<ign::geometry::Geometry>(_mCountryGeomPtr[*vit]->buffer(landmaskBuffer))));
 
                 ign::feature::Feature feat;
                 feat.setGeometry(*_mCountryGeomPtr[*vit]);
@@ -289,13 +289,13 @@ namespace app
                 return std::make_pair(lsLength, lsLength);
             }
                 
-            std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomPtr.find(country);
+            std::map<std::string, std::unique_ptr<ign::geometry::Geometry>>::const_iterator mit = _mCountryGeomPtr.find(country);
             if (mit == _mCountryGeomPtr.end()) {
                 _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
                 return std::make_pair(0, 0);
             }
 
-            ign::geometry::GeometryPtr resultPtr(mit->second->Intersection(ls));
+            std::unique_ptr<ign::geometry::Geometry> resultPtr(mit->second->Intersection(ls));
 
             std::pair<double, double> lengths = _getLengths(*resultPtr, &ls.startPoint());
 
@@ -321,13 +321,13 @@ namespace app
                 return;
             }
 
-            std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomWithBuffPtr.find(country);
+            std::map<std::string, std::unique_ptr<ign::geometry::Geometry>>::const_iterator mit = _mCountryGeomWithBuffPtr.find(country);
             if (mit == _mCountryGeomWithBuffPtr.end()) {
                 _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
                 return;
             }
 
-            ign::geometry::GeometryPtr resultPtr(mit->second->Intersection(ls));
+            std::unique_ptr<ign::geometry::Geometry> resultPtr(mit->second->Intersection(ls));
 
             lengthInCountry += _getLengths(*resultPtr).first;
         }
@@ -1084,7 +1084,7 @@ namespace app
             ign::geometry::Geometry const& geom,
             std::string const& country
         ) const {
-            std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomPtr.find(country);
+            std::map<std::string, std::unique_ptr<ign::geometry::Geometry>>::const_iterator mit = _mCountryGeomPtr.find(country);
             if (mit == _mCountryGeomPtr.end()) {
                 _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
                 return false;
@@ -1351,7 +1351,7 @@ namespace app
             ign::geometry::Point const& vGeom = graph.getGeometry(v);
 
             // ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + ign::geometry::GeometryPtr(vGeom.buffer(threshold))->toString() + "'),3035))");
-            ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + ign::geometry::GeometryPtr(vGeom.buffer(threshold))->toString() + "'),3035))");
+            ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + std::unique_ptr<ign::geometry::Geometry>(vGeom.buffer(threshold))->toString() + "'),3035))");
             ign::feature::FeatureIteratorPtr itCp = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCp, filter);
 
             double dMax = threshold;
@@ -1399,7 +1399,7 @@ namespace app
             std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
 
 
-            std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit;
+            std::map<std::string, std::unique_ptr<ign::geometry::Geometry>>::const_iterator mit;
             for (mit = _mCountryGeomPtr.begin() ; mit != _mCountryGeomPtr.end() ; ++mit) {
                 ign::feature::FeatureFilter filter("NOT ST_INTERSECTS(ST_LineInterpolatePoint(" + geomName + ", 0.5), ST_SetSRID(ST_GeomFromText('" + mit->second->toString() + "'),3035))");
                 epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" = '"+mit->first+"'" );

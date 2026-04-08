@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
     }
     catch( ign::Exception &e )
     {
-        std::cerr<< e.diagnostic() << std::endl;
+        std::cerr << e.diagnostic() << std::endl;
         epg::log::EpgLoggerS::getInstance()->log( epg::log::ERROR, std::string(e.diagnostic()));
         logFile << e.diagnostic() << std::endl;
         returnValue = 1;
@@ -240,7 +240,9 @@ int main(int argc, char *argv[])
     epg::ContextS::kill();
     epg::log::EpgLoggerS::kill();
     epg::log::ShapeLoggerS::kill();
+    epg::params::EpgParametersS::kill();
     app::params::ThemeParametersS::kill();
+    
     
     logFile.close();
 

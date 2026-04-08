@@ -1,7 +1,6 @@
 bin
-build-unix-debug
-build-unix-release
-build-unix
+Debug
+Release
 log.txt
 log*
 gmon.out

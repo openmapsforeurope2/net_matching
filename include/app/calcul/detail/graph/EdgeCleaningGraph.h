@@ -6,6 +6,7 @@
 
 // APP
 #include <app/calcul/detail/graph/EdgeCleaningEdge.h>
+#include <app/calcul/detail/graph/EdgeCleaningVertex.h>
 
 
 namespace app{
@@ -14,7 +15,7 @@ namespace detail{
 namespace graph{
 
 	/// @brief Graph de travail
-	class EdgeCleaningGraph : public ign::geometry::graph::GeometryGraph< ign::geometry::graph::PunctualVertexProperties, app::calcul::detail::graph::EdgeCleaningEdge > {
+	class EdgeCleaningGraph : public ign::geometry::graph::GeometryGraph< app::calcul::detail::graph::EdgeCleaningVertex, app::calcul::detail::graph::EdgeCleaningEdge > {
     public:
         /// \brief Constructeur
 		EdgeCleaningGraph() {};

@@ -40,8 +40,8 @@ namespace step {
 
 		//--
 		app::calcul::EdgeCleaningOp edgeCleaningOp(countryCodeW, verbose);
+		edgeCleaningOp.cleanParalelleEdges(); /*a faire avant le reste*/
 		edgeCleaningOp.cleanFaces();
-		edgeCleaningOp.cleanParalelleEdges();
 		edgeCleaningOp.cleanFacesAndAntennaByCountry(eclSqlFilter, false /*tagTreatedFeatures*/);
 
 		//--

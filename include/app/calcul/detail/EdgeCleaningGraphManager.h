@@ -181,6 +181,13 @@ namespace detail{
             _simpleBuilder = 0;
         };
 
+        /// @brief Indique si le sommet est un connecting point
+        /// @param v Identifiant du sommet
+        /// @return Booléen
+        bool isCp(vertex_descriptor v) const {
+            return _graph[v].isCp;
+        };
+
         /// @brief Indique si l'arc est une connecting line
         /// @param e Identifiant de l'arc
         /// @return Booléen

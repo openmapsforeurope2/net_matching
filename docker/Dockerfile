@@ -14,13 +14,12 @@ RUN apt-get update -y \
 
 ENV APP_DIR_SRC=/usr/local/src/net_matching/                                              
 
-WORKDIR $APP_DIR_SRC/../
-
-COPY . $APP_DIR_SRC
-
 WORKDIR $APP_DIR_SRC
 
-RUN ./build-unix-release.sh
+COPY . .
+
+ENV CONFIG=Release
+RUN ./build-unix.sh
 
 RUN mkdir -p /deps \
  && lddtree -l /usr/local/src/net_matching/bin/net_matching \
@@ -31,6 +30,9 @@ RUN mkdir -p /deps \
 # STAGE 2
 # =========================
 FROM ubuntu:24.04
+
+# RUN apt-get update -y \
+#  && apt-get -y install valgrind
 
 ENV APP_DIR_SRC=/usr/local/src/net_matching/
 

@@ -699,15 +699,15 @@ La seule différence avec l'étape 204 est l'utilisation des paramètres CLA_CL_
 
 #### 260 : EdgeCleaning1
 
-Cette étape correspond à une phase de nettoyage dont le but est d'élmininer les redondances, artefacts ....on non légitimes, pas dans le bon  pays antenne
+Cette étape correspond à une phase de nettoyage dont le but est d'élimininer les redondances, les artefacts non légitimes, les antennes localisées dans le mauvais pays...
 
 ##### Données de travail :
 
-| table                          | entrée | sortie | entitée de travail | description                                                 |
-|--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CP_TABLE                       | X      |        |                    | table des connecting points                                 |
-| EDGE_TABLE_INIT                | X      | X      | X                  | table du réseau à traiter                                   |
-| TARGET_BOUNDARY_TABLE          | X      |        |                    | table des frontières                                        |
+| table                          | entrée | sortie | entitée de travail | description                 |
+|--------------------------------|--------|--------|--------------------|-----------------------------|
+| CP_TABLE                       | X      |        |                    | table des connecting points |
+| EDGE_TABLE_INIT                | X      | X      | X                  | table du réseau à traiter   |
+| TARGET_BOUNDARY_TABLE          | X      |        |                    | table des frontières        |
 
 ##### Principaux opérateurs de calcul utilisés :
 - app::calcul::EdgeCleaningOp
@@ -715,92 +715,134 @@ Cette étape correspond à une phase de nettoyage dont le but est d'élmininer l
 ##### Description du traitement :
 
 Paramètre utilisés: 
-| paramètre                   |                                                                   |
-|-----------------------------|-------------------------------------------------------------------|
-| ECL_SQL_FILTER              | clause WHERE sql pour filtrer les arcs à nettoyer                 |
-| ECL_SLIM_SURFACE_WIDTH      | seuil de largeur des surfaces fines                               |
-| ECL_PARALELLE_EDGE_MAX_DIST | 
-| ECL_LANDMASK_BUFFER
-| ECL_ANTENNA_RATIO_THRESHOLD
-| ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD
-| ECL_ANTENNA_MIN_LENGTH
-| ECL_ANTENNA_MIN_LENGTH_IN_COUNTRY
-| ECL_ARTIFACT_WIDTH                        =2
-| ECL_SLIM_SURFACE_MAX_AREA                 optimisation
-| ECL_SLIM_SURFACE_MAX_NB_POINTS            optimisation
-| W_TAG_NAME                  |
+| paramètre                               |                                                                          |
+|-----------------------------------------|--------------------------------------------------------------------------|
+| ECL_SQL_FILTER                          | clause WHERE sql pour filtrer les arcs à traiter                         |
+| ECL_SLIM_SURFACE_WIDTH                  | seuil de largeur des surfaces fines                                      |
+| ECL_PARALELLE_EDGE_MAX_DIST             | distance de hausdorff maximum entre deux arcs pour qu'ils soient considérés comme parallèles |
+| ECL_LANDMASK_BUFFER                     | rayon d'élargissement de l'emprise nationale                             |
+| ECL_ANTENNA_RATIO_THRESHOLD             | seuil de proportion de l'antenne située dans l'emprise national          |
+| ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD | seuil de proportion de l'antenne située dans l'emprise national étendue  |
+| ECL_ANTENNA_MIN_LENGTH                  | seuil de longeur pour une antenne connectée à un _connecting point_      |
+| ECL_ANTENNA_MIN_LENGTH_IN_COUNTRY       | seuil de longueur de la portion d'antenne située dans l'emprise national |
+| ECL_ARTIFACT_WIDTH                      | seuil de largeur des surfaces fines de type artefact (très fine)         |
+| ECL_SLIM_SURFACE_MAX_AREA               | aire d'un polygone au dessus de laquelle celui-ci ne peut pas être considéré comme une surface 'étroite' (pour optimisation) |
+| ECL_SLIM_SURFACE_MAX_NB_POINTS          | nombre de points d'un polygone au dessus duquel celui-ci ne peut pas être considéré comme une surface 'étroite' (pour optimisation) |
+| W_TAG_NAME                              | champs de travail utilisé pour marquer les arcs traités (pour optimisation si le processus est lancé à plusieurs reprises, par exemple dans différents steps) |
 
 
-Différentes opérations de nettoyages sont réalisées lors de cette étape :
+Différentes opérations de nettoyage sont réalisées lors de cette étape :
 
-1) Nettoyage des faces.
+1) Nettoyage des arcs parallèles.
+
+On cherche ici à éliminer les arcs très proches qui sont des artefacts générés lors d'étapes antérieures. Cette fonction de nettoyage doit être lancée avant les autres car elle permet de supprimer les arcs superposés qui peuvent corrompre les traitements exploitant les graphes planaires (en particulier le nettoyage des faces).
+
+On construit tout d'abord un graphe simple (non planaire) à partir des réseaux des deux pays. Dans un tel graphe un arc du graphe correspond à un arc d'un des réseaux.
+
+On parcourt ensuite les arcs du graphe et pour chaque arc on regarde s'il existe des arcs parallèles (arcs possédant les mêmes sommets).
+Si plusieurs arcs paralèlles existent, on choisi parmis eux un arc de référence. Si l'un des arcs correspond à une _connecting line_ c'est lui que l'on choisi, sinon on prend celui qui à le plus grand ratio (le ratio d'un arc étant la proportion de la géométrie de cet arc situé dans son pays).
+Ensuite, on calcule la distance de hausdorff entre l'arc de référence et chacun des autres arcs. Si cette distance est inférieure au seuil _ECL_PARALELLE_EDGE_MAX_DIST_ l'arc est supprimé.
+
+2) Nettoyage des faces.
 
 L'objectif est d'éliminer les redondances (plusieurs représentations d'un même objet du monde réel). En effet, à ce stade peuvent encore co-exister des modélisations des deux pays d'un même objet formant des faces qui n'auraient pas été fusionnées lors des étapes précédentes.
 
 La première étape consiste à créer les faces en construisant un graphe planaire avec les réseaux des deux pays.
 Il nous faut ensuite parcourir les faces du graphe. On analyse chaque face afin de déterminer s'il s'agit d'une face 'étroite'.
 Une face étroite est une face de 'forme longiligne' dont la largeur moyenne n'excède pas un certain seuil (ici _ECL_SLIM_SURFACE_WIDTH_).
-Dans un premier temps on va chercher à determiner quelles sont les extrémités de la face longiligne. Pour cela on va commencer par générer le squelette de la face puis construire un graphe constitué des arêtes de ce squelette et enfin calculer les chemins entre touts les noeuds de degré 1 du squelette. Les extrémités sont les points correspondants aux noeuds source et cible du chemin le plus long.
-Une fois obtenus les points extrèmes on peut extraire du contour de la face les deux côtés de la face longiligne.
-Pour qu'une face soit qualifiée de face étroite il faut que :
+
+La status de la face (étroite / non-étroite) est évalué de la manière suivante :
+Dans un premier temps on va chercher à determiner quelles sont les extrémités de la face longiligne. Pour cela on va commencer par calculer l'axe médian de la face puis construire un graphe constitué des segments de cet axe et enfin calculer tous les chemins entre tous les noeuds de degré 1 du graphe. Les extrémités du polygone sont les points correspondants aux noeuds source et cible du chemin le plus long.
+Une fois obtenus les points extrèmes, on peut extraire du contour de la face les deux côtés de la face longiligne.
+Pour qu'une face soit qualifiée d'étroite il faut que :
 - la largeur moyenne soit inférieure à _ECL_SLIM_SURFACE_WIDTH_. La largeur moyenne est calculée de la manière suivante : meanLength = 2 * (PolygonArea / PolygonExterirorRingLength)
 - la distance de hausdorff entre les deux côtés de la face soit inférieure à 3 * _ECL_SLIM_SURFACE_WIDTH_
 
 Si une face étroite est détectée, on parcourt les arcs de son contour en enregistrant :
-- les chemins de chaque pays
+- les chemins de chaque pays (chemin = groupe d'arcs contigus appartenant à un même pays dont les extrémités sont connectées à une ou plusieurs _connecting lines_)
 - les connexions du contour à des _connecting lines_
-- les connexions des chemins au reste du réseau (connexion hors extrémitées du chemin à des arcs du même pays autre que _connecting line_)
+- les connexions des chemins au reste du réseau (connexion, hors extrémitées, du chemin à des arcs du même pays autre que _connecting line_)
 
 Le traitement de la face est abandonné si :
 - le contour contient une _connecting line_
 - le contour ne possède pas deux et seulement deux noeuds connectés à des _connecting lines_
 - il n'existe pas un chemin pour chacun des deux pays
-- les deux chemins sont connecté au réseau (hors connexion aux extrémités)
+- les deux chemins sont chacun connectés au réseau (hors connexion aux extrémités)
 
 Si la face peut être traitée, il faut déterminer lequel des deux chemins doit être conservé et lequel doit être supprimé.
 Si un des deux chemins est connecté au réseau c'est celui là qui sera conservé.
 Si aucun des deux chemins n'est connecté au réseau on calcule les ratios de chaque chemin (le ratio d'un chemin correspond ici à la proportion du chemin qui est localisé dans son pays d'origine).
 Le chemin qui est conservé est celui qui à le ratio le plus grand.
+Si le deux ratios sont égaux on conserve le chemin le plus court.
 
-
-2) Nettoyage des arcs parallèles.
-
-On cherche ici à éliminer les arcs très proches qui sont des artefacts générés lors d'étapes antérieures.
-
-On construit tout d'abord un graphe simple (non planaire) à partir des réseaux des deux pays. Dans ce graphe un arc du graphe correspond à un arc d'un des réseaux.
-
-On parcourt ensuite les arcs du graphe et pour chaque arc on regarde s'il existe des arcs parallèles (arcs possédant les mêmes sommets).
-Si plusieurs arcs paralèlles existent, on choisi parmis eux un arc de référence. Si l'un des arcs correspond à une _connecting line_ c'est lui que l'on choisi, sinon on prend celui qui à le plus grand ratio.
-Ensuite, on calcule la distance de hausdorff entre l'arc de référence et chacun des autres arcs. Si cette distance est inférieure au seuil _ECL_PARALELLE_EDGE_MAX_DIST_ l'arc est supprimé.
-
-
-3) Nettoyage des antennes et des isthmes (faces connectées au réseau par un seul arc)
+3) Nettoyage iteratif des antennes et des faces
 
 Le taitement s'effectue pays par pays.
-On construit dans un premier temps un graph planaire à partir du réseau d'un pays.
-Ensuite, on parcourt les noeuds du graphe, et, pour chaque noeud de degré 1 on récupère l'antenne qui correspond au chemin partant de ce noeud et qui s'achève au premier noeud de degré différent de 2, _connecting point_ ou sommet de _connecting line_ rencontré.
+On construit dans un premier temps un graph planaire à partir du réseau d'un pays (_connecting lines_ comprises)
+
+On lance successivement un nettoyage des antennes puis un nettoyage des faces fines. On répète itérativement cet enchainement tant que des suppressions sont opérées.
+
+3.1) Suppression des antennes
+On parcourt les noeuds du graphe, et, pour chaque noeud de degré 1 on récupère l'antenne qui correspond au chemin partant de ce noeud et qui s'achève au premier noeud de degré différent de 2, _connecting point_ ou sommet de _connecting line_ rencontré.
 On enregistre les antennes en les regroupant par noeud de convergence.
 
 Une fois cette phase d'enregistrement des antennes achevée, on parcourt les noeuds de convergence.
-Pour chaque noeud on parcourt les antennes qui lui y converge.
+Pour chaque noeud on parcourt les antennes qui y converge par ordre de longueur croissante.
+On évalue chaque antenne suivant différents critères afin de savoir si elle doit être conservée ou supprimée:
+- si elle est connectée à un _connecting feature_ (_connecting line_ ou _connecting point_) et que sa longueur est < _ECL_ANTENNA_MIN_LENGTH_, on la conserve.
+- sinon, après calcul des portions d'antenne localisées dans le pays et hors pays, on regarde :
+  - si la première portion est dans le pays (l'antenne est considérée orientée de la manière suivante : elle débute au noeud de convergence pour s'achever au noeud pendant) et que la longeur de cette portion est >= _ECL_ANTENNA_MIN_LENGTH_IN_COUNTRY_, on la garde
+  - si le ratio de cette partie est < _ECL_ANTENNA_RATIO_THRESHOLD_, on la supprime
+  - sinon, si le ratio total d'antenne contenu dans l'emprise du pays augmentée d'un buffer de rayon _ECL_LANDMASK_BUFFER_ est < _ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD_, on la supprime
+  - sinon, on la garde.
+Si le groupe d'antennes convergeant au même point est composé de plusieurs antennes répondant toutes aux critères de suppression, on conserve la dernière (la plus longue) car elle devient partie intégrante d'une nouvelle antenne plus longue qui sera traitée à l'itération suivante de ce même processus.
+A la fin du processus, si des suppressions ont été réalisées, on relance le processus pour traiter les éventuelles nouvelles antennes que les suppressions ont fait apparaître.
+Le traitement itératif prend fin lorsque'une occurence du processus ne produit aucune suppression. 
 
 
+3.2) Suppression des faces
+On parcourt les faces du graphe. A des fins d'optimisation on ne traite que les faces dont l'aire est inférieure à _ECL_SLIM_SURFACE_MAX_AREA_ et dont le nombre de points est inférieur à _ECL_SLIM_SURFACE_MAX_NB_POINTS_. 
+Pour chaque face traitée on détermine si elle est fine. Ce calcul permet également de définir les deux extrémités topographiques de la face dont on se servira ultérieurement.
 
-si antenne connecté à CF est length < ECL_ANTENNA_MIN_LENGTH : supprimée
-on calcul les portion dans et hors pays : si premiere partie dans pays et sa length >= ECL_ANTENNA_MIN_LENGTH_IN_COUNTRY --> on garde
-  si le ratio de cette partie < ECL_ANTENNA_RATIO_THRESHOLD --> on supprime
-  sinon si le ratio d'antenne contenu dans pays+buff < ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD --> on supprime
+SCHEMA 1
 
-La derniere antenne n'est pas supprimé si elle conduit à l'apparition d'une nouvelle antenne plus longue (sera traitée dans itération suivante)
-VOIR POURQUOI on sort de la suppression des antennes à la première antenne non supprimé ?? l.1579 : isRemoved
+Si la face n'est pas fine, on réalise le traitement suivant :
+On récupère tous les chemins composant le contour de la face. Un chemin est ici une suite d'arcs contigus possédant le même code pays. Les noeuds d'un chemin, hors extrémitées, sont tous de degré deux.
+Si la face est un isthme (faces connectées au réseau par un seul arc) ou une île, c'est à dire quelle n'est constituée que d'un chemin, on calcule son ratio qui indique quelle proportion du chemin est localisée dans son pays.
+Si le ratio vaut zéro (chemin entièrement hors pays) on supprime le chemin.
 
+Si la face est fine, on réalise le traitement suivant :
+Si la face est composée uniquement d'arcs d'un même pays, qu'elle est en intersection avec son pays et d'une largeur supérieure _ECL_ARTIFACT_WIDTH_, elle n'est pas traitée car considérée comme légitime.
+On récupère tous les chemins composant le contour de la face. Un chemin est ici une suite d'arcs contigus possédant le même code pays. Les noeuds d'un chemin, hors extrémitées, sont tous de degrée deux.
 
+SCHEMA 2
 
+Si la face n'est composée que d'un seul chemin c'est qu'il s'agit d'un isthme (faces connectées au réseau par un seul arc) ou d'une île. Dans ce cas, la face est supprimée. Dans le cas d'un isthme, cela entraine l'apparition d'une nouvelle antenne qui pourra être traitée lors de la prochaine itération de suppression des antennes.
+Si la face est composée de plusieurs chemins possédant des codes pays différents on fusionne les chemins contigus possédant le même code pays.
 
+SCHEMA 3
 
-toujours avec le même graphe, nettoyage des faces
-l.809
-ECL_SLIM_SURFACE_WIDTH
-ECL_ARTIFACT_WIDTH
-ECL_SLIM_SURFACE_MAX_AREA
-ECL_SLIM_SURFACE_MAX_NB_POINTS
+S'il ne résulte de cette fusion que 2 chemins (de code pays différents), on regarde alors si les deux chemins sont équivalent (représentant le même objet du monde réel).
+Pour que deux chemins soit équivalent il faut que :
+- la largeur moyenne de la face qu'ils forment soit inférieure à _ECL_SLIM_SURFACE_WIDTH_.
+- la distance de hausdorff entre ces deux chemins soit inférieure à 3 * _ECL_SLIM_SURFACE_WIDTH_
+Si les deux chemins sont équivalent alors il sont considérés comme constituant les deux cotés de la face.
+
+Si de la fusion résulte un nombre de chemins différent de deux, on va essayer de déterminer de quels chemins sont constitués chacun des deux côtés de la face.
+Si les extremités topographiques de la face (extrémités géométriques), précédemment calculées, ne correspondent pas à des extrémités topologiques (extrémités de chemins) on ne traite pas la face, sinon on détermine comment sont répartis les chemins de part et d'autre des extémités topographiques. On obtient alors les deux cotés de la face chacun constitué d'un ou plusieurs chemins.
+
+SCHEME 4
+SCHEME 5
+
+Une fois obtenu la composition de chaque côté de la face, on calcul le ratio de chacun des côtés. le ratio d'un côté est la moyenne des ratios des chemins le constituent. Le ratio d'un chemin est la proportion du chemin localisé dans son pays.
+
+Il nous faut maintenant choisir lequel des deux chemins doit être conservé et lequel doit être supprimé. Pour cela on procède de la manière suivante :
+- si les deux côtés sont connectés au réseau, on les conserve tous les deux,
+- si l'un des deux chemins est connecté au réseau, c'est le côté non connecté qui est supprimé,
+- si aucun des deux chemins n'est connecté on supprime le côté possédant le plus petit ratio,
+- si les deux chemins sont non connectés et possèdent le même ratio, on supprime le coté le plus long.
+
+schema 6
+
+A la fin du processus, si des suppressions ont été réalisées, on relance le processus pour traiter les éventuelles nouvelles faces que les suppressions ont fait apparaître.
+Le traitement itératif prend fin lorsqu'une occurence du processus ne produit aucune suppression.

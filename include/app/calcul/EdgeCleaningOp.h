@@ -122,6 +122,11 @@ namespace calcul{
 		) const;
 
 		//--
+		void _initVertexIsCp(
+			detail::EdgeCleaningGraphManager & graphManager
+		) const;
+
+		//--
 		std::pair<double, double> _getLengths(
 			ign::geometry::Geometry const& geom,
 			ign::geometry::Point const* startPoint = 0 
@@ -232,7 +237,7 @@ namespace calcul{
 		) const;
 
 		//--
-		bool _vertexIsCp(GraphType const& graph, vertex_descriptor v) const;
+		// bool _vertexIsCp(GraphType const& graph, vertex_descriptor v) const;
 
 		//--
 		bool _cleanAntenna(
@@ -253,7 +258,15 @@ namespace calcul{
         bool _getFacePaths(
             detail::EdgeCleaningGraphManager const& graphManager, 
             face_descriptor fd, 
-            std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges
+            std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges,
+			std::set<edge_descriptor> const& sEdge2Remove
+        ) const;
+
+		//--
+		size_t _getDegree(
+            GraphType const& graph,
+            vertex_descriptor v,
+            std::set<edge_descriptor> const& sEdge2Remove
         ) const;
 
 		//--
@@ -273,27 +286,44 @@ namespace calcul{
 
 		//--
 		std::set<std::string> _mergeFacePaths(
-			std::vector<std::pair<std::string,
-			std::list<oriented_edge_descriptor>>> & vpCountryEdges
+			std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> & vpCountryEdges
 		) const;
 
 		//--
-		bool _cleanFaces2(detail::EdgeCleaningGraphManager & graphManager) const;
+		bool _cleanFaces2(
+			detail::EdgeCleaningGraphManager & graphManager,
+			std::string country = ""
+		) const;
 
 		//--
-		bool _cleanGraphFaces(detail::EdgeCleaningGraphManager & graphManager) const;
+		bool _cleanGraphFaces(
+			detail::EdgeCleaningGraphManager & graphManager,
+			std::string country = ""
+		) const;
 
 		//--
 		bool _hasConnection (
 			GraphType const& graph,
-			std::vector<std::pair<std::string,
-			std::list<oriented_edge_descriptor>>>  const& branch
+			std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>  const& branch,
+			std::set<edge_descriptor> const& sEdge2Remove
 		) const;
 
 		//--
 		void _cleanFacesAntennas(
             detail::EdgeCleaningGraphManager & graphManager, 
-            std::set<vertex_descriptor> const& sVertices
+            std::set<vertex_descriptor> const& sVertices,
+			std::string const& country
+        ) const;
+
+		//--
+		std::string _getOtherCountry(
+            std::string const& country
+        ) const;
+
+        //--
+        bool _isConnected2Country(
+            ign::geometry::Point const pt,
+            std::string const& country
         ) const;
 
 		//--
@@ -303,6 +333,12 @@ namespace calcul{
             ign::geometry::LineString & path2geom,
             double maxWidth,
             bool useHausdorff = false
+        ) const;
+
+		//--
+		app::calcul::detail::EdgeCleaningGraphManager::oriented_edge_descriptor _getIncidentEdge(
+			GraphType const& graph,
+            app::calcul::detail::EdgeCleaningGraphManager::vertex_descriptor v
         ) const;
 
         //--

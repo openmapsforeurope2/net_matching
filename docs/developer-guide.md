@@ -75,25 +75,25 @@ Les étapes qui composent le traitement de raccordement sont les suivantes :
 <br>
 **210** - génération des _'connectings lines'_ projetées aux frontières pour chacun des pays frontaliers
 <br>
-**211** - fusion des _'connecting lines'_ de chacun des pays en linéaires bi-nationaux
+**211** - fusion des _'__connecting line_s_'_ de chacun des pays en linéaires bi-nationaux
 <br>
-**212** - accrochage des _'connecting lines'_ dont les extrémités sont proches pour éviter les petites coupures
+**212** - accrochage des _'__connecting line_s_'_ dont les extrémités sont proches pour éviter les petites coupures
 <br>
-**213** - suppression des _'connecting lines'_ dont les couples de linéaires sont incohérents selon l'angle ou la distance
+**213** - suppression des _'__connecting line_s_'_ dont les couples de linéaires sont incohérents selon l'angle ou la distance
 <br>
-**214** - calcul de la géométrie des _'connecting lines'_ par interpolation
+**214** - calcul de la géométrie des _'__connecting line_s_'_ par interpolation
 <br>
-**220** - connection du réseau aux _'connecting lines'_
+**220** - connection du réseau aux _'__connecting line_s_'_
 <br>
-**230** - import des _'connecting lines'_ dans le réseau
+**230** - import des _'__connecting line_s_'_ dans le réseau
 <br>
 **240** - génération des _'connecting points'_
 <br>
 **250** - connection du réseau aux _'connectingacun des pays en linéaires bi-nationaux
 <br>
-**212** - accrochage des _'connecting lines'_ dont les extrémités sont proches pour éviter les petites coupures
+**212** - accrochage des _'__connecting line_s_'_ dont les extrémités sont proches pour éviter les petites coupures
 <br>
-**213** - suppression des _'connecting lines'_ dont les couples de linéaires sont incohérents selon l'angle ou la distance
+**213** - suppression des _'__connecting line_s_'_ dont les couples de linéaires sont incohérents selon l'angle ou la distance
 <br>
 **214** - calcul de la géométrie des _'connecti points'_
 <br>
@@ -106,7 +106,7 @@ Les étapes qui composent le traitement de raccordement sont les suivantes :
 **280** - nettoyage des artefacts (faces étroites, antennes, arcs superposés, arcs de petite taille...)
 
 > _Précisions_ :
-> - _'Connecting line' : arc résultant de la fusion de deux arcs de deux pays différents réprésentant la même portion de réseau._
+> - _'_connecting line_' : arc résultant de la fusion de deux arcs de deux pays différents réprésentant la même portion de réseau._
 > - _'Connecting point' : sommet représentant un point de passage du réseau à la frontière. Les réseaux des deux pays limitrophes doivent être connectés à ce point afin d'assurer la continuité topologique du référentiel européen._
 > - _champ 'fictitious' : la valeur de ce champ est 'vraie' lorsqu'un arc est couvert par une géométrie surfacique représentant le même objet (certains réseaux possèdes deux représentations linéaire et surfacique modélisées par deux classes d'objets différentes. Tous les objets linéaires n'ont pas de représentation surfacique)._
 
@@ -277,7 +277,7 @@ Afin d'éviter la création de rebroussement le principe constiste à projeter l
 
 ### 204 : GenerateCLinArea
 
-L'objectif de cette étape et de fusionner les objets issus des modélisations des deux pays frontaliers représentant un même objet du monde réel. Les objets résultant de cette fusion sont des _connecting lines_. La valeur de ses attributs est calculée par concaténation des attributs des objets fusionnés.
+L'objectif de cette étape et de fusionner les objets issus des modélisations des deux pays frontaliers représentant un même objet du monde réel. Les objets résultant de cette fusion sont des __connecting line_s_. La valeur de ses attributs est calculée par concaténation des attributs des objets fusionnés.
 
 #### Données de travail :
 
@@ -298,8 +298,8 @@ Paramètre utilisés:
 | W_TAG_NAME                      | champ de travail permettant de marquer les objets traités                                                                             |
 | CLA_SURFACE_WIDTH               | seuil de largeur des surfaces fines                                                                                                   |
 | CLA_FICTITIOUS_RATIO_THRESHOLD  | ratio à partir duquel un chemin est considéré comme fictif (longueur des arcs fictifs/longeur totale)                                 |
-| CLA_CL_LENGTH_THRESHOLD         | seuil de longeur en dessous duquel les connecting lines composant le contour d'une face fine peuvent être potentiellement effondrées  |
-| CLA_CL_MIN_RATIO_IN_AREA        | ratio de longueur en dessous duquel les connecting lines composant le contour d'une face fine peuvent être potentiellement effondrées |
+| CLA_CL_LENGTH_THRESHOLD         | seuil de longeur en dessous duquel les __connecting line_s_ composant le contour d'une face fine peuvent être potentiellement effondrées  |
+| CLA_CL_MIN_RATIO_IN_AREA        | ratio de longueur en dessous duquel les __connecting line_s_ composant le contour d'une face fine peuvent être potentiellement effondrées |
 | LIST_ATTR_W                     | liste des attributs de travail (à ne pas fusionner)                                                                                   |
 | LIST_ATTR_JSON                  | liste des attributs de type json (utilisé par l'opération de fusion des attributs)                                                    |
 
@@ -309,34 +309,34 @@ Un traitement se déroule en plusieurs étapes:
 - ré-initialisation du champ _W_TAG_NAME_ : ce champ est utilisé de manière interne au traitement afin de permettre aux opérateurs de savoir quels objets ont été antérieurement traités par d'autres opérateurs
 - création d'un graph planaire à partir de l'ensemble des réseaux des deux pays frontaliers : cette étape permet le chargement en mémoire des données de travail, la création des faces, facilite la détection des arcs superposés...
 - fusion des arcs des deux pays superposés
-- fusion des arcs des deux pays constituant des faces fines : les faces fines sont traitées si celles-ci sont constituées de deux chemins appartenant aux deux pays et que les éventuelles connecting lines constituants ces chemins ont pu être substituées par un arc non fusionné (cette substitution se base sur le _NATIONAL_IDENTIFIER_NAME_)
+- fusion des arcs des deux pays constituant des faces fines : les faces fines sont traitées si celles-ci sont constituées de deux chemins appartenant aux deux pays et que les éventuelles __connecting line_s_ constituants ces chemins ont pu être substituées par un arc non fusionné (cette substitution se base sur le _NATIONAL_IDENTIFIER_NAME_)
 - modification et objets possédant des portions fusionnée : seule une ou plusieurs portion(s) de la géométrie d'un arc peu(ven)t avoir été fusionnées, l'arc peut alors être découpé en plusieurs objets fusionnés et non-fusionnés
-- modification (déplacement) des arcs incidents : les arcs incidents aux arcs fusionnés deviennent incidents aux _connecting lines_ résultant de la fusion, ils sont positionnés par conservation de l'abscisse curviligne. seule l'extrémité de l'arc incident est modifiée (pas de déformation amortie de l'arc incident)
-- nettoyage des connecting lines superposées : correction des artefacts de traitement
+- modification (déplacement) des arcs incidents : les arcs incidents aux arcs fusionnés deviennent incidents aux __connecting line_s_ résultant de la fusion, ils sont positionnés par conservation de l'abscisse curviligne. seule l'extrémité de l'arc incident est modifiée (pas de déformation amortie de l'arc incident)
+- nettoyage des __connecting line_s_ superposées : correction des artefacts de traitement
 - concaténation des arcs possédant le même _NATIONAL_IDENTIFIER_NAME_ : cette étape permet de corriger les découpages superflus créés par le traitement
-- effondrement (suppression) des connecting lines : pour chaque face fine on effondre les connecting lines si celles-ci réprésentent une portion de son contour inférieure à _CLA_FICTITIOUS_RATIO_THRESHOLD_ et une longeur inférieure à _CLA_FICTITIOUS_LENGTH_THRESHOLD_. En cas d'effondrement, les éventuels arcs incidents sont déplacés avec un opérateur de déformation amortie.
+- effondrement (suppression) des __connecting line_s_ : pour chaque face fine on effondre les __connecting line_s_ si celles-ci réprésentent une portion de son contour inférieure à _CLA_FICTITIOUS_RATIO_THRESHOLD_ et une longeur inférieure à _CLA_FICTITIOUS_LENGTH_THRESHOLD_. En cas d'effondrement, les éventuels arcs incidents sont déplacés avec un opérateur de déformation amortie.
 
-A noter que la création des connecting lines dans les faces fines prend en compte la propriété _EDGE_FICTITIOUS_NAME_ afin de déterminer leur géométrie. Si l'un des deux objets fusionnés est fictif et l'autre non, c'est la géométrie de l'objet fictif qui sera prise, si les deux objets sont tout deux fictifs ou non-fictifs une géométrie moyenne sera calculée. En cas de fusion de deux arcs fictifs, on vérifie que le résultat de la fusion est bien entièrement inclus dans une surface fusionnée (résultant du traitement _net_area_matching_), si ce n'est pas le cas cette fusion est abandonnée.
+A noter que la création des __connecting line_s_ dans les faces fines prend en compte la propriété _EDGE_FICTITIOUS_NAME_ afin de déterminer leur géométrie. Si l'un des deux objets fusionnés est fictif et l'autre non, c'est la géométrie de l'objet fictif qui sera prise, si les deux objets sont tout deux fictifs ou non-fictifs une géométrie moyenne sera calculée. En cas de fusion de deux arcs fictifs, on vérifie que le résultat de la fusion est bien entièrement inclus dans une surface fusionnée (résultant du traitement _net_area_matching_), si ce n'est pas le cas cette fusion est abandonnée.
 
 ![204_a](images/204_a_with_key.png)
 <br>
 ![204_b](images/204_b_with_key.png)
 
 
-### 210-214 : Generate connecting lines on Border
+### 210-214 : Generate __connecting line_s_ on Border
 
-L'objectif de cette suite d'étapes et la génération de _connecting lines_ résultant de la fusion d'arcs des deux pays localisés à proximité des frontières.
-Les _connecting lines_ sont enregistrées dans une table dédiée. C'est lors d'une étape postérieure que ces objets seront injectés dans la table des arcs en replacement des arcs dont ils sont le résultat de la fusion.
+L'objectif de cette suite d'étapes et la génération de __connecting line_s_ résultant de la fusion d'arcs des deux pays localisés à proximité des frontières.
+Les __connecting line_s_ sont enregistrées dans une table dédiée. C'est lors d'une étape postérieure que ces objets seront injectés dans la table des arcs en replacement des arcs dont ils sont le résultat de la fusion.
 _
 #### 210 : GenerateConnectingLinesByCountry
 
-L'objectif de cette étape et de générer, pour chaque pays, les connecting lines correspondant à des arcs ou portions d'arcs longeant la frontière. 
+L'objectif de cette étape et de générer, pour chaque pays, les __connecting line_s_ correspondant à des arcs ou portions d'arcs longeant la frontière. 
 
 ##### Données de travail :
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CL_TABLE                       |        | X      | X                  | table des connecting lines                                  |
+| CL_TABLE                       |        | X      | X                  | table des __connecting line_s_                                  |
 | EDGE_TABLE_INIT                | X      |        |                    | table du réseau à traiter                                   |
 | TARGET_BOUNDARY_TABLE          | X      |        |                    | table des frontières                                        |
 
@@ -349,30 +349,30 @@ Paramètre utilisés:
 | paramètre                     | description                                                                                                                           |
 |-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
 | CL_BUFFER_DIST                | rayon du buffer autour des frontières                                                                                                 |
-| CL_THRESHOLD_NO_CL            | seuil de longueur de portion d'arc hors buffer determinant une interruption de connecting line                                        |
-| CL_RATIO_IN_BUFFER            | proportion d'une portion d'arc qui doit être situé dans le buffer de la frontière pour pouvoir donner naissance à une connecting line |
+| CL_THRESHOLD_NO_CL            | seuil de longueur de portion d'arc hors buffer determinant une interruption de _connecting line_                                        |
+| CL_RATIO_IN_BUFFER            | proportion d'une portion d'arc qui doit être situé dans le buffer de la frontière pour pouvoir donner naissance à une _connecting line_ |
 | CL_SNAP_ON_VERTEX_BORDER_DIST | distance de snapping de la projection des extremités des arcs sur les points des polylignes des frontières                            |
-| CL_BORDER_MAX_ANGLE           | angle maximum entre la frontièere et un arc ou une portion d'arc pour qu'ils puissent générer une connecting line                     |
+| CL_BORDER_MAX_ANGLE           | angle maximum entre la frontièere et un arc ou une portion d'arc pour qu'ils puissent générer une _connecting line_                     |
 | CFG_BOUNDARY_ANGLE_THRESHOLD  | seuil d'angle pour le découpage des frontières au niveau des angles aigu (si le paramètre vaut 180, aucun découpage n'est réalisé)    |
-| LINKED_FEATURE_ID             | nom du champ indiquant l'identifiant de l'arc associé à une connecting line                                                           |
+| LINKED_FEATURE_ID             | nom du champ indiquant l'identifiant de l'arc associé à une _connecting line_                                                           |
 
-L'objectif, dans un premier temps, est de déterminer les arcs ou portions d'arcs qui donneront naissance à des connecting lines,
+L'objectif, dans un premier temps, est de déterminer les arcs ou portions d'arcs qui donneront naissance à des __connecting line_s_,
 Pour cela un buffer est créé autour de la frontière et chaque arc intersectant celui-ci est découpé selon le contour du buffer.
-Pour chaque arc on parcourt l'ensemble de sous-arcs ainsi obtenu et on détermine quelles sont les ensembles de sous-arcs adjacents pouvant donner naissance à des connecting lines.
-Un ensemble de sous-arcs est éligible à la génération d'une connecting line si celui-ci n'est composé que de parties localisées à l'interieur du buffer et éventuellemnent de partie hors buffer de longueur inférieur au seuil _CL_THRESHOLD_NO_CL_. Un ensemble éligible donnera effectivement naissance à une connecting line si la proportion (en longueur) des parties situées dans le buffer est supérieur au seuil _CL_RATIO_IN_BUFFER_.
+Pour chaque arc on parcourt l'ensemble de sous-arcs ainsi obtenu et on détermine quelles sont les ensembles de sous-arcs adjacents pouvant donner naissance à des __connecting line_s_.
+Un ensemble de sous-arcs est éligible à la génération d'une _connecting line_ si celui-ci n'est composé que de parties localisées à l'interieur du buffer et éventuellemnent de partie hors buffer de longueur inférieur au seuil _CL_THRESHOLD_NO_CL_. Un ensemble éligible donnera effectivement naissance à une _connecting line_ si la proportion (en longueur) des parties situées dans le buffer est supérieur au seuil _CL_RATIO_IN_BUFFER_.
 
 ![210](images/210_with_key.png)
 
 
 #### 211 : MergeConnectingLinesOnBorder
 
-Le but est ici de fusionner deux à deux les conneEDGE_TABLE_INITcting lines ou portions de connecting lines dont les arcs associés peuvent être appairés. A l'issu de ce traitement il ne doit subsister que des connecting lines associées à deux arcs des deux pays.
+Le but est ici de fusionner deux à deux les conneEDGE_TABLE_INITcting lines ou portions de __connecting line_s_ dont les arcs associés peuvent être appairés. A l'issu de ce traitement il ne doit subsister que des __connecting line_s_ associées à deux arcs des deux pays.
 
 ##### Données de travail :
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CL_TABLE                       | X      | X      | X                  | table des connecting lines                                  |
+| CL_TABLE                       | X      | X      | X                  | table des __connecting line_s_                                  |
 
 ##### Princi_fsStandingpaux opérateurs de calcul utilisés :
 - app::calcul::CFeatGenerationOp
@@ -382,18 +382,17 @@ Le but est ici de fusionner deux à deux les conneEDGE_TABLE_INITcting lines ou 
 Paramètre utilisés: 
 | paramètre                   | description                                                                                                               |
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| CL_EDGE_MAX_DIST            | distance de hausdorff maximum entre deux portions d'arc pour quelles puissent être fusionnées en une connecting line      |
-| CL_SNAP_PROJ_CL_2_EDGE_DIST | distance de snapping de la projection des extremités des connecting lines sur les points des polylignes des arcs associés |
-| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line                                           |
+| CL_EDGE_MAX_DIST            | distance de hausdorff maximum entre deux portions d'arc pour quelles puissent être fusionnées en une _connecting line_      |
+| CL_SNAP_PROJ_CL_2_EDGE_DIST | distance de snapping de la projection des extremités des __connecting line_s_ sur les points des polylignes des arcs associés |
+| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une _connecting line_                                           |
 
-Les _connecting lines_ sont enregistrées dans une table dédiée.
-La première étape consiste à construire un graph planaire à partir des connecting lines. Les linéaires superposés sont ainsi agrégés et découpés pour former le graph, chaque connexion du graph est ainsi associée à un ou plusieurs arcs du réseau traité.
+La première étape consiste à construire un graph planaire à partir des __connecting line_s_. Les linéaires superposés sont ainsi agrégés et découpés pour former le graph, chaque connexion du graph est ainsi associée à un ou plusieurs arcs du réseau traité.
 Pour les connexions du graph possédant plusieurs arcs associés provenant des deux pays, on cherche les meilleurs couples d'arcs à appairer.
 Pour qu'un couple d'arcs soit appairable il faut que :
 - les deux arcs soient de pays différents
-- la distance de hausdorff entre les portions d'arcs associés à la connecting line soit inférieure au seuil _CL_EDGE_MAX_DIST_
+- la distance de hausdorff entre les portions d'arcs associés à la _connecting line_ soit inférieure au seuil _CL_EDGE_MAX_DIST_
 
-Pour chaque couple appairé une connecting line est créée. Toutes les connecting lines ou portions de connecting line non fusionnées sont supprimées.
+Pour chaque couple appairé une _connecting line_ est créée. Toutes les __connecting line_s_ ou portions de _connecting line_ non fusionnées sont supprimées.
 
 ![211_a](images/211_a_with_key.png)
 <br>
@@ -402,13 +401,13 @@ Pour chaque couple appairé une connecting line est créée. Toutes les connecti
 
 #### 212 : SnapConnectingLines
 
-Cette étape vise à corriger les discontinuités entre les connecting lines qui ont pu être crées par les traitements précédents.
+Cette étape vise à corriger les discontinuités entre les __connecting line_s_ qui ont pu être crées par les traitements précédents.
 
 ##### Données de travail :
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CL_TABLE                       | X   x   | X      | X                  | table des connecting lines                                  |
+| CL_TABLE                       | X   x   | X      | X                  | table des __connecting line_s_                                  |
 
 ##### Princi_fsStandingpaux opérateurs de calcul utilisés :
 - app::calcul::CFeatGenerationOp
@@ -418,9 +417,9 @@ Cette étape vise à corriger les discontinuités entre les connecting lines qui
 Paramètre utilisés: 
 | paramètre                   | description                                                                                                      |
 |-----------------------------|------------------------------------------------------------------------------------------------------------------|
-| CL_CL_CLOSEST_MAX_DIST      | seuil de distance entre les extrémités de deux connecting lines en dessous duquel une connection doit être créée |
+| CL_CL_CLOSEST_MAX_DIST      | seuil de distance entre les extrémités de deux __connecting line_s_ en dessous duquel une connection doit être créée |
 
-Pour détecter les discontinuités, un graph des connecting lines est chargé. Pour chaque noeud de degré 1 on recherche s'il existe des extrémités d'autres connecting lines situés à une distance inférieure au seuil _CL_CL_CLOSEST_MAX_DIST_. 
+Pour détecter les discontinuités, un graph des __connecting line_s_ est chargé. Pour chaque noeud de degré 1 on recherche s'il existe des extrémités d'autres __connecting line_s_ situés à une distance inférieure au seuil _CL_CL_CLOSEST_MAX_DIST_. 
 Les extremités proches sont déplacées vers le barycentre de l'ensemble de ces points.
 
 ![212](images/212_with_key.png)
@@ -428,13 +427,13 @@ Les extremités proches sont déplacées vers le barycentre de l'ensemble de ces
 
 #### 213 : DeleteConnectingLines
 
-Cette étape consiste à supprimer les connecting lines pour lesquelles les arcs associés ne peuvent être fusionnés car trop éloignés ou parce que présentant des orientations trop différentes.
+Cette étape consiste à supprimer les __connecting line_s_ pour lesquelles les arcs associés ne peuvent être fusionnés car trop éloignés ou parce que présentant des orientations trop différentes.
 
 ##### Données de travail :
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CL_TABLE                       | X      | X      | X                  | table des connecting lines                                  |
+| CL_TABLE                       | X      | X      | X                  | table des __connecting line_s_                                  |
 | EDGE_TABLE_INIT                | X      |        |                    | table du réseau à traiter                                   |
 
 ##### Principaux opérateurs de calcul utilisés :
@@ -445,15 +444,15 @@ Cette étape consiste à supprimer les connecting lines pour lesquelles les arcs
 Paramètre utilisés: 
 | paramètre                   | description                                                                                                               |
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| CL_EDGE_MAX_ANGLE           | angle maximum autorisé entre les deux portions d'arcs associées à une connecting line                                     |
-| CL_EDGE_MAX_DIST            | distance de hausdorff maximum autorisée entre les deux portions d'arc associées à une connecting line                     |
-| CL_MIN_LENGTH               | longueur minimum d'une connecting line isolée (non connectée à d'autres connecting lines)                                 |
-| CL_SNAP_PROJ_CL_2_EDGE_DIST | distance de snapping de la projection des extremités des connecting lines sur les points des polylignes des arcs associés |
-| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line                                           |
+| CL_EDGE_MAX_ANGLE           | angle maximum autorisé entre les deux portions d'arcs associées à une _connecting line_                                     |
+| CL_EDGE_MAX_DIST            | distance de hausdorff maximum autorisée entre les deux portions d'arc associées à une _connecting line_                     |
+| CL_MIN_LENGTH               | longueur minimum d'une _connecting line_ isolée (non connectée à d'autres __connecting line_s_)                                 |
+| CL_SNAP_PROJ_CL_2_EDGE_DIST | distance de snapping de la projection des extremités des __connecting line_s_ sur les points des polylignes des arcs associés |
+| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une _connecting line_                                           |
 
-On charge dans un premier un graphe des connecting lines, puis, pour chaque connecting line dont au moins une des extrémités n'est pas connectée à d'autres connecting lines (noeud de degré 1), on calcule la portion pour chacun des deux arcs associés correspondant à la projection de la connecting line sur l'arc. On obtient ainsi les deux portions d'arc associés à la connecting line.
-Une connecting line est supprimée si l'angle entre les orientations de deux portions d'arc est supérieur à _CL_EDGE_MAX_ANGLE_ ou bien si la distance de hausdorff entre elles est supérieure à _CL_EDGE_MAX_DIST_.
-En outre, chaque connecting line isolée (non connectée à d'autres connecting lines) dont la longeur est inférieure à _CL_MIN_LENGTH_ et supprimée.
+On charge dans un premier un graphe des __connecting line_s_, puis, pour chaque _connecting line_ dont au moins une des extrémités n'est pas connectée à d'autres __connecting line_s_ (noeud de degré 1), on calcule la portion pour chacun des deux arcs associés correspondant à la projection de la _connecting line_ sur l'arc. On obtient ainsi les deux portions d'arc associés à la _connecting line_.
+Une _connecting line_ est supprimée si l'angle entre les orientations de deux portions d'arc est supérieur à _CL_EDGE_MAX_ANGLE_ ou bien si la distance de hausdorff entre elles est supérieure à _CL_EDGE_MAX_DIST_.
+En outre, chaque _connecting line_ isolée (non connectée à d'autres __connecting line_s_) dont la longeur est inférieure à _CL_MIN_LENGTH_ et supprimée.
 
 > Note : on désigne ici par orientation d'une polyligne, le vecteur défini par ses deux extrémitées.
 
@@ -461,13 +460,13 @@ En outre, chaque connecting line isolée (non connectée à d'autres connecting 
 
 #### 214 : UpdateGeomConnectingLines
 
-Le traitement mis en oeuvre dans cette étape consiste à calculer de nouvelles géométries pour les connecting line qui sont les géométries moyennes calculées à partir des paires de portion d'arc fusionnées. 
+Le traitement mis en oeuvre dans cette étape consiste à calculer de nouvelles géométries pour les _connecting line_ qui sont les géométries moyennes calculées à partir des paires de portion d'arc fusionnées. 
 
 ##### Données de travail :
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CL_TABLE                       | X      | X      | X                  | table des connecting lines                                  |
+| CL_TABLE                       | X      | X      | X                  | table des __connecting line_s_                                  |
 | EDGE_TABLE_INIT                | X      |        |                    | table du réseau à traiter                                   |
 
 ##### Principaux opérateurs de calcul utilisés :
@@ -479,28 +478,28 @@ Paramètre utilisés:
 | paramètre                   | description                                                                                                               |
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
 | EDGE_FICTITIOUS_NAME        | nom du champ indiquant si l'objet est fictif                                                                              |
-| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line                                           |
-| CL_SNAP_PROJ_CL_2_EDGE_DIST | distance de snapping de la projection des extremités des connecting lines sur les points des polylignes des arcs associés |
+| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une _connecting line_                                           |
+| CL_SNAP_PROJ_CL_2_EDGE_DIST | distance de snapping de la projection des extremités des __connecting line_s_ sur les points des polylignes des arcs associés |
 
 Ce traitement se déroule en deux phases avec une phase intitiale:
 
-0- chargement d'un graph GL à partr du réseau initial de connecting lines.
+0- chargement d'un graphe GL à partr du réseau initial de __connecting line_s_.
 
-1- calcul des nouvelles géométries des conneLes _connecting lines_ sont enregistrées dans une table dédiée.cting lines : si les arcs associés à la connecting line sont tous deux fictifs ou non-fictifs, on calcule une géométrie moyenne par interpolation des deux portions d'arcs associés. Si seulement l'un des deux arcs est fictif c'est la géométrie c'est la portion de cet arc associée à la connecting line qui sera pris pour nouvelle géométrie
+1- calcul des nouvelles géométries des __connecting line_s_ : si les arcs associés à la _connecting line_ sont tous deux fictifs ou non-fictifs, on calcule une géométrie moyenne par interpolation des deux portions d'arcs associés. Si seulement l'un des deux arcs est fictif c'est la géométrie c'est la portion de cet arc associée à la _connecting line_ qui sera pris pour nouvelle géométrie
 
-2- rétablissement des connexions légitimes entre les connecting lines : les connecting lines initialement connectées sont déconnectées après calcul des nouvelles géométries. La création du graph initial GL, préalablement à la modification des géométries, a permis de mémoriser les relations d'adjacence entre les connecting lines qu'il nous faut maintenant rétablir. Tout d'abord nous chargeons deux graphs G1 et G2 à partir des réseaux des deux pays country1 et country2. Ensuite, nous parcourons tous les noeuds de degré supérieur à 2 du graph GL. Pour l'ensemble des connecting lines adjacentes à ce noeud (une connecting line est ici équivalente à un arc du graph) on détermine les groupes de connecting lines qui doivent effectivement rester connectées. Les connecting lines qui doivent être connectées sont celles dont les arcs associés sont identiques ou connectés dans leur réseau respectif (G1 ou G2). Les relations d'adjacence des arcs associés sont retrouvées en interrogeant les graphs G1 et G2. Par exemple, soit 2 connecting lines adjacentes cl1 et cl2 qui ont respectivement pour paires d'arcs associés (country1_1, country2_1) et (country1_1, country2_2). La connexion entre ces deux connecting lines doLes _connecting lines_ sont enregistrées dans une table dédiée.it être rétablie si les arcs country2_1 et country2_2 sont effectivement connectés dans le réseau du pays country2 (la relation d'adjacence est évidente en ce qui concerne les arcs issus du pays country1 puisque les 2 connecting lines sont associées au même arc country1_1). Si une relation d'adjacence est établie entre plusieurs connecting lines, un barycentre est calculé à partir des géométries des extrémités devant être reliées. Ces géométries sont ensuite remplacées par celle du barycentre.
+2- rétablissement des connexions légitimes entre les __connecting line_s_ : les __connecting line_s_ initialement connectées sont déconnectées après calcul des nouvelles géométries. La création du graph initial GL, préalablement à la modification des géométries, a permis de mémoriser les relations d'adjacence entre les __connecting line_s_ qu'il nous faut maintenant rétablir. Tout d'abord nous chargeons deux graphs G1 et G2 à partir des réseaux des deux pays country1 et country2. Ensuite, nous parcourons tous les noeuds de degré supérieur à 2 du graph GL. Pour l'ensemble des __connecting line_s_ adjacentes à ce noeud (une _connecting line_ est ici équivalente à un arc du graph) on détermine les groupes de __connecting line_s_ qui doivent effectivement rester connectées. Les __connecting line_s_ qui doivent être connectées sont celles dont les arcs associés sont identiques ou connectés dans leur réseau respectif (G1 ou G2). Les relations d'adjacence des arcs associés sont retrouvées en interrogeant les graphs G1 et G2. Par exemple, soit 2 __connecting line_s_ adjacentes cl1 et cl2 qui ont respectivement pour paires d'arcs associés (country1_1, country2_1) et (country1_1, country2_2). La connexion entre ces deux __connecting line_s_ doit être rétablie si les arcs country2_1 et country2_2 sont effectivement connectés dans le réseau du pays country2 (la relation d'adjacence est évidente en ce qui concerne les arcs issus du pays country1 puisque les 2 __connecting line_s_ sont associées au même arc country1_1). Si une relation d'adjacence est établie entre plusieurs __connecting line_s_, un barycentre est calculé à partir des géométries des extrémités devant être reliées. Ces géométries sont ensuite remplacées vers celle du barycentre.
 
 ![214](images/214_with_key.png)
 
 #### 220 : ConnectionConnectingLines
 
-Le but de cette étape est de supprimer arcs ou parties d'arcs ayant fait l'objet d'une fusion et de réaliser les déplacements nécessaires afin de connecter le réseau aux connecting lines résultant de la fusion.
+Le but de cette étape est de supprimer les arcs ou parties d'arcs ayant fait l'objet d'une fusion et de réaliser les déplacements nécessaires afin de connecter le réseau aux __connecting line_s_ résultant de la fusion.
 
 ##### Données de travail :
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CL_TABLE                       | X      |        |                    | table des connecting lines                                  |
+| CL_TABLE                       | X      |        |                    | table des __connecting line_s_                                  |
 | EDGE_TABLE_INIT                | X      | X      | X                  | table du réseau à traiter                                   |
 
 ##### Principaux opérateurs de calcul utilisés :
@@ -511,27 +510,27 @@ Le but de cette étape est de supprimer arcs ou parties d'arcs ayant fait l'obje
 Paramètre utilisés: 
 | paramètre                   |                                                                                               |
 |-----------------------------|-----------------------------------------------------------------------------------------------|
-| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une connecting line               |
-| CFC_SNAP_DIST               | distance de snapping des extrémités d'une connecting line sur les extrémités d'un arc associé |
+| LINKED_FEATURE_ID           | nom du champ indiquant les identifiants des arcs associés à une _connecting line_               |
+| CFC_SNAP_DIST               | distance de snapping des extrémités d'une _connecting line_ sur les extrémités d'un arc associé |
 
-La première étape du traitement consiste à calculer l'ensemble des déplacements qu'il faudra appliquer au réseau, un déplacement étant représenté par un vecteur associé à la localisation d'un noeud. On profite de cette étape pour découper les arcs en supprimant les parties fusionnées. On effectue un traitement pays par pays. Pour chacun des pays on parcourt les connecting lines. Pour chaque connecting line on récupère l'identifiant de l'arc associé correspondant au pays traité (prenons ici ID pour valeur de cet identifiant). L'objectif étant de supprimer les portions d'arcs fusionnées, on créé une géométrie de travail MERGED_CL correspondant à la fusion des connecting lines connexes à la connecting line traitée et liées au même arc ID, cela permettra de supprimer en un seul passage l'ensemble des portions d'arcs fusionnées contigues. On recherche ensuite dans le réseau le meilleur candidat parmis les arcs pouvant être associés. En effet l'arc associé n'a pas nécessairement pour identifiant ID car cet arc peut avoir été précédemment découpé (un même arc peut présenter plusieurs portions fusionnées non connexes). Pour cela on recherche parmis tous les arcs ayant pour parent l'arc ID celui qui est le plus proche de la géométrie MERGED_CL. Une fois l'arc identifié ID' on regarde si les extrémités de MERGED_CL peuvent être associées à celles de l'arc, sinon calcule les projections de ces extrémités sur l'arc et on découpe l'arc suivant ces points. Parmis les polylignes résultant de la découpe, on supprime celle qui sera remplacée par les connecting lines (celles composant la géométrie MERGED_CL). Les polylignes restantes sont utilisées pour créer de nouveaux objets en remplacement de l'arc ID' (ce sont les parties restantes non associées à cette fusion). Les déplacements sont enregistrés. Ils correspondent aux vecteurs allant des points de coupure ou extrémités de l'arc ID' vers leur extrémité associée de la géométrie MERGED_CL.
+La première étape du traitement consiste à calculer l'ensemble des déplacements qu'il faudra appliquer au réseau, un déplacement étant représenté par un vecteur associé à la localisation d'un noeud. On profite de cette étape pour découper les arcs en supprimant les parties fusionnées. On effectue un traitement pays par pays. Pour chacun des pays on parcourt les __connecting line_s_. Pour chaque _connecting line_ on récupère l'identifiant de l'arc associé correspondant au pays traité (prenons ici ID pour valeur de cet identifiant). L'objectif étant de supprimer les portions d'arcs fusionnées, on créé une géométrie de travail MERGED_CL correspondant à la fusion des __connecting line_s_ connexes à la _connecting line_ traitée et liées au même arc ID, cela permettra de supprimer en un seul passage l'ensemble des portions d'arcs fusionnées contigues. On recherche ensuite dans le réseau le meilleur candidat parmis les arcs pouvant être associés. En effet l'arc associé n'a pas nécessairement pour identifiant ID car cet arc peut avoir été précédemment découpé (un même arc peut présenter plusieurs portions fusionnées non connexes). Pour cela on recherche parmis tous les arcs ayant pour parent l'arc ID celui qui est le plus proche de la géométrie MERGED_CL. Une fois l'arc identifié ID' on regarde si les extrémités de MERGED_CL peuvent être associées à celles de l'arc, sinon calcule les projections de ces extrémités sur l'arc et on découpe l'arc suivant ces points. Parmis les polylignes résultant de la découpe, on supprime celle qui sera remplacée par les __connecting line_s_ (celles composant la géométrie MERGED_CL). Les polylignes restantes sont utilisées pour créer de nouveaux objets en remplacement de l'arc ID' (ce sont les parties restantes non associées à cette fusion). Les déplacements sont enregistrés. Ils correspondent aux vecteurs allant des points de coupure ou extrémités de l'arc ID' vers leur extrémité associée de la géométrie MERGED_CL.
 <br>
 Dans un deuxième temps on charge un graphe composé des réseaux des deux pays et on applique les déplacements précédemment calculés aux noeuds du graphe. On applique une fonction de déformation avec amortissement aux arcs adjacents aux noeuds déplacés.
 <br>
-La dernière étape consiste à persister en baLes _connecting lines_ sont enregistrées dans une table dédiée.se de données les modifications géométriques réalisées sur les arcs déformés. Les arcs effondrés en un points sont supprimés.
+La dernière étape consiste à persister en base de données les modifications géométriques réalisées sur les arcs déformés. Les arcs effondrés en un points sont supprimés.
 
 ![220](images/220_with_key.png)
 
 
 #### 230 : ImportConnectingLines
 
-Lors de cette étape les objets contenus dans la table des connecting lines sont copiés dans la table du réseau traité.
+Lors de cette étape les objets contenus dans la table des __connecting line_s_ sont copiés dans la table du réseau traité.
 
 ##### Données de travail :
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CL_TABLE                       | X      |        |                    | table des connecting lines                                  |
+| CL_TABLE                       | X      |        |                    | table des __connecting line_s_                                  |
 | EDGE_TABLE_INIT                | X      | X      | X                  | table du réseau à traiter                                   |
 
 ##### Principaux opérateurs de calcul utilisés :
@@ -564,23 +563,23 @@ Paramètre utilisés:
 | paramètre                           |                                                                                               |
 |-------------------------------------|-----------------------------------------------------------------------------------------------|
 | LINKED_FEATURE_ID                   | nom du champ indiquant l'identifiant de l'arc associé à un connecting point                   |
-| CP_FROM_CL_FROM_BORDER_PAIRING_DIST | distance entre un connecting point issu l'intersection avec une connecting line et un connecting point issu de l'intersection avec la frontière en dessous de laquelle ces deux connecting points peuvent être considérés comme des doublons |
+| CP_FROM_CL_FROM_BORDER_PAIRING_DIST | distance entre un connecting point issu l'intersection avec une _connecting line_ et un connecting point issu de l'intersection avec la frontière en dessous de laquelle ces deux connecting points peuvent être considérés comme des doublons |
 | CP_UNDERSHOOT_DIST          | distance maximale entre une extremité d'arc et un connecting point créé par résolution d'undershoot de cette extrémité |
 | CP_MERGE_DIST_CP            | distance maximum entre deux CP pour qu'ils soient fusionnable                                 |
 | CP_MERGE_DIST_TRACTOR_CP    | distance maximum entre deux CP pour qu'ils soient fusionnable si les arcs associés aux connecting point sont d'un type inclus dans la liste CP_FORM_OF_WAY_EXCEPTION |
 | CP_FORM_OF_WAY_EXCEPTION | liste des types d'arcs pour lesquels on applique le paramètre CP_MERGE_DIST_TRACTOR_CP pour la fusion des connectins points |
 | FORM_OF_WAY_NAME            | nom du champ définissant le type de l'arc                                                     |
-| W_TAG_NAME                  | champ de travail permettant de différentier les connecting points issus de l'intersection avec les connecting lines de ceux issu de l'intersection avec les frontières.
+| W_TAG_NAME                  | champ de travail permettant de différentier les connecting points issus de l'intersection avec les __connecting line_s_ de ceux issu de l'intersection avec les frontières.
 
 
-1) La première étape consiste à créer les _connecting points_ par intersection des arcs avec les _connecting lines_.
+1) La première étape consiste à créer les _connecting points_ par intersection des arcs avec les __connecting line_s_.
 <br>
 2) Lors de la deuxième étape on crée les _connecting points_ par intersection avec les frontières.
 <br>
 
 ![240_1_1](images/240_1_1_with_key.png)
 
-Pour distinguer ces deux types de _connecting points_ (enregistrés dans la même table _CP_TABLE_), on utiliser le champs de travail W_TAG_NAME (ce champ est renseigné pour les _connecting points_ calculés par intersection avec les _connecting lines_).
+Pour distinguer ces deux types de _connecting points_ (enregistrés dans la même table _CP_TABLE_), on utiliser le champs de travail W_TAG_NAME (ce champ est renseigné pour les _connecting points_ calculés par intersection avec les __connecting line_s_).
 <br>
 3) A ce stade du traitement on cherche à identifier les paires de _CP issu de CL/CP issu de frontière_ liés au même arc (enregistré dans le champ LINKED_FEATURE_ID) et suffisamment proches (distance inférieure à _CP_FROM_CL_FROM_BORDER_PAIRING_DIST_) pour être considérés comme représentant le même noeud de connection.
 Pour cela on parcourt les CP issus de frontiere et pour chacun on cherche le CP issu de CL possédant le même LINKED_FEATURE_ID le plus proche dans un rayon de longueur _CP_FROM_CL_FROM_BORDER_PAIRING_DIST_. Considérons CP1, un CP issu de frontière. Si un candidat issu de CL est trouvé on regarde alors si, de manière réciproque, ce dernier à pour plus proche CP issu de frontiere CP1. Si tel est le cas les deux CPs sont considérés comme des doublons et, afin de préserver la cohérence et la connectivité du réseau, le CP issu de frontiere est supprimé.
@@ -681,7 +680,7 @@ Pour finir les arcs déformés sont enregistrés en base de données et les arcs
 #### 255 : GenerateCLinArea2
 
 Les étapes précédentes de création d'objets de raccordement (connecting points et lines) et de connexions des réseaux des deux pays à ces objets a pu créer de nouvelles opportunités d'appariemments par l'apparition de faces étroites composées d'arcs des deux pays représentant un même chemin du monde réel.
-Pour cette raison l'outil de création de _connecting lines_ dans des faces est relancé à ce stade du traitement.
+Pour cette raison l'outil de création de __connecting line_s_ dans des faces est relancé à ce stade du traitement.
 
 ##### Données de travail :
 
@@ -694,7 +693,7 @@ Ce référer à l'étape 204 du processus qui met en oeuvre le même traitement.
 
 Ce référer à l'étape 204 du processus qui met en oeuvre le même traitement.
 <br>
-La seule différence avec l'étape 204 est l'utilisation des paramètres CLA_CL_LENGTH_THRESHOLD_2 et CLA_CL_MIN_RATIO_IN_AREA_2 en remplacement des paramètres CLA_CL_LENGTH_THRESHOLD et CLA_CL_MIN_RATIO_IN_AREA ce qui modifie le comportement de l'outil en ce qui concerne le traitement des connecting lines pouvant composer le contour des faces.
+La seule différence avec l'étape 204 est l'utilisation des paramètres CLA_CL_LENGTH_THRESHOLD_2 et CLA_CL_MIN_RATIO_IN_AREA_2 en remplacement des paramètres CLA_CL_LENGTH_THRESHOLD et CLA_CL_MIN_RATIO_IN_AREA ce qui modifie le comportement de l'outil en ce qui concerne le traitement des __connecting line_s_ pouvant composer le contour des faces.
 
 
 #### 260 : EdgeCleaning1
@@ -763,13 +762,13 @@ Pour qu'une face soit qualifiée d'étroite il faut que :
 ![260_2](images/260_2_with_key.png)
 
 Si une face étroite est détectée, on parcourt les arcs de son contour en enregistrant :
-- les chemins de chaque pays (chemin = groupe d'arcs contigus appartenant à un même pays dont les extrémités sont connectées à une ou plusieurs _connecting lines_)
-- les connexions du contour à des _connecting lines_
+- les chemins de chaque pays (chemin = groupe d'arcs contigus appartenant à un même pays dont les extrémités sont connectées à une ou plusieurs __connecting line_s_)
+- les connexions du contour à des __connecting line_s_
 - les connexions des chemins au reste du réseau (connexion, hors extrémitées, du chemin à des arcs du même pays autre que _connecting line_)
 
 Le traitement de la face est abandonné si :
 - le contour contient une _connecting line_
-- le contour ne possède pas deux et seulement deux noeuds connectés à des _connecting lines_
+- le contour ne possède pas deux et seulement deux noeuds connectés à des __connecting line_s_
 - il n'existe pas un chemin pour chacun des deux pays
 - les deux chemins sont chacun connectés au réseau (hors connexion aux extrémités)
 
@@ -784,7 +783,7 @@ Si le deux ratios sont égaux on conserve le chemin le plus court.
 3) Nettoyage iteratif des antennes et des faces
 
 Le taitement s'effectue pays par pays.
-On construit dans un premier temps un graph planaire à partir du réseau d'un pays (_connecting lines_ comprises)
+On construit dans un premier temps un graph planaire à partir du réseau d'un pays (__connecting line_s_ comprises)
 
 On lance successivement un nettoyage des antennes puis un nettoyage des faces fines. On répète itérativement cet enchainement tant que des suppressions sont opérées.
 

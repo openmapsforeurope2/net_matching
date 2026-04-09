@@ -743,6 +743,8 @@ On parcourt ensuite les arcs du graphe et pour chaque arc on regarde s'il existe
 Si plusieurs arcs paralèlles existent, on choisi parmis eux un arc de référence. Si l'un des arcs correspond à une _connecting line_ c'est lui que l'on choisi, sinon on prend celui qui à le plus grand ratio (le ratio d'un arc étant la proportion de la géométrie de cet arc situé dans son pays).
 Ensuite, on calcule la distance de hausdorff entre l'arc de référence et chacun des autres arcs. Si cette distance est inférieure au seuil _ECL_PARALELLE_EDGE_MAX_DIST_ l'arc est supprimé.
 
+![260_1](images/260_1_with_key.png)
+
 2) Nettoyage des faces.
 
 L'objectif est d'éliminer les redondances (plusieurs représentations d'un même objet du monde réel). En effet, à ce stade peuvent encore co-exister des modélisations des deux pays d'un même objet formant des faces qui n'auraient pas été fusionnées lors des étapes précédentes.
@@ -757,6 +759,8 @@ Une fois obtenus les points extrèmes, on peut extraire du contour de la face le
 Pour qu'une face soit qualifiée d'étroite il faut que :
 - la largeur moyenne soit inférieure à _ECL_SLIM_SURFACE_WIDTH_. La largeur moyenne est calculée de la manière suivante : meanLength = 2 * (PolygonArea / PolygonExterirorRingLength)
 - la distance de hausdorff entre les deux côtés de la face soit inférieure à 3 * _ECL_SLIM_SURFACE_WIDTH_
+
+![260_2](images/260_2_with_key.png)
 
 Si une face étroite est détectée, on parcourt les arcs de son contour en enregistrant :
 - les chemins de chaque pays (chemin = groupe d'arcs contigus appartenant à un même pays dont les extrémités sont connectées à une ou plusieurs _connecting lines_)
@@ -775,12 +779,16 @@ Si aucun des deux chemins n'est connecté au réseau on calcule les ratios de ch
 Le chemin qui est conservé est celui qui à le ratio le plus grand.
 Si le deux ratios sont égaux on conserve le chemin le plus court.
 
+![260_3](images/260_3_with_key.png)
+
 3) Nettoyage iteratif des antennes et des faces
 
 Le taitement s'effectue pays par pays.
 On construit dans un premier temps un graph planaire à partir du réseau d'un pays (_connecting lines_ comprises)
 
 On lance successivement un nettoyage des antennes puis un nettoyage des faces fines. On répète itérativement cet enchainement tant que des suppressions sont opérées.
+
+![260_5](images/260_5_with_key.png)
 
 3.1) Suppression des antennes
 On parcourt les noeuds du graphe, et, pour chaque noeud de degré 1 on récupère l'antenne qui correspond au chemin partant de ce noeud et qui s'achève au premier noeud de degré différent de 2, _connecting point_ ou sommet de _connecting line_ rencontré.
@@ -795,16 +803,19 @@ On évalue chaque antenne suivant différents critères afin de savoir si elle d
   - si le ratio de cette partie est < _ECL_ANTENNA_RATIO_THRESHOLD_, on la supprime
   - sinon, si le ratio total d'antenne contenu dans l'emprise du pays augmentée d'un buffer de rayon _ECL_LANDMASK_BUFFER_ est < _ECL_ANTENNA_RATIO_WITH_BUFFER_THRESHOLD_, on la supprime
   - sinon, on la garde.
+
+![260_4](images/260_4_with_key.png)
+
 Si le groupe d'antennes convergeant au même point est composé de plusieurs antennes répondant toutes aux critères de suppression, on conserve la dernière (la plus longue) car elle devient partie intégrante d'une nouvelle antenne plus longue qui sera traitée à l'itération suivante de ce même processus.
 A la fin du processus, si des suppressions ont été réalisées, on relance le processus pour traiter les éventuelles nouvelles antennes que les suppressions ont fait apparaître.
 Le traitement itératif prend fin lorsque'une occurence du processus ne produit aucune suppression. 
 
 
-3.2) Suppression des faces
+3.2) nettoyage des faces
 On parcourt les faces du graphe. A des fins d'optimisation on ne traite que les faces dont l'aire est inférieure à _ECL_SLIM_SURFACE_MAX_AREA_ et dont le nombre de points est inférieur à _ECL_SLIM_SURFACE_MAX_NB_POINTS_. 
 Pour chaque face traitée on détermine si elle est fine. Ce calcul permet également de définir les deux extrémités topographiques de la face dont on se servira ultérieurement.
 
-SCHEMA 1
+![260_6_a](images/260_6_a_with_key.png)
 
 Si la face n'est pas fine, on réalise le traitement suivant :
 On récupère tous les chemins composant le contour de la face. Un chemin est ici une suite d'arcs contigus possédant le même code pays. Les noeuds d'un chemin, hors extrémitées, sont tous de degré deux.
@@ -815,12 +826,12 @@ Si la face est fine, on réalise le traitement suivant :
 Si la face est composée uniquement d'arcs d'un même pays, qu'elle est en intersection avec son pays et d'une largeur supérieure _ECL_ARTIFACT_WIDTH_, elle n'est pas traitée car considérée comme légitime.
 On récupère tous les chemins composant le contour de la face. Un chemin est ici une suite d'arcs contigus possédant le même code pays. Les noeuds d'un chemin, hors extrémitées, sont tous de degrée deux.
 
-SCHEMA 2
+![260_6_b](images/260_6_b_with_key.png)
 
 Si la face n'est composée que d'un seul chemin c'est qu'il s'agit d'un isthme (faces connectées au réseau par un seul arc) ou d'une île. Dans ce cas, la face est supprimée. Dans le cas d'un isthme, cela entraine l'apparition d'une nouvelle antenne qui pourra être traitée lors de la prochaine itération de suppression des antennes.
 Si la face est composée de plusieurs chemins possédant des codes pays différents on fusionne les chemins contigus possédant le même code pays.
 
-SCHEMA 3
+![260_6_c](images/260_6_c_with_key.png)
 
 S'il ne résulte de cette fusion que 2 chemins (de code pays différents), on regarde alors si les deux chemins sont équivalent (représentant le même objet du monde réel).
 Pour que deux chemins soit équivalent il faut que :
@@ -831,8 +842,8 @@ Si les deux chemins sont équivalent alors il sont considérés comme constituan
 Si de la fusion résulte un nombre de chemins différent de deux, on va essayer de déterminer de quels chemins sont constitués chacun des deux côtés de la face.
 Si les extremités topographiques de la face (extrémités géométriques), précédemment calculées, ne correspondent pas à des extrémités topologiques (extrémités de chemins) on ne traite pas la face, sinon on détermine comment sont répartis les chemins de part et d'autre des extémités topographiques. On obtient alors les deux cotés de la face chacun constitué d'un ou plusieurs chemins.
 
-SCHEME 4
-SCHEME 5
+![260_6_d](images/260_6_d_with_key.png)
+![260_6_e](images/260_6_e_with_key.png)
 
 Une fois obtenu la composition de chaque côté de la face, on calcul le ratio de chacun des côtés. le ratio d'un côté est la moyenne des ratios des chemins le constituent. Le ratio d'un chemin est la proportion du chemin localisé dans son pays.
 
@@ -842,7 +853,7 @@ Il nous faut maintenant choisir lequel des deux chemins doit être conservé et 
 - si aucun des deux chemins n'est connecté on supprime le côté possédant le plus petit ratio,
 - si les deux chemins sont non connectés et possèdent le même ratio, on supprime le coté le plus long.
 
-schema 6
+![260_6_f](images/260_6_f_with_key.png)
 
 A la fin du processus, si des suppressions ont été réalisées, on relance le processus pour traiter les éventuelles nouvelles faces que les suppressions ont fait apparaître.
 Le traitement itératif prend fin lorsqu'une occurence du processus ne produit aucune suppression.

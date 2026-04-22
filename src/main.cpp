@@ -138,6 +138,8 @@ int main(int argc, char *argv[])
         themeParametersFile = context->getConfigParameters().getValue( THEME_PARAMETER_FILE ).toString();
 		app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
         epg::params::tools::loadParams( *themeParameters, themeParametersFile, borderCode );
+        if (themeParameters->getParameter(COUNTRY_CODE_W).getValue().toString() == "")
+            IGN_THROW_EXCEPTION("country code " + borderCode + " unknown in theme parameter file");
 
         //info de connection db
         context->loadEpgParameters( themeParameters->getValue(DB_CONF_FILE).toString() );
@@ -182,26 +184,6 @@ int main(int argc, char *argv[])
             themeParameters->setParameter(CL_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CL_TABLE_SUFFIX).toString()));
         if ( themeParameters->getValue(CP_TABLE).toString() == "" ) 
             themeParameters->setParameter(CP_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CP_TABLE_SUFFIX).toString()));
-
-        // DEBUG
-        // std::ostringstream oss;
-
-        // oss << " host = '" << context->getConfigParameters().getParameter(HOST).getValue().toString() << "'";
-        // oss << " port = '" << context->getConfigParameters().getParameter(PORT).getValue().toString() << "'";
-        // oss << " dbname = '" << context->getConfigParameters().getParameter(DATABASE).getValue().toString() << "'";
-        // oss << " user = '" << context->getConfigParameters().getParameter(USER).getValue().toString() << "'";
-        // oss << " password = '" << context->getConfigParameters().getParameter(PASSWORD).getValue().toString() << "'";
-        // oss << " connect_timeout = '5' ";
-        // oss << " sslmode = 'disable'";
-
-        // std::string test = oss.str();
-
-        // //ouverture de la connection
-        // PGconn* conn = PQconnectdb( oss.str().c_str() );
-
-        // if (PQstatus(conn) != CONNECTION_OK) {
-        //     std::cout << "Connection failed: " << PQerrorMessage(conn) << std::endl;
-        // }
 
         //set BDD search path
         context->getDataBaseManager().setSearchPath(themeParameters->getValue(WORKING_SCHEMA).toString());

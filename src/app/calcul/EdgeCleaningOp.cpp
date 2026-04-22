@@ -118,17 +118,12 @@ namespace app
             std::string const landmaskTableName = themeParameters->getValue(LANDMASK_TABLE).toString();
             std::string const landCoverTypeName = themeParameters->getValue(LAND_COVER_TYPE_NAME).toString();
             std::string const landAreaValue = themeParameters->getValue(TYPE_LAND_AREA).toString();
-            std::string clTableName = themeParameters->getValue(CL_TABLE).toString();
-            if ( clTableName == "" ) {
-                std::string const clTableSuffix = themeParameters->getValue(CL_TABLE_SUFFIX).toString();
-                clTableName = edgeTableName + clTableSuffix;
-            }
             double const landmaskBuffer = themeParameters->getValue(ECL_LANDMASK_BUFFER).toDouble();
 
             // on recupere un buffer autour de la frontiere
             std::unique_ptr<ign::geometry::Geometry> boundBuffPtr(new ign::geometry::Polygon());
             ign::feature::sql::FeatureStorePostgis* fsBoundary = context->getDataBaseManager().getFeatureStore(boundaryTableName, idName, geomName);
-            ign::feature::FeatureIteratorPtr itBoundary = ome2::feature::sql::NotDestroyedTools::GetFeatures(*fsBoundary,ign::feature::FeatureFilter(countryCodeName +" = '"+_countryCode+"'"));
+            ign::feature::FeatureIteratorPtr itBoundary = ome2::feature::sql::NotDestroyedTools::GetFeatures(*fsBoundary, ign::feature::FeatureFilter(countryCodeName +" = '"+_countryCode+"'"));
             while (itBoundary->hasNext())
             {
                 ign::feature::Feature fBoundary = itBoundary->next();
@@ -199,7 +194,7 @@ namespace app
             // chargement des edges
             // patience
             size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filter);
-            boost::progress_display display(numFeatures, std::cout, "[ edge_loading  % complete ]\n");
+            boost::progress_display display(numFeatures, std::cout, "[ edge_loading % complete ]\n");
 
             ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filter);
             while (itEdge->hasNext())
@@ -428,7 +423,7 @@ namespace app
             std::set<edge_descriptor> sEdge2Remove;
 
             GraphType & graph = graphManager.getGraph();
-            boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning faces  % complete ]\n");
+            boost::progress_display display(graph.numFaces(), std::cout, "[ cleaning faces % complete ]\n");
             face_iterator fit, fend;
 			for( graph.faces( fit, fend ) ; fit != fend ; ++fit, ++display )
 			{
@@ -523,8 +518,8 @@ namespace app
                         double ratio2 = _getRatio(graph, mlEdges.rbegin()->first, mlEdges.rbegin()->second);
 
                         if( ratio1 == ratio2 ) {
-                            double length1 = epg::graph::tools::convertPathToLineString(graph, mlEdges.begin()->second).length();
-                            double length2 = epg::graph::tools::convertPathToLineString(graph, mlEdges.rbegin()->second).length();
+                            double length1 = _getLength(graph, mlEdges.begin()->second);
+                            double length2 = _getLength(graph, mlEdges.rbegin()->second);
                             _removeEdges(graph, length2 > length1 ? mlEdges.rbegin()->second : mlEdges.begin()->second, sEdge2Remove);
                         } else {
                             _removeEdges(graph, ratio1 > ratio2 ? mlEdges.rbegin()->second : mlEdges.begin()->second, sEdge2Remove);
@@ -534,6 +529,20 @@ namespace app
 			}
             for ( std::set<edge_descriptor>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
                 graph.removeEdge(*sit);
+        }
+
+        ///
+        ///
+        ///
+        double EdgeCleaningOp::_getLength(
+            GraphType const& graph,
+            std::list<edge_descriptor> const& lEdges 
+        ) const {
+            double length = 0;
+            for ( std::list<edge_descriptor>::const_iterator lit = lEdges.begin() ; lit != lEdges.end() ; ++lit )
+                length += graph.getGeometry(*lit).length();
+            
+            return length;
         }
 
         ///
@@ -1626,7 +1635,7 @@ namespace app
 					return;
 
 
-                boost::progress_display display(lEndingVertices.size()-1, std::cout, "[ cleaning paths out of country  % complete ]\n");
+                boost::progress_display display(lEndingVertices.size()-1, std::cout, "[ cleaning paths out of country % complete ]\n");
 
                 ign::graph::algorithm::DijkstraShortestPaths<GraphType> dijkstraOp(graph, true);
                 std::set<edge_descriptor> sEdges;
@@ -2008,10 +2017,9 @@ namespace app
             for (graph.edges(eit, eend); eit != eend; ++eit)
                 lEdges.push_back(*eit);
 
-            boost::progress_display display(lEdges.size(), std::cout, "[ cleaning tiny edges  % complete ]\n");
-            for (std::list<edge_descriptor>::const_iterator lit = lEdges.begin() ; lit != lEdges.end() ; ++lit)
+            boost::progress_display display(lEdges.size(), std::cout, "[ cleaning tiny edges % complete ]\n");
+            for (std::list<edge_descriptor>::const_iterator lit = lEdges.begin() ; lit != lEdges.end() ; ++lit, ++display)
             {
-                ++display;
                 if ( sEdge2Remove.find(*lit) != sEdge2Remove.end() ) continue;
 
                 ign::geometry::LineString edgeGeom = graph.getGeometry(*lit);
@@ -2116,7 +2124,7 @@ namespace app
 
             std::set<edge_descriptor> sVisitedEdge;
 
-            boost::progress_display display(graph.numEdges(), std::cout, "[ cleaning parallele edges  % complete ]\n");
+            boost::progress_display display(graph.numEdges(), std::cout, "[ cleaning parallele edges % complete ]\n");
             edge_iterator eit, eend;
             for (graph.edges(eit, eend); eit != eend; ++eit)
             {

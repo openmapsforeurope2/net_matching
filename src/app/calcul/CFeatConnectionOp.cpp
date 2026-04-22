@@ -196,7 +196,6 @@ namespace app
 
             // app parameters
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
-            std::string const landmaskTableName = themeParameters->getValue(LANDMASK_TABLE).toString();
             std::string clTableName = themeParameters->getValue(CL_TABLE).toString();
             if ( clTableName == "" ) {
                 std::string const clTableSuffix = themeParameters->getValue(CL_TABLE_SUFFIX).toString();
@@ -207,9 +206,6 @@ namespace app
                 std::string const cpTableSuffix = themeParameters->getValue(CP_TABLE_SUFFIX).toString();
                 cpTableName = edgeTableName + cpTableSuffix;
             }
-
-            //--
-            _fsLandmask = context->getDataBaseManager().getFeatureStore(landmaskTableName, idName, geomName);
 
             //--
             if (cpTableName != "")
@@ -260,7 +256,7 @@ namespace app
 
             // patience
             size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCl, filterCl);
-            boost::progress_display display(numFeatures, std::cout, "[ cl_connection  % complete ]\n");
+            boost::progress_display display(numFeatures, std::cout, "[ cl_connection % complete ]\n");
 
             // pour garder le lien entre les CL et les edges nouvellement créés
             bimap_t mParentChilds;
@@ -567,7 +563,7 @@ namespace app
 
             // patience
             size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCp, filterCp);
-            boost::progress_display display(numFeatures, std::cout, "[ cp_connection  % complete ]\n");
+            boost::progress_display display(numFeatures, std::cout, "[ cp_connection % complete ]\n");
 
             // pour garder le lien entre les CP et les edges nouvellement créés
             bimap_t mParentChilds;
@@ -793,7 +789,7 @@ namespace app
             ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterEdge);
 
             size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterEdge);
-            boost::progress_display display(numFeatures, std::cout, "[ graph loading  % complete ]\n");
+            boost::progress_display display(numFeatures, std::cout, "[ graph loading % complete ]\n");
 
             while (itEdge->hasNext())
             {

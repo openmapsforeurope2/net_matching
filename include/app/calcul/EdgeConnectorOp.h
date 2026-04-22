@@ -3,6 +3,7 @@
 
 // SOCLE
 #include <ign/feature/sql/FeatureStorePostgis.h>
+#include <ign/feature/ram/FeatureStoreRam.h>
 
 // EPG
 #include <epg/log/EpgLogger.h>
@@ -47,6 +48,8 @@ namespace calcul{
 		//--
 		ign::feature::sql::FeatureStorePostgis*            _fsEdge;
 		//--
+		ign::feature::ram::FeatureStoreRam*                _fsEdgeRam;
+		//--
 		std::map<std::string, ign::geometry::GeometryPtr>  _mCountryGeomPtr;
 		//--
 		epg::log::EpgLogger*                               _logger;
@@ -89,8 +92,7 @@ namespace calcul{
 		//--
 		void _loadGraph(
 			app::calcul::detail::EdgeCleaningGraphManager & graphManager,
-			bool planarize,
-			ign::feature::FeatureFilter filter = ign::feature::FeatureFilter()
+			bool planarize
 		) const;
 
 		//--

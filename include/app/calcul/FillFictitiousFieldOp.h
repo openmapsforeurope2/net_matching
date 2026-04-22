@@ -3,6 +3,7 @@
 
 // SOCLE
 #include <ign/feature/sql/FeatureStorePostgis.h>
+#include <ign/feature/ram/FeatureStoreRam.h>
 
 // EPG
 #include <epg/log/EpgLogger.h>
@@ -41,9 +42,9 @@ namespace calcul{
             //--
             ign::feature::sql::FeatureStorePostgis*            _fsEdge;
             //--
-            ign::feature::sql::FeatureStorePostgis*            _fsArea;
+            ign::feature::ram::FeatureStoreRam*                _fsAreaRam;
             //--
-            ign::feature::sql::FeatureStorePostgis*            _fsStanding;
+            ign::feature::ram::FeatureStoreRam*                _fsStandingRam;
             //--
             epg::log::EpgLogger*                               _logger;
             //--
@@ -58,12 +59,6 @@ namespace calcul{
 
             //--
             void _compute() const;
-
-            //--
-            double _getRatio(ign::geometry::LineString const& ls, std::string const& country) const;
-
-            //--
-            double _getLength(ign::geometry::Geometry const& geom) const;
 
     };
 

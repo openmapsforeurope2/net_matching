@@ -4,6 +4,7 @@
 #include <app/geometry/tools/LengthIndexedLineString.h>
 #include <app/calcul/detail/graph/concept/EdgeCleaningGraphSpecializations.h>
 #include <app/calcul/detail/LineStringAbsDampedDeformer.h>
+#include <app/calcul/detail/RatioTools.h>
 
 // BOOST
 #include <boost/timer.hpp>
@@ -95,10 +96,12 @@ namespace app
             _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTableName, idName, geomName);
 
             //--
-            _fsArea = context->getDataBaseManager().getFeatureStore(areaTableName, idName, geomName);
+            _fsAreaRam = context->getDataBaseManager().getFeatureStoreRam(areaTableName, idName, geomName); // veiller a ce que la table soit bien issu d'une extraction (et non table complete)
+            ome2::feature::sql::NotDestroyedTools::RemoveDestroyed(_fsAreaRam);
 
             //--
-            _fsStanding = context->getDataBaseManager().getFeatureStore(standingTableName, idName, geomName);
+            _fsStandingRam = context->getDataBaseManager().getFeatureStoreRam(standingTableName, idName, geomName); // veiller a ce que la table soit bien issu d'une extraction (et non table complete)
+            ome2::feature::sql::NotDestroyedTools::RemoveDestroyed(_fsStandingRam);
 
             //--
             std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
@@ -328,7 +331,7 @@ namespace app
             //--
             std::set<edge_descriptor> sTreatedEdges;
             
-            boost::progress_display display(mWidthFace.size(), std::cout, "[ collapsing CL  % complete ]\n");
+            boost::progress_display display(mWidthFace.size(), std::cout, "[ collapsing CL % complete ]\n");
             for( std::multimap< double, face_descriptor>::const_iterator mmit = mWidthFace.begin() ; mmit != mWidthFace.end() ; ++mmit, ++display )
 			{
                 if ( _hasTreatedEdge(graph, mmit->second, sTreatedEdges) ) {
@@ -668,7 +671,7 @@ namespace app
             }
 
             //--
-            boost::progress_display display(mWidthFace.size(), std::cout, "[ generating CL in area  % complete ]\n");
+            boost::progress_display display(mWidthFace.size(), std::cout, "[ generating CL in area % complete ]\n");
             for( std::multimap< double, face_descriptor>::const_iterator mmit = mWidthFace.begin() ; mmit != mWidthFace.end() ; ++mmit )
 			{
                 ++display;
@@ -725,7 +728,7 @@ namespace app
 
                     if( isFictitiousFront && isFictitiousBack ) {
                         // on verifie que l'edge fusionné fictif est entièrement inclus dans une surface fusionnée (sinon on annule la fusion)
-                        double ratio = _getRatio(meanGeom, _getBorderCode(vpCountryEdges.front().first, vpCountryEdges.back().first));
+                        double ratio = detail::RatioTools::GetRatio(meanGeom, _getBorderCode(vpCountryEdges.front().first, vpCountryEdges.back().first), _fsAreaRam, _fsStandingRam);
 
                         if ( ratio < 1 )
                             continue;
@@ -1431,7 +1434,7 @@ namespace app
                 return false;
 
             // on parcours tous les features qui ont des edges induits mergés : on les split si nécessaire
-            boost::progress_display display2(mFeatMergedEdges.size(), std::cout, "[ splitting features  % complete ]\n");
+            boost::progress_display display2(mFeatMergedEdges.size(), std::cout, "[ splitting features % complete ]\n");
 
             std::set<std::string> sIncident2delete;
             std::vector<detail::IncidentFeature> vIncident2Create;
@@ -1507,7 +1510,7 @@ namespace app
             }
 
             //deplacement incident edges
-            boost::progress_display display3(mmIncidentFeatures.size(), std::cout, "[ incident edges displacement  % complete ]\n");
+            boost::progress_display display3(mmIncidentFeatures.size(), std::cout, "[ incident edges displacement % complete ]\n");
             for( std::multimap<std::string, detail::IncidentFeature>::const_iterator mit = mmIncidentFeatures.begin() ; mit != mmIncidentFeatures.end() ; ++mit ) {
                 ++display3;
 
@@ -2190,7 +2193,7 @@ namespace app
 
             // chargement des edges
             size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filter);
-            boost::progress_display display(numFeatures, std::cout, "[ edge_loading  % complete ]\n");
+            boost::progress_display display(numFeatures, std::cout, "[ edge_loading % complete ]\n");
 
             ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filter);
             while (itEdge->hasNext())
@@ -2603,93 +2606,5 @@ namespace app
             return country2+"#"+country1;
         }
 
-        ///
-        ///
-        ///
-        double CLInAreaGenerationOp::_getRatio(
-            ign::geometry::LineString const& ls,
-            std::string const& country
-        ) const {
-            epg::Context *context = epg::ContextS::getInstance();
-            epg::params::EpgParameters const& epgParams = context->getEpgParameters();
-            std::string const geomName = epgParams.getValue(GEOM).toString();
-            std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
-
-            ign::geometry::GeometryPtr areaUnionPtr(new ign::geometry::Polygon());
-
-            ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + ls.toString() + "'),3035))");
-            epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" LIKE '%"+country+"%'");
-            ign::feature::FeatureIteratorPtr itArea = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsArea, filter);
-            while (itArea->hasNext())
-            {
-                ign::feature::Feature fArea = itArea->next();
-                ign::geometry::MultiPolygon const& areaGeom = fArea.getGeometry().asMultiPolygon();
-
-                areaUnionPtr.reset(areaUnionPtr->Union(areaGeom));
-            }
-
-            ign::feature::FeatureIteratorPtr itStand = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsStanding, filter);
-            while (itStand->hasNext())
-            {
-                ign::feature::Feature fStand = itStand->next();
-                ign::geometry::MultiPolygon const& standGeom = fStand.getGeometry().asMultiPolygon();
-                
-                areaUnionPtr.reset(areaUnionPtr->Union(standGeom));
-            }
-
-            if(areaUnionPtr->isEmpty() || areaUnionPtr->isNull()) return 0;
-
-            ign::geometry::GeometryPtr resultPtr(areaUnionPtr->Intersection(ls));
-
-            double lengthInter = _getLength(*resultPtr);
-
-            return lengthInter / ls.length();
-        }
-
-        ///
-        ///
-        ///
-        double CLInAreaGenerationOp::_getLength( ign::geometry::Geometry const& geom ) const
-        {
-            double length = 0;
-
-            ign::geometry::Geometry::GeometryType geomType = geom.getGeometryType();
-            switch( geomType )
-            {
-                case ign::geometry::Geometry::GeometryTypeNull :
-                case ign::geometry::Geometry::GeometryTypePoint :
-                case ign::geometry::Geometry::GeometryTypeMultiPoint :
-                case ign::geometry::Geometry::GeometryTypeTriangle :
-                case ign::geometry::Geometry::GeometryTypeTriangulatedSurface :
-                case ign::geometry::Geometry::GeometryTypePolyhedralSurface :
-                case ign::geometry::Geometry::GeometryTypePolygon :
-                case ign::geometry::Geometry::GeometryTypeMultiPolygon :
-                    return 0;
-                case ign::geometry::Geometry::GeometryTypeLineString :
-                    {
-                        return geom.asLineString().length();
-                    }
-                    
-                case ign::geometry::Geometry::GeometryTypeMultiLineString : 
-                    {
-                        ign::geometry::MultiLineString const& mls = geom.asMultiLineString();
-                        for( size_t i = 0 ; i < mls.numGeometries() ; ++i ) {
-                            length += mls.lineStringN(i).length();
-                        }
-                        return length;
-                    }
-                
-                case ign::geometry::Geometry::GeometryTypeGeometryCollection :
-                    {
-                        ign::geometry::GeometryCollection const& collection = geom.asGeometryCollection();
-                        for( size_t i = 0 ; i < collection.numGeometries() ; ++i ) {
-                            length += _getLength(collection.geometryN(i));
-                        }
-                        return length;
-                    }
-                default :
-                    IGN_THROW_EXCEPTION( "Geometry type not allowed" );
-            }
-        }
 	}
 }

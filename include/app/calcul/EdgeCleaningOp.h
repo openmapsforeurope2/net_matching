@@ -245,6 +245,12 @@ namespace calcul{
             std::list<oriented_edge_descriptor> const& lAntennas,
             bool bAntennaIsConnected2CF
         ) const;
+
+		//--
+		double _getLength(
+            GraphType const& graph,
+            std::list<edge_descriptor> const& lEdges 
+        ) const;
 		
 		//--
 		bool _isSlimSurface( 

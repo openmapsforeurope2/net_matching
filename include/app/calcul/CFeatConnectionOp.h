@@ -86,8 +86,6 @@ namespace calcul{
 
 	private:
 		//--
-		ign::feature::sql::FeatureStorePostgis*            _fsLandmask;
-		//--
 		ign::feature::sql::FeatureStorePostgis*            _fsEdge;
 		//--
 		ign::feature::sql::FeatureStorePostgis*            _fsCp;

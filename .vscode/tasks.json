@@ -2,30 +2,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build package",
-            "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching_dev ./build-unix-package.sh",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": {
-                "owner": "cpp",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceFolder}"
-                ],
-                "pattern": {
-                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-                    "file": 1,
-                    "line": 2,
-                    "column": 3,
-                    "severity": 4,
-                    "message": 5
-                }
-            }
-        },
-        {
             "label": "build release",
             "type": "shell",
             "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching_dev sh -c 'CONFIG=Release ./build-unix.sh'",
@@ -82,7 +58,7 @@
         {
             "label": "run the code",
             "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching_dev ./bin/net_matching --c config/epg_parameters.ini --t road_link --s 20260203 --sp 260 be fr",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching_dev ./bin/net_matching --c config/epg_parameters.ini --t road_link --s 20260203 --sp 280 be fr",
             "group": "build",
             "problemMatcher": []
         },

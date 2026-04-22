@@ -2,6 +2,7 @@
 #include <app/calcul/FillFictitiousFieldOp.h>
 #include <app/params/ThemeParameters.h>
 #include <app/calcul/detail/LineStringAbsDampedDeformer.h>
+#include <app/calcul/detail/RatioTools.h>
 
 // BOOST
 #include <boost/timer.hpp>
@@ -81,10 +82,12 @@ namespace app
             _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTableName, idName, geomName);
 
             //--
-            _fsArea = context->getDataBaseManager().getFeatureStore(areaTableName, idName, geomName);
+            _fsAreaRam = context->getDataBaseManager().getFeatureStoreRam(areaTableName, idName, geomName); // veiller a ce que la table soit bien issu d'une extraction (et non table complete)
+            ome2::feature::sql::NotDestroyedTools::RemoveDestroyed(_fsAreaRam);
 
             //--
-            _fsStanding = context->getDataBaseManager().getFeatureStore(standingTableName, idName, geomName);
+            _fsStandingRam = context->getDataBaseManager().getFeatureStoreRam(standingTableName, idName, geomName); // veiller a ce que la table soit bien issu d'une extraction (et non table complete)
+            ome2::feature::sql::NotDestroyedTools::RemoveDestroyed(_fsStandingRam);
 
             //--
             _logger->log(epg::log::INFO, "[END] initialization: " + epg::tools::TimeTools::getTime());
@@ -112,7 +115,7 @@ namespace app
             //--
             ign::feature::FeatureFilter filter;
             size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filter);
-            boost::progress_display display(numFeatures, std::cout, "[ filling fictitious field  % complete ]\n");
+            boost::progress_display display(numFeatures, std::cout, "[ filling fictitious field % complete ]\n");
 
             ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filter);
             while (itEdge->hasNext())
@@ -124,7 +127,7 @@ namespace app
                 std::string country = fEdge.getAttribute(countryCodeName).toString();
                 std::string fictitious = fEdge.getAttribute(fictitiousFieldName).toString();
 
-                double ratio = _getRatio(ls, country);
+                double ratio = detail::RatioTools::GetRatio(ls, country, _fsAreaRam, _fsStandingRam);
 
                 if (ratio >= minRatio && fictitious != "true") {
                     ign::feature::Feature fEdge_ = fEdge;
@@ -145,94 +148,6 @@ namespace app
                 }
             }
         }
-
-        ///
-        ///
-        ///
-        double FillFictitiousFieldOp::_getRatio(ign::geometry::LineString const& ls, std::string const& country) const {
-            epg::Context *context = epg::ContextS::getInstance();
-            epg::params::EpgParameters const& epgParams = context->getEpgParameters();
-            std::string const geomName = epgParams.getValue(GEOM).toString();
-            std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
-
-            ign::geometry::GeometryPtr areaUnionPtr(new ign::geometry::Polygon());
-
-            ign::feature::FeatureFilter filter("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + ls.toString() + "'),3035))");
-            epg::tools::FilterTools::addAndConditions(filter, countryCodeName +" LIKE '%"+country+"%'");
-            ign::feature::FeatureIteratorPtr itArea = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsArea, filter);
-            while (itArea->hasNext())
-            {
-                ign::feature::Feature fArea = itArea->next();
-                ign::geometry::MultiPolygon const& areaGeom = fArea.getGeometry().asMultiPolygon();
-
-                areaUnionPtr.reset(areaUnionPtr->Union(areaGeom));
-            }
-
-            ign::feature::FeatureIteratorPtr itStand = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsStanding, filter);
-            while (itStand->hasNext())
-            {
-                ign::feature::Feature fStand = itStand->next();
-                ign::geometry::MultiPolygon const& standGeom = fStand.getGeometry().asMultiPolygon();
-                
-                areaUnionPtr.reset(areaUnionPtr->Union(standGeom));
-            }
-
-            if(areaUnionPtr->isEmpty() || areaUnionPtr->isNull()) return 0;
-
-            ign::geometry::GeometryPtr resultPtr(areaUnionPtr->Intersection(ls));
-
-            double lengthInter = _getLength(*resultPtr);
-
-            return lengthInter / ls.length();
-
-        }
-
-        ///
-        ///
-        ///
-        double FillFictitiousFieldOp::_getLength( ign::geometry::Geometry const& geom ) const
-        {
-            double length = 0;
-
-            ign::geometry::Geometry::GeometryType geomType = geom.getGeometryType();
-            switch( geomType )
-            {
-                case ign::geometry::Geometry::GeometryTypeNull :
-                case ign::geometry::Geometry::GeometryTypePoint :
-                case ign::geometry::Geometry::GeometryTypeMultiPoint :
-                case ign::geometry::Geometry::GeometryTypeTriangle :
-                case ign::geometry::Geometry::GeometryTypeTriangulatedSurface :
-                case ign::geometry::Geometry::GeometryTypePolyhedralSurface :
-                case ign::geometry::Geometry::GeometryTypePolygon :
-                case ign::geometry::Geometry::GeometryTypeMultiPolygon :
-                    return 0;
-                case ign::geometry::Geometry::GeometryTypeLineString :
-                    {
-                        return geom.asLineString().length();
-                    }
-                    
-                case ign::geometry::Geometry::GeometryTypeMultiLineString : 
-                    {
-                        ign::geometry::MultiLineString const& mls = geom.asMultiLineString();
-                        for( size_t i = 0 ; i < mls.numGeometries() ; ++i ) {
-                            length += mls.lineStringN(i).length();
-                        }
-                        return length;
-                    }
-                
-                case ign::geometry::Geometry::GeometryTypeGeometryCollection :
-                    {
-                        ign::geometry::GeometryCollection const& collection = geom.asGeometryCollection();
-                        for( size_t i = 0 ; i < collection.numGeometries() ; ++i ) {
-                            length += _getLength(collection.geometryN(i));
-                        }
-                        return length;
-                    }
-                default :
-                    IGN_THROW_EXCEPTION( "Geometry type not allowed" );
-            }
-        }
-
 
     }
 }

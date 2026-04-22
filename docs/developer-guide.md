@@ -777,7 +777,7 @@ Si la face peut être traitée, il faut déterminer lequel des deux chemins doit
 Si un des deux chemins est connecté au réseau c'est celui là qui sera conservé.
 Si aucun des deux chemins n'est connecté au réseau on calcule les ratios de chaque chemin (le ratio d'un chemin correspond ici à la proportion du chemin qui est localisé dans son pays d'origine).
 Le chemin qui est conservé est celui qui à le ratio le plus grand.
-Si le deux ratios sont égaux on conserve le chemin le plus court.
+Si les deux ratios sont égaux on conserve le chemin le plus court.
 
 ![260_3](images/260_3_with_key.png)
 
@@ -985,7 +985,7 @@ Pour cela, on charge tout d'abord un graphe avec l'ensemble du réseau.
 Ensuite on parcourt les arcs. Si un arc à une longueur inférieure à _ECL_TINY_EDGE_MAX_LENGTH_, on le supprime du graphe et on fusionne ses sommets. L'arc est également supprimé de la base de données.
 Pour procéder à la fusion des sommets on doit tout d'abord choisir un sommet de référence parmis les deux sommets de l'arc supprimé. C'est le sommet de référence qui sera conservé et qui se substituera à l'autre sommet (qui sera supprimé).
 Pour sommet de référence on choisi celui de degré le plus élevé (afin de minimiser le nombre d'arcs adjacents à modifier). Si les deux sommets sont de degré égal, le sommet de référence est le sommet source (choix arbitraire).
-Un fois le sommet de référence défini on parcourt les arcs incidents du sommet à supprimer. Chacun de ces arcs est supprimé et remplacé par un nouvel arc possédant les mêmes propriétés et connecté au sommet de référence.
+Une fois le sommet de référence défini on parcourt les arcs incidents du sommet à supprimer. Chacun de ces arcs est supprimé et remplacé par un nouvel arc possédant les mêmes propriétés et connecté au sommet de référence.
 Une fois l'ensemble du graphe parcouru, on enregistre en base de données les nouvelles géométries des arcs incidents modifiés. Les éventuels arcs effondrés lors du processus de fusion sont supprimés de la base de données.
 
 ![280](images/280_with_key.png)

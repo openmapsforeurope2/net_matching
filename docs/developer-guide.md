@@ -1,7 +1,3 @@
-![under_construction](images/under_construction.png)
-
-
-
 # Introduction
 
 La présente documentation, à destination des développeurs, a pour objectif de présenter le détail du fonctionnement du processus de mise en cohérences des données de type réseau aux frontières ainsi que les principaux outils mis en oeuvre.
@@ -10,7 +6,7 @@ La présente documentation, à destination des développeurs, a pour objectif de
 
 ## Code source 
 
-Le code source de l'application est disponible sur le dépôt [area_matching](https://github.com/openmapsforeurope2/area_matching.git)
+Le code source de l'application est disponible sur le dépôt [net_matching](https://github.com/openmapsforeurope2/net_matching.git)
 
 ## Dépendances 
 
@@ -33,18 +29,7 @@ Cette bibliothèque, développée à l'IGN et s'appuyant essentiellement sur le 
 Elle comporte essentiellement des fonctions de généralisations, des fonctions utiles au management du processus tels que des utilitaires de log, d'orchestration, de gestion du contexte).
 On y trouve également des opérateurs permettant d'encapsuler des objets géométriques complexes afin d'en optimiser la manipulation (par l'utilisation de graphes, d'indexes...) et ainsi d'accroitre les performances globales des processus.
 
-Le code source de la bibliothèque libepg ce trouve sur le dépôt [libepg](http://gitlab.dockerforge.ign.fr/europe/libepg.git)
-
-
-# Configuration
-
-L'outil s'appuie sur de nombreux paramètres de configuration permettant d'adapter le comportement des algorithmes en fonctions des spécificités nationales (sémantique, précision, échelle, conventions de modélisation...).
-
-On trouve dans le [dossier de configuration](https://github.com/openmapsforeurope2/net_matching/tree/main/config) les fichiers suivants :
-
-- epg_parameters.ini : regroupe des paramètres de base issus de la bibliothèque libepg qui constitue le socle de développement l'outil. Ce fichier est aussi le fichier chapeau qui pointe vers les autres fichiers de configurations.
-- db_conf.ini : informations de connexion à la base de données.
-- theme_parameters.ini : configuration des paramètres spécifiques à l'application.
+Le code source de la bibliothèque libepg ce trouve sur le dépôt [libepg](https://github.com/IGNF/libepg.git)
 
 
 # Fonctionnement du processus
@@ -134,9 +119,9 @@ On trouve dans le [dossier de configuration](https://github.com/openmapsforeurop
 
 L'outil s'utilise en ligne de commande.
 Le traitement peut être lancé sur trois types de réseaux :
-- routier (code tn)
-- férré (code ra)
-- hydrographique (code hy)
+- routier (code road_link)
+- férré (code railway_link)
+- hydrographique (code watercourse_link)
 
 <br>
 
@@ -407,7 +392,7 @@ Cette étape vise à corriger les discontinuités entre les _connecting lines_ q
 
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
-| CL_TABLE                       | X   x   | X      | X                  | table des _connecting lines_                                  |
+| CL_TABLE                       | X      | X      | X                  | table des _connecting lines_                                  |
 
 ##### Princi_fsStandingpaux opérateurs de calcul utilisés :
 - app::calcul::CFeatGenerationOp
@@ -551,7 +536,7 @@ Les _connecting points_ sont enregistrées dans une table dédiée.
 | table                          | entrée | sortie | entitée de travail | description                                                 |
 |--------------------------------|--------|--------|--------------------|-------------------------------------------------------------|
 | CP_TABLE                       | X      | X      | X                  | table des connecting points                                 |
-| EDGE_TABLE_INIT                | X      | x      | x                  | table du réseau à traiter                                   |
+| EDGE_TABLE_INIT                | X      | X      | X                  | table du réseau à traiter                                   |
 | TARGET_BOUNDARY_TABLE          | X      |        |                    | table des frontières                                        |
 
 ##### Principaux opérateurs de calcul utilisés :

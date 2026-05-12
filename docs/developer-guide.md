@@ -291,7 +291,7 @@ Paramètre utilisés:
 
 Le processus complet peut nécessiter de lancer plusieurs itérations de traitement. En effet, si à l'issu d'un traitement une ou plusieurs fusions ont été opérées alors une itération de traitement supplémentaire sera lancée, car la fusion peut générer de nouveaux cas à traiter. Le processus s'arrête lorsqu'à l'issu d'une itération aucune fusion n'a eu lieu.
 Un traitement se déroule en plusieurs étapes:
-- ré-initialisation du champ _W_TAG_NAME_ : ce champ est utilisé de manière interne au traitement afin de permettre aux opérateurs de savoir quels objets ont été antérieurement traités par d'autres opérateurs
+- ré-initialisation du champ _W_TAG_NAME_ : ce champ est utilisé de manière interne au traitement afin de permettre aux opérateurs de calcul de savoir quels objets ont été antérieurement traités par d'autres opérateurs
 - création d'un graph planaire à partir de l'ensemble des réseaux des deux pays frontaliers : cette étape permet le chargement en mémoire des données de travail, la création des faces, facilite la détection des arcs superposés...
 - fusion des arcs des deux pays superposés
 - fusion des arcs des deux pays constituant des faces fines : les faces fines sont traitées si celles-ci sont constituées de deux chemins appartenant aux deux pays et que les éventuelles _connecting lines_ constituants ces chemins ont pu être substituées par un arc non fusionné (cette substitution se base sur le _NATIONAL_IDENTIFIER_NAME_)

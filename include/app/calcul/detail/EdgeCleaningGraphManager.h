@@ -200,6 +200,19 @@ namespace detail{
             return false;
         };
 
+        /// @brief Retourne les linéaires d'origine qui sont des CL
+        /// @param e Identifiant de l'arc
+        /// @return Booléen
+        std::vector<std::string> getClOrigins(edge_descriptor e) const {
+            std::vector<std::string> vCl;
+            std::vector< std::string > const& vOrigins = _graph.origins(e);
+            for (std::vector< std::string >::const_iterator vit = vOrigins.begin() ; vit != vOrigins.end() ; ++vit){
+                std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(*vit);
+                if ( mit != _mEdges.end() && mit->second.isCl ) vCl.push_back(*vit);
+            }
+            return vCl;
+        };
+
         /// @brief Indique si le sommet touche une connecting line
         /// @param v Indentifiant du sommet
         /// @return Booléen
@@ -212,6 +225,27 @@ namespace detail{
             }
             return false;
         };
+
+        /// @brief Retourne les linéaires incidents
+        /// @param v Indentifiant du sommet
+        /// @return Booléen
+        // std::vector<std::string> getIncidentOrigins(vertex_descriptor v) const {
+        //     std::vector<std::string> vIncidentOrigins;
+        //     std::vector< edge_descriptor > vIncidents = _graph.incidentEdges(v);
+        //     for (std::vector<edge_descriptor>::const_iterator vit = vIncidents.begin() ; vit != vIncidents.end() ; ++vit) {
+        //         std::vector< std::string > const& vOrigins = _graph.origins(*vit);
+        //         for(std::vector< std::string >::const_iterator vit2 = vOrigins.begin() ; vit2 != vOrigins.end() ; ++vit2) {
+        //             std::pair<bool, std::vector<oriented_edge_descriptor>> foundInducedEdges = _graph.getInducedEdges(*vit2);
+        //             if(!foundInducedEdges.first)
+        //                 continue;
+                    
+        //             if(_graph.source(foundInducedEdges.second.begin) == v || _graph.target(foundInducedEdges.second.rbegin) == v)
+        //                 vIncidentOrigins.push_back(*vit2);
+        //             }
+        //         }
+        //     }
+        //     return vIncidentOrigins;
+        // };
 
         /// @brief Retourne la valeur du champ de travail W_TAG_NAME de l'arc
         /// @param e Identifiant de l'arc
@@ -229,6 +263,15 @@ namespace detail{
         std::string getNatId(edge_descriptor e) const {
             std::vector< std::string > const& vOrigins = _graph.origins(e);
             std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(vOrigins.front());
+            if ( mit != _mEdges.end() ) return mit->second.natId;
+            return "";
+        };
+
+        /// @brief Retourne la valeur du champ de travail W_NATIONAL_IDENTIFIER_NAME du linéaire
+        /// @param id Identifiant du linéaire
+        /// @return Valeur du champ W_NATIONAL_IDENTIFIER_NAME
+        std::string getNatId(std::string const& id) const {
+            std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(id);
             if ( mit != _mEdges.end() ) return mit->second.natId;
             return "";
         };

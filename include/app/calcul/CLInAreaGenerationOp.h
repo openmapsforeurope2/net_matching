@@ -269,7 +269,7 @@ namespace calcul{
 
 		//--
 		bool _createCLOnOverlappingEdges(
-            GraphType const& graph,
+            detail::EdgeCleaningGraphManager & graphManager,
             std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
             std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures,
 			std::set<edge_descriptor> & sTreatedEdges

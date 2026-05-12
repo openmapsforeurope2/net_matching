@@ -4,20 +4,19 @@
 
 // EPG
 #include <epg/Context.h>
+#include <epg/log/EpgLogger.h>
+#include <epg/log/ShapeLogger.h>
 #include <epg/tools/TimeTools.h>
 #include <epg/params/tools/loadParameters.h>
 
 // OME2
 #include <ome2/utils/setTableName.h>
-#include <ome2/utils/getEnvStr.h>
 
 // APP
 #include <app/params/ThemeParameters.h>
 #include <app/step/tools/initSteps.h>
 #include <app/utils/createCpClTables.h>
 
-// #include <libpq-fe.h>
-// #include <sstream>
 
 namespace po = boost::program_options;
 
@@ -183,13 +182,12 @@ int main(int argc, char *argv[])
         //créer les tables CP et CL vides si elles n'existent pas
         app::utils::createCpClTables(themeParameters->getValue(EDGE_TABLE_INIT).toString());
 
-        logger->log(epg::log::INFO, "[START EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
+        logger->log(epg::log::INFO, "[START EDGE MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
 
         //lancement du traitement
         stepSuitePtr->run(stepCode, verbose);
 
-		logger->log(epg::log::INFO, "[END EDGE-MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
-
+		logger->log(epg::log::INFO, "[END EDGE MATCHING PROCESS ] " + epg::tools::TimeTools::getTime());
     }
     catch( ign::Exception &e )
     {
@@ -213,7 +211,6 @@ int main(int argc, char *argv[])
     epg::log::ShapeLoggerS::kill();
     epg::params::EpgParametersS::kill();
     app::params::ThemeParametersS::kill();
-    
     
     logFile.close();
 

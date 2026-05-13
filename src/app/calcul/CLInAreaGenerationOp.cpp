@@ -13,6 +13,7 @@
 // EPG
 #include <epg/Context.h>
 #include <epg/tools/TimeTools.h>
+#include <ign/tools/stringtools.h>
 #include <epg/sql/tools/numFeatures.h>
 #include <epg/tools/geometry/project.h>
 #include <epg/graph/tools/reverse.h>
@@ -316,6 +317,9 @@ namespace app
             face_iterator fit, fend;
             for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
 			{
+                if( !_isPlanar(graph, *fit))
+                    continue;
+                    
                 ign::geometry::Polygon faceGeom = graph.getGeometry(*fit);
                 double faceMeanWidth = 2 * ( faceGeom.area() / faceGeom.exteriorRing().length() );
 
@@ -327,19 +331,38 @@ namespace app
 
             //--
             std::set<edge_descriptor> sTreatedEdges;
+            std::set<std::string> sEdge2Remove;
+
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "P0");
             
             boost::progress_display display(mWidthFace.size(), std::cout, "[ collapsing CL % complete ]\n");
             for( std::multimap< double, face_descriptor>::const_iterator mmit = mWidthFace.begin() ; mmit != mWidthFace.end() ; ++mmit, ++display )
 			{
+                //DEBUG
+                _logger->log(epg::log::DEBUG, graph.getGeometry(mmit->second).toString());
+                if( graph.getGeometry(mmit->second).intersects(ign::geometry::Point(4017745.0820, 2983272.1512))) {
+                    bool test = true;
+                }
+
                 if ( _hasTreatedEdge(graph, mmit->second, sTreatedEdges) ) {
                     hasNotTreatedEdgeToTreat = true;
                     continue;  
                 }
 
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "P1");
+
                 std::pair<bool, std::list<oriented_edge_descriptor>> foundPath = _getClPathToTreat(graphManager, mmit->second);
+
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "P2");
 
                 if( !foundPath.first )
                     continue;
+
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "P3");
 
                 hasCollapsedCl = true;
 
@@ -347,21 +370,75 @@ namespace app
 
                 ign::geometry::LineString clPathGeom = _convertPathToLineString(graph, "", clPath);
 
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "P4");
+
                 for( std::list<oriented_edge_descriptor>::const_iterator lit = clPath.begin() ; lit != clPath.end() ; ++lit )
                     sTreatedEdges.insert(lit->descriptor);
+
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "P5");
                 
                 std::pair<ign::geometry::LineString, ign::geometry::LineString> pClParts = _split(clPathGeom);
+
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "P6");
 
                 _displaceIncidentEdges(graph, pClParts, clPath, ign::graph::DIRECT, sTreatedEdges);
                 _displaceIncidentEdges(graph, pClParts, clPath, ign::graph::REVERSE, sTreatedEdges);
 
-                for ( std::list<oriented_edge_descriptor>::const_iterator lit = clPath.begin() ; lit != clPath.end() ; ++lit ) {
-                    std::string clId = graph.origins(lit->descriptor)[0];
-                    _fsEdge->deleteFeature(clId);
-                }
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "P7");
+
+                for ( std::list<oriented_edge_descriptor>::const_iterator lit = clPath.begin() ; lit != clPath.end() ; ++lit )
+                    sEdge2Remove.insert(graph.origins(lit->descriptor)[0]);
+
+                //DEBUG
+                _logger->log(epg::log::DEBUG, "P8");
             }
 
+            for ( std::set<std::string>::const_iterator sit = sEdge2Remove.begin() ; sit != sEdge2Remove.end() ; ++sit )
+                _fsEdge->deleteFeature(*sit);
+
+            //DEBUG
+            _logger->log(epg::log::DEBUG, "P9");
+
             return std::make_pair(hasCollapsedCl, hasNotTreatedEdgeToTreat);
+        }
+
+        ///
+        ///
+        ///
+        bool CLInAreaGenerationOp::_isPlanar(
+            GraphType const& graph, 
+            face_descriptor fd
+        ) const {
+            oriented_edge_descriptor startEdge = graph.incidentEdge(fd);
+            oriented_edge_descriptor nextEdge = startEdge;
+
+            do 
+            {
+                if ( graph.origins(nextEdge.descriptor).size() != 1 )  {
+                    _logger->log(epg::log::WARN, "Edge with multiple origines "+epg::tools::StringTools::Join(graph.origins(nextEdge.descriptor)));
+                    return false;
+                }
+
+                std::pair<bool, std::vector<oriented_edge_descriptor>> foundInducedEdges = graph.getInducedEdges(graph.origins(nextEdge.descriptor).front());
+                
+                if ( !foundInducedEdges.first ) {
+                    _logger->log(epg::log::WARN, "Origin has no induced edges : "+graph.origins(nextEdge.descriptor).front());
+                    return false;
+                }
+
+                if ( foundInducedEdges.second.size() != 1 ) {
+                    _logger->log(epg::log::WARN, "Origin has multiple induced edges : "+graph.origins(nextEdge.descriptor).front());
+                    return false;
+                }
+        
+                nextEdge = ign::geometry::graph::detail::nextEdge( nextEdge, graph );
+            } while ( nextEdge != startEdge );
+
+            return true;
         }
 
         ///

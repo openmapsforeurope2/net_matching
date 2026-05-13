@@ -232,6 +232,12 @@ namespace calcul{
         std::pair<bool, bool> _collapseCl() const;
 
 		//--
+		bool _isPlanar(
+            GraphType const& graph, 
+            face_descriptor fd
+        ) const;
+
+		//--
 		std::pair<bool, std::list<detail::EdgeCleaningGraphManager::GraphType::oriented_edge_descriptor>> _getClPathToTreat(
             detail::EdgeCleaningGraphManager const& graphManager,
             face_descriptor f

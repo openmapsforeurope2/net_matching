@@ -313,11 +313,6 @@ void app::calcul::JunctionMatchingOp::_setNewGeomJunction(
 	std::map<std::string, ign::feature::Feature> & mEdgesModifiedGeom
 ) const {
 
-	//DEBUG
-	// if (ptNewGeomJunction.distance(ign::geometry::Point(3850764.197,3064895.998)) < 0,5) {
-	// 	bool test = true;
-	// }
-
 	std::vector< oriented_edge_descriptor > vEdgesIncidentsJunction;
 	graph.incidentEdges(vJunction, vEdgesIncidentsJunction);
 

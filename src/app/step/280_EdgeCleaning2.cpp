@@ -27,9 +27,9 @@ namespace step {
 	void EdgeCleaning2::onCompute( bool verbose = false )
 	{
         //--
-        std::string const countryCodeW = _themeParams.getParameter(COUNTRY_CODE_W).getValue().toString();
+        std::string const countryCodeW = _themeParams.getValue(COUNTRY_CODE_W).toString();
 		std::string const eclSqlFilter = _themeParams.getValue(ECL_SQL_FILTER).toString();
-		std::string const cpRefTableName = _themeParams.getParameter(CP_TABLE).getValue().toString();
+		std::string const cpRefTableName = _themeParams.getValue(CP_TABLE).toString();
 
 		//--
 		_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));

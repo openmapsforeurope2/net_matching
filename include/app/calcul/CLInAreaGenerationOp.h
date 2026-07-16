@@ -86,10 +86,12 @@ namespace calcul{
 
 		
 		/// @brief Calcul des connecting lines
+		/// @param borderCode double country code of the border to treat
 		/// @param clMinRatio Maximum ratio of connecting line in face exterior ring to enable cl collapsing
 		/// @param clMinLength Maximum length for collapsable connecting line
 		/// @param verbose Mode verbeux
 		static void Compute(
+			std::string const& borderCode,
 			double clMinRatio,
             double clMinLength,
 			bool verbose = false
@@ -98,6 +100,10 @@ namespace calcul{
 	private:
 		//--
 		ign::feature::sql::FeatureStorePostgis*            _fsEdge;
+		//--
+		ign::feature::sql::FeatureStorePostgis*            _fsAllArea;
+		//--
+		ign::feature::sql::FeatureStorePostgis*            _fsAllStanding;
 		//--
 		ign::feature::ram::FeatureStoreRam*                _fsAreaRam;
 		//--
@@ -109,16 +115,21 @@ namespace calcul{
 		//--
 		bool                                               _verbose;
 		//--
-		ome2::calcul::utils::AttributeMerger               _attrMerger;
+		ome2::calcul::utils::AttributeMerger*              _attrMerger;
 		//--
 		double                                             _clMinRatio;
 		//--
 		double                                             _clMinLength;
+		//--
+		std::string                                        _borderCode;
+		//--
+		std::vector<std::string>                           _vCountry;
 
 	private:
 
 		//--
 		CLInAreaGenerationOp(
+			std::string const& borderCode,
 			double clMinRatio,
             double clMinLength,
 			bool verbose = false
@@ -143,6 +154,12 @@ namespace calcul{
 		void _clean() const;
 
 		//--
+		bool _isCurrentBorderCl(std::string const& country) const;
+
+		//--
+		bool _isCl(std::string const& country) const;
+
+		//--
 		std::string _getRemainingEdge(
             std::string const& idMerged,
             std::map<std::string, std::string> const& mMergedEdgeRemainingEdge
@@ -162,6 +179,13 @@ namespace calcul{
             detail::EdgeCleaningGraphManager const& graphManager,
             face_descriptor f,
             edge_descriptor eCl
+        ) const;
+
+		//--
+		///
+        bool _hasValueContained(
+            std::string const& valueRef,
+            std::string const& value
         ) const;
 
 		//--
@@ -271,6 +295,17 @@ namespace calcul{
             std::map<std::string, std::set<edge_descriptor>> & mFeatMergedEdges,
             std::multimap<std::string, detail::IncidentFeature> & mmIncidentFeatures,
 			std::set<edge_descriptor> & sTreatedEdges
+        ) const;
+
+		//--
+		bool _fictitiousWithinArea(
+			ign::feature::Feature const& feat
+		) const;
+
+		//--
+		bool _haveCommonCountry(
+            std::string const& countryCode1,
+            std::string const& countryCode2
         ) const;
 
 		//--

@@ -123,10 +123,10 @@ namespace app
             }
 
             //on recupere la geometry des pays
-            std::vector<std::string> vCountry;
-		    epg::tools::StringTools::Split(_borderCode, "#", vCountry);
+		    epg::tools::StringTools::Split(_borderCode, "#", _vCountry);
 
-            for (std::vector<std::string>::iterator vit = vCountry.begin() ; vit != vCountry.end() ; ++vit) {
+            for (std::vector<std::string>::iterator vit = _vCountry.begin() ; vit != _vCountry.end() ; ++vit)
+            {
                 ign::geometry::MultiPolygon mpLandmask;
                 ign::feature::sql::FeatureStorePostgis* fsLandmask = context->getDataBaseManager().getFeatureStore(landmaskTableName, idName, geomName);
                 ign::feature::FeatureIteratorPtr itLandmask = ome2::feature::sql::NotDestroyedTools::GetFeatures(*fsLandmask, ign::feature::FeatureFilter(landCoverTypeName + " = '" + landAreaValue + "' AND " + countryCodeName + " = '" + *vit + "'"));
@@ -172,9 +172,6 @@ namespace app
             double const antennaMinDist2Neighbor = themeParameters->getValue( ECL_ANTENNA_MIN_DIST_2_NEIGHBOR ).toDouble();
             double const landmaskBuffer = themeParameters->getValue(EC_LANDMASK_BUFFER).toDouble();
 
-            std::vector<std::string> vCountry;
-		    epg::tools::StringTools::Split(_borderCode, "#", vCountry);
-
             //--
             detail::EdgeCleaningGraphManager graphManager;
             _loadGraph(graphManager, false);
@@ -183,11 +180,17 @@ namespace app
             // récupération des antennes
             std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpAntennas;
             
-            boost::progress_display display(graph.numVertices(), std::cout, "[ search antennas % complete ]\n");
+            boost::progress_display display(graph.numVertices(), std::cout, "[ searching antennas % complete ]\n");
             vertex_iterator vit, vend;
             for( graph.vertices( vit, vend ) ; vit != vend ; ++vit, ++display )
             {
                 if( graph.degree( *vit ) != 1 ) continue;
+
+                //DEBUG 
+                // if( graph.getGeometry(*vit).distance(ign::geometry::Point(4018077.31, 2982717.16)) < 1 )
+                // {
+                //     bool test =true;
+                // }
 
                 // seulement les vertex qui touchent une CL ?
 
@@ -219,7 +222,7 @@ namespace app
                     // next edge
                     std::vector< oriented_edge_descriptor > vIncEdges;
                     graph.incidentEdges( vTarget, vIncEdges );
-                    nextEdge = ( vIncEdges.front().descriptor == nextEdge.descriptor )? vIncEdges.back():vIncEdges.front();
+                    nextEdge = ( vIncEdges.front().descriptor == nextEdge.descriptor )? vIncEdges.back() : vIncEdges.front();
                 }
 
                 if (!lAntennaEdges.empty()) vpAntennas.push_back(std::make_pair(country, lAntennaEdges));
@@ -232,16 +235,22 @@ namespace app
             epg::calcul::matching::detail::LineStringAbsDampedDeformer deformer(absThreshold, influenceFactor, snapDist2);
 
             // projection des antennes
-            boost::progress_display display2(vpAntennas.size(), std::cout, "[ displace antennas % complete ]\n");
+            boost::progress_display display2(vpAntennas.size(), std::cout, "[ displacing antennas % complete ]\n");
 
             std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>>::const_iterator vpit;
-            for( vpit = vpAntennas.begin() ; vpit != vpAntennas.end() ; ++vpit, ++display2 ) {
-
+            for( vpit = vpAntennas.begin() ; vpit != vpAntennas.end() ; ++vpit, ++display2 )
+            {
                 std::string country = vpit->first;
-                std::string otherCountry = vCountry.front() == country ? vCountry.back() : vCountry.front();
+                std::string otherCountry = _vCountry.front() == country ? _vCountry.back() : _vCountry.front();
                 ign::geometry::LineString antennaGeom = graph.getGeometry(vpit->second.begin()->descriptor);
                 ign::geometry::Point dangleEndPoint = vpit->second.begin()->direction == ign::graph::DIRECT? antennaGeom.startPoint() : antennaGeom.endPoint();
                 ign::geometry::Point dangleNextPoint = vpit->second.begin()->direction == ign::graph::DIRECT? antennaGeom.pointN(1) : antennaGeom.pointN(antennaGeom.numPoints()-2);
+
+                //DEBUG 
+                // if( dangleEndPoint.distance(ign::geometry::Point(4018077.31, 2982717.16)) < 1 )
+                // {
+                //     bool test =true;
+                // }
 
                 ign::geometry::MultiLineString mlsEdgesAround;
 
@@ -253,7 +262,8 @@ namespace app
                 while (itEdge->hasNext())
                 {
                     ign::feature::Feature fEdge = itEdge->next();
-                    if( fEdge.getAttribute(countryCodeName).toString() == otherCountry )
+                    std::string const& edgeCountry = fEdge.getAttribute(countryCodeName).toString();
+                    if (edgeCountry.find(otherCountry) != std::string::npos && edgeCountry.find(country) == std::string::npos)
                         mlsEdgesAround.addGeometry(fEdge.getGeometry().asLineString());
                 }
 
@@ -263,7 +273,8 @@ namespace app
                 // regarder d'abord si un overshoot est possible
                 app::geometry::tools::LineStringSplitter splitter(antennaGeom);
                 splitter.addCuttingGeometry(mlsEdgesAround);
-                if (dangleEndPoint == antennaGeom.startPoint()) {
+                if (dangleEndPoint == antennaGeom.startPoint())
+                {
                     std::vector<ign::geometry::LineString> vsubLs = splitter.trimStart();
                     if (vsubLs.size() > 1 && vsubLs.front().length() < snapDist) {
                         //DEBUG
@@ -293,7 +304,8 @@ namespace app
                 ign::geometry::Point maxPt;
                 ign::geometry::Point maxOrthoPt;
                 
-                for ( size_t i = 0 ; i < mlsEdgesAround.numGeometries() ; ++i ) {     
+                for ( size_t i = 0 ; i < mlsEdgesAround.numGeometries() ; ++i )
+                {     
                     ign::geometry::LineString const& edgeGeom = mlsEdgesAround.lineStringN(i);
 
                     // projection ortho
@@ -377,9 +389,9 @@ namespace app
             }
 
             // découpage
-            _loadGraphAndPlanarize(graphManager/*, vCountry[i]*/);
+            _loadGraphAndPlanarize(graphManager);
 
-            boost::progress_display display3(graph.numLinearOrigins(), std::cout, "[ split edges % complete ]\n");
+            boost::progress_display display3(graph.numLinearOrigins(), std::cout, "[ splitting edges % complete ]\n");
 
             linear_origin_iterator oit, oend; 
             graph.origins( oit, oend );
@@ -397,10 +409,12 @@ namespace app
                 bool sourceIsCuttingPoint = _isCuttingPoint(graphManager, graph.source(foundInducedEdges.second.front()));
                 bool targetIsCuttingPoint = _isCuttingPoint(graphManager, graph.target(foundInducedEdges.second.back()));
 
-                if( foundInducedEdges.second.size() == 1 ) {
+                if( foundInducedEdges.second.size() == 1 )
+                {
                     // pour la robustesse : si l'extrémité est un point de coupure il faut mettre la geometrie en cohérence avec la coupure
                     // dont on traite l edge si l une de ses extremites est un point de coupure
-                    if( sourceIsCuttingPoint || targetIsCuttingPoint ) {
+                    if( sourceIsCuttingPoint || targetIsCuttingPoint )
+                    {
                         ign::feature::Feature featOrigin;
                         _fsEdgeRam->getFeatureById(*oit, featOrigin);
                         ign::geometry::LineString originGeom = featOrigin.getGeometry().asLineString();
@@ -427,13 +441,14 @@ namespace app
                 ign::feature::Feature featOrigin;
                 _fsEdgeRam->getFeatureById(*oit, featOrigin);
                 std::string country = featOrigin.getAttribute(countryCodeName).toString();
-                std::string otherCountry = vCountry.front() == country ? vCountry.back() : vCountry.front();
+                std::string otherCountry = _vCountry.front() == country ? _vCountry.back() : _vCountry.front();
 
                 // on fusionne les subEdges si les coupures sont causées par des edges du meme pays
                 std::vector< std::pair<vertex_descriptor, vertex_descriptor >> vpSourceTarget;
 
                 vertex_descriptor currentSource = graph.source(foundInducedEdges.second.front());
-                for (size_t i = 1 ; i < foundInducedEdges.second.size() ; ++i) {
+                for ( size_t i = 1 ; i < foundInducedEdges.second.size() ; ++i )
+                {
                     vertex_descriptor source = graph.source(foundInducedEdges.second[i]);
 
                     if( !_isCuttingPoint(graphManager, source) ) continue;
@@ -452,7 +467,8 @@ namespace app
                 std::vector< ign::geometry::LineString > vLs;
                 
                 double startAbs = 0;
-                for ( std::vector< std::pair<vertex_descriptor, vertex_descriptor >>::const_iterator vpit = vpSourceTarget.begin() ; vpit != vpSourceTarget.end() ; ++vpit ) {
+                for ( std::vector< std::pair<vertex_descriptor, vertex_descriptor >>::const_iterator vpit = vpSourceTarget.begin() ; vpit != vpSourceTarget.end() ; ++vpit )
+                {
                     ign::geometry::Point endPoint = graph.getGeometry(vpit->second);
                     double endAbs = originLengthIndexedGeom.project(endPoint);
                     vLs.push_back(originLengthIndexedGeom.getSubLineString(startAbs, endAbs));
@@ -495,7 +511,8 @@ namespace app
                 _fsEdge->deleteFeature(*oit);
 
                 // double previousZ = originGeom.startPoint().z();
-                for (size_t i = 0 ; i < vLs.size() ; ++i) {
+                for ( size_t i = 0 ; i < vLs.size() ; ++i )
+                {
                     //on enleve tous les dangles aux extremités
                     if ( 
                         i == 0 && graph.degree(vpSourceTarget[i].first) == 1 ||
@@ -535,8 +552,10 @@ namespace app
                         ign::geometry::Envelope bbox = vLs[i].getEnvelope().expandBy(2*antennaMinDist2Neighbor);
                         std::set< edge_descriptor > sEdgesAround;
                         graph.getEdges(bbox, sEdgesAround);
-                        for ( std::set< edge_descriptor >::const_iterator sit = sEdgesAround.begin() ; sit != sEdgesAround.end() ; ++sit) {
-                            if (graphManager.getCountry(*sit) == otherCountry) {
+                        for ( std::set< edge_descriptor >::const_iterator sit = sEdgesAround.begin() ; sit != sEdgesAround.end() ; ++sit )
+                        {
+                            std::string edgeAroundCountry = graphManager.getCountry(*sit);
+                            if (edgeAroundCountry.find(otherCountry) != std::string::npos && edgeAroundCountry.find(country) == std::string::npos ) {
                                 mlsOtherCountryEdgesAround.addGeometry(graph.getGeometry(*sit));
                             }
                         }
@@ -562,7 +581,10 @@ namespace app
         ///
         ///
         ///
-        bool EdgeConnectorOp::_inCountry(std::string const& country, ign::geometry::Point const& pt ) const {
+        bool EdgeConnectorOp::_inCountry(
+            std::string const& country,
+            ign::geometry::Point const& pt
+        ) const {
             std::map<std::string, ign::geometry::GeometryPtr>::const_iterator mit = _mCountryGeomPtr.find(country);
             if (mit == _mCountryGeomPtr.end()) {
                 _logger->log(epg::log::ERROR, "Unknown country [country code] " + country);
@@ -575,7 +597,9 @@ namespace app
         ///
         ///
         ///
-        void EdgeConnectorOp::_removeMcoordinate(ign::geometry::LineString & ls) const {
+        void EdgeConnectorOp::_removeMcoordinate(
+            ign::geometry::LineString & ls
+        ) const {
             ign::geometry::LineString::iterator lsit;
             for ( lsit = ls.begin() ; lsit != ls.end() ; ++lsit ) {
                 lsit->m() = ign::numeric::Numeric< double >::NaN();
@@ -611,7 +635,10 @@ namespace app
         ///
         ///
         ///
-        double EdgeConnectorOp::_getZ( geometry::tools::LengthIndexedLineString const& lengthIndexedLs, ign::geometry::Point const& p) const {
+        double EdgeConnectorOp::_getZ(
+            geometry::tools::LengthIndexedLineString const& lengthIndexedLs,
+            ign::geometry::Point const& p
+        ) const {
             double abs = lengthIndexedLs.project(p);
             ign::geometry::Point proj = lengthIndexedLs.locateAlong(abs);
             return proj.z();
@@ -620,14 +647,20 @@ namespace app
         ///
         ///
         ///
+        bool EdgeConnectorOp::_isCl(
+            std::string const& country
+        ) const {
+            return country.find("#") != std::string::npos;
+        }
+
+        ///
+        ///
+        ///
         void EdgeConnectorOp::_loadGraphAndPlanarize(
-            app::calcul::detail::EdgeCleaningGraphManager & graphManager/*,
-            std::string const& countryCode*/
-            ) const 
-        {
+            app::calcul::detail::EdgeCleaningGraphManager & graphManager
+        ) const {
             epg::Context *context = epg::ContextS::getInstance();
             epg::params::EpgParameters const& epgParams = context->getEpgParameters();
-            // std::string const geomName = epgParams.getValue(GEOM).toString();
             std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
 
             graphManager.clear();
@@ -635,7 +668,7 @@ namespace app
             ign::feature::FeatureFilter filter;
 
             size_t numFeatures = epg::sql::tools::numFeatures( *_fsEdgeRam, filter );
-            boost::progress_display display(numFeatures, std::cout, "[ edge_loading % complete ]\n");
+            boost::progress_display display(numFeatures, std::cout, "[ loading graph % complete ]\n");
 
             ign::feature::FeatureIteratorPtr itEdge = _fsEdgeRam->getFeatures(filter);
             while (itEdge->hasNext())
@@ -645,7 +678,7 @@ namespace app
                 ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
                 std::string edgeId = fEdge.getId();
                 std::string country = fEdge.getAttribute(countryCodeName).toString();
-                bool isCl = country.find("#") != std::string::npos;
+                bool isCl = _isCl(country);
 
                 graphManager.addEdge(edgeGeom, edgeId, OriginEdgeProperties(country, isCl));
             }
@@ -659,8 +692,7 @@ namespace app
         void EdgeConnectorOp::_loadGraph(
             app::calcul::detail::EdgeCleaningGraphManager & graphManager, 
             bool planarize
-            ) const 
-        {
+        ) const {
             graphManager.clear();
 
             epg::Context *context = epg::ContextS::getInstance();
@@ -670,7 +702,7 @@ namespace app
             // chargement des edges
             ign::feature::FeatureFilter filter;
             size_t numFeatures = epg::sql::tools::numFeatures( *_fsEdgeRam, filter );
-            boost::progress_display display(numFeatures, std::cout, "[ edge_loading % complete ]\n");
+            boost::progress_display display(numFeatures, std::cout, "[ loading graph % complete ]\n");
 
             ign::feature::FeatureIteratorPtr itEdge = _fsEdgeRam->getFeatures(filter);
             while (itEdge->hasNext())
@@ -680,7 +712,7 @@ namespace app
                 ign::geometry::LineString const& ls = fEdge.getGeometry().asLineString();
                 std::string edgeId = fEdge.getId();
                 std::string country = fEdge.getAttribute(countryCodeName).toString();
-                bool isCl = country.find("#") != std::string::npos;
+                bool isCl = _isCl(country);
 
                 if (planarize) {
                     graphManager.addEdge(ls, edgeId, OriginEdgeProperties(country, isCl));

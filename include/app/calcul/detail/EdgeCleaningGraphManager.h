@@ -301,7 +301,8 @@ namespace detail{
         std::set<std::string> getCountries(edge_descriptor e) const {
             std::set<std::string> sCountry;
             std::vector< std::string > const& vOrigins = _graph.origins(e);
-            for(std::vector< std::string >::const_iterator vit = vOrigins.begin() ; vit != vOrigins.end() ; ++vit) {
+            for(std::vector< std::string >::const_iterator vit = vOrigins.begin() ; vit != vOrigins.end() ; ++vit)
+            {
                 std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(*vit);
                 if ( mit != _mEdges.end() ) sCountry.insert(mit->second.country) ;
             }
@@ -315,7 +316,8 @@ namespace detail{
             std::set<std::string> sCountry = getCountries(e);
             std::set<std::string> sSingleCountry;
 
-            for(std::set<std::string>::const_iterator sit = sCountry.begin() ; sit != sCountry.end() ; ++sit) {
+            for(std::set<std::string>::const_iterator sit = sCountry.begin() ; sit != sCountry.end() ; ++sit)
+            {
                 std::vector<std::string> vCountry;
                 epg::tools::StringTools::Split(*sit, "#", vCountry);
 

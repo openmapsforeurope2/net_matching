@@ -26,8 +26,8 @@ namespace app {
 		void ConnectionConnectingLines::onCompute( bool verbose = false )
 		{
 			//--
-			std::string countryCodeW = _themeParams.getParameter(COUNTRY_CODE_W).getValue().toString();
-			std::string clRefTableName = _themeParams.getParameter(CL_TABLE).getValue().toString();
+			std::string countryCodeW = _themeParams.getValue(COUNTRY_CODE_W).toString();
+			std::string clRefTableName = _themeParams.getValue(CL_TABLE).toString();
 
 			//--
 			_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));

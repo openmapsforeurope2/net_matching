@@ -29,7 +29,7 @@ namespace app {
 			ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true);
 
 			//--
-			std::string countryCodeW = _themeParams.getParameter(COUNTRY_CODE_W).getValue().toString();
+			std::string countryCodeW = _themeParams.getValue(COUNTRY_CODE_W).toString();
 
 			//--
 			app::calcul::ConnectivityCorrectorOp::Compute(countryCodeW, verbose);

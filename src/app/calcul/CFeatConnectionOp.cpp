@@ -40,9 +40,9 @@ namespace app
         ///
         ///
         CFeatConnectionOp::CFeatConnectionOp(
-            std::string countryCode,
+            std::string borderCode,
             bool verbose
-        ) : _countryCode(countryCode),
+        ) : _borderCode(borderCode),
             _verbose(verbose)
         {
             _init();
@@ -59,10 +59,10 @@ namespace app
 		///
 		///
 		void CFeatConnectionOp::ComputeClImport(
-            std::string countryCode,
+            std::string borderCode,
             bool verbose
         ) {
-			CFeatConnectionOp op(countryCode, verbose);
+			CFeatConnectionOp op(borderCode, verbose);
             op.computeClImport();
 		}
 
@@ -74,7 +74,8 @@ namespace app
 			epg::Context* context = epg::ContextS::getInstance();
 			std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
 
-            ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCl, ign::feature::FeatureFilter(countryCodeName + " = '" + _countryCode + "'"));
+            ign::feature::FeatureFilter filterCl(_isClStatement);
+            ign::feature::FeatureIteratorPtr itCL = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsCl, filterCl);
 
 			while (itCL->hasNext())
 			{
@@ -92,10 +93,10 @@ namespace app
         ///
         ///
         void CFeatConnectionOp::ComputeCp(
-            std::string countryCode,
+            std::string borderCode,
             bool verbose
         ) {
-            CFeatConnectionOp op(countryCode, verbose);
+            CFeatConnectionOp op(borderCode, verbose);
             op.computeCp();
         }
 
@@ -104,10 +105,7 @@ namespace app
         ///
         void CFeatConnectionOp::computeCp() const
         {
-            std::vector<std::string> vCountriesCodeName;
-		    epg::tools::StringTools::Split(_countryCode, "#", vCountriesCodeName);
-
-			for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
+			for (std::vector<std::string>::const_iterator vit = _vCountry.begin(); vit != _vCountry.end(); ++vit) {
                 _computeCp(*vit);
             }
         }
@@ -116,10 +114,10 @@ namespace app
         ///
         ///
         void CFeatConnectionOp::ComputeCl(
-            std::string countryCode,
+            std::string borderCode,
             bool verbose
         ) {
-            CFeatConnectionOp op(countryCode, verbose);
+            CFeatConnectionOp op(borderCode, verbose);
             // op.computeClByCountry();
             //todo a remplacer par op.computeCl() si confirmation qu'il n'y a pas d'impact négatif
             op.computeCl();
@@ -129,13 +127,9 @@ namespace app
         ///
         ///
         void CFeatConnectionOp::computeClByCountry() const
-        {
-            std::vector<std::string> vCountriesCodeName;
-		    epg::tools::StringTools::Split(_countryCode, "#", vCountriesCodeName);
-            
-            for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
-                _computeCl(*vit);
-            }
+        {   
+           _computeCl(0);
+           _computeCl(1);
         }
 
         ///
@@ -148,11 +142,8 @@ namespace app
             // map<point déplacement, geometry de la cl cible>
             std::map<ign::geometry::Point, ign::geometry::LineString> mDisplacementCls;
 
-            std::vector<std::string> vCountriesCodeName;
-		    epg::tools::StringTools::Split(_countryCode, "#", vCountriesCodeName);
-            for (std::vector<std::string>::iterator vit = vCountriesCodeName.begin(); vit != vCountriesCodeName.end(); ++vit) {
-                _computeClDisplacements(mDisplacements, mDisplacementCls, *vit);
-            }
+            _computeClDisplacements(mDisplacements, mDisplacementCls, 0);
+            _computeClDisplacements(mDisplacements, mDisplacementCls, 1);
             
             // on charge le graph
             GraphType graph;
@@ -167,9 +158,8 @@ namespace app
             _persistEdgeDisplacement(graph, vDeformedEdges);
 
             //remove collapsed edges
-            for (std::set<std::string>::const_iterator sit = sCollapsedEdges.begin() ; sit != sCollapsedEdges.end() ; ++sit) {
+            for (std::set<std::string>::const_iterator sit = sCollapsedEdges.begin() ; sit != sCollapsedEdges.end() ; ++sit)
                 _fsEdge->deleteFeature(*sit);
-            }
         }
 
         ///
@@ -193,6 +183,13 @@ namespace app
             std::string const idName = epgParams.getValue(ID).toString();
             std::string const geomName = epgParams.getValue(GEOM).toString();
             std::string const edgeTableName = epgParams.getValue(EDGE_TABLE).toString();
+            std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
+
+            //--
+			epg::tools::StringTools::Split(_borderCode, "#", _vCountry);
+
+			//--
+			_isClStatement = countryCodeName + " LIKE '%" + _vCountry.front() + "%' AND "+ countryCodeName +" LIKE '%" + _vCountry.back() + "%'";
 
             // app parameters
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
@@ -232,8 +229,10 @@ namespace app
         void CFeatConnectionOp::_computeClDisplacements(
             std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements,
             std::map<ign::geometry::Point, ign::geometry::LineString> & mDisplacementCls,
-            std::string const& country
+            size_t idCountry
         ) const {
+            std::string country = _vCountry[idCountry];
+
             //--
             _shapeLogger->addShape("cl_displacements_"+country, epg::log::ShapeLogger::LINESTRING);
             _shapeLogger->addShape("cl_created_features_"+country, epg::log::ShapeLogger::LINESTRING);
@@ -249,14 +248,14 @@ namespace app
             std::string const linkedFeatureIdName = epgParams.getValue(LINKED_FEATURE_ID).toString();
 
             // app params
-            params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
+            params::ThemeParameters * themeParameters = params::ThemeParametersS::getInstance();
             double snapDistance = themeParameters->getValue(CFC_SNAP_DIST).toDouble();
 
             ign::feature::FeatureFilter filterCl(countryCodeName + " LIKE '%" + country + "%'");
 
             // patience
             size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCl, filterCl);
-            boost::progress_display display(numFeatures, std::cout, "[ cl_connection % complete ]\n");
+            boost::progress_display display(numFeatures, std::cout, "[ connecting CL % complete ]\n");
 
             // pour garder le lien entre les CL et les edges nouvellement créés
             bimap_t mParentChilds;
@@ -267,28 +266,26 @@ namespace app
             {
                 ++display;
                 ign::feature::Feature fCl = itCl->next();
-                std::string const linkedFeatureId = fCl.getAttribute(linkedFeatureIdName).toString();
+                std::string const linkedFeatureIds = fCl.getAttribute(linkedFeatureIdName).toString();
                 std::string const countryCode = fCl.getAttribute(countryCodeName).toString();
 
                 if ( sTreatedCl.find(fCl.getId()) != sTreatedCl.end() ) continue;
                 sTreatedCl.insert(fCl.getId());
 
-                std::pair<bool, std::string> foundFeatureId = _getSingleValue(linkedFeatureId, countryCode, country);
-                if (!foundFeatureId.first)
-                {
-                    _logger->log(epg::log::ERROR, "Feature id not found [connecting edge id] " + fCl.getId());
-                    continue;
-                }
+                //--
+                std::vector<std::string> vFeatureId;
+                ign::tools::StringManip::Split(linkedFeatureIds, "#", vFeatureId);
+                std::string linkedFeatureId = vFeatureId[idCountry];
 
                 //fusionner les cl adjacentes avec le même edgeLink, récuperer la géométrie fusionnée et lister les cl traitées pour ne pas les traiter de nouveau
-                std::pair<bool, ign::geometry::LineString> foundMergedClGeom = ome2::calcul::detail::ClMerger::merge(_fsCl, fCl, foundFeatureId.second, sTreatedCl);
+                std::pair<bool, ign::geometry::LineString> foundMergedClGeom = ome2::calcul::detail::ClMerger::merge(_fsCl, fCl, linkedFeatureId, sTreatedCl);
                 ign::geometry::LineString const * mergedClGeom = foundMergedClGeom.first ? &foundMergedClGeom.second : &fCl.getGeometry().asLineString();
 
-                std::pair<bool, ign::feature::Feature> foundEdge = _getNearestChild(*mergedClGeom, foundFeatureId.second, mParentChilds);
+                std::pair<bool, ign::feature::Feature> foundEdge = _getNearestChild(*mergedClGeom, linkedFeatureId, mParentChilds);
                 std::string edgeId = foundEdge.second.getId();
                 if (!foundEdge.first)
                 {
-                    _logger->log(epg::log::ERROR, "No candidate edge found [" + linkedFeatureIdName + "] " + foundFeatureId.second);
+                    _logger->log(epg::log::ERROR, "No candidate edge found [" + linkedFeatureIdName + "] " + linkedFeatureId);
                     continue;
                 }
 
@@ -328,7 +325,7 @@ namespace app
                             mpCuttingPoints.addGeometry(startPoint);
                         }
                     }
-                    _addDisplacement(startPoint, mergedClGeom->startPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
+                    _addDisplacement(startPoint, mergedClGeom->startPoint(), mDisplacements, mDisplacementCls, fCl, linkedFeatureId, country);
 
                     //--
                     size_t minId2 = minId == 0 ? 3 : 2;
@@ -347,7 +344,7 @@ namespace app
                             mpCuttingPoints.addGeometry(startPoint);
                         }
                     }
-                    _addDisplacement(startPoint, mergedClGeom->endPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
+                    _addDisplacement(startPoint, mergedClGeom->endPoint(), mDisplacements, mDisplacementCls, fCl, linkedFeatureId, country);
                 }
                 else
                 {
@@ -367,7 +364,7 @@ namespace app
                             mpCuttingPoints.addGeometry(startPoint);
                         }
                     }
-                    _addDisplacement(startPoint, mergedClGeom->endPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
+                    _addDisplacement(startPoint, mergedClGeom->endPoint(), mDisplacements, mDisplacementCls, fCl, linkedFeatureId, country);
 
                     //--
                     size_t minId2 = minId == 2 ? 1 : 0;
@@ -386,7 +383,7 @@ namespace app
                             mpCuttingPoints.addGeometry(startPoint);
                         }
                     }
-                    _addDisplacement(startPoint, mergedClGeom->startPoint(), mDisplacements, mDisplacementCls, fCl, foundFeatureId.second, country);
+                    _addDisplacement(startPoint, mergedClGeom->startPoint(), mDisplacements, mDisplacementCls, fCl, linkedFeatureId, country);
                 }
 
                 std::vector< ign::geometry::LineString > vNewGeom;
@@ -512,14 +509,16 @@ namespace app
         ///
         ///
         ///
-        void CFeatConnectionOp::_computeCl(std::string const& country) const
+        void CFeatConnectionOp::_computeCl(size_t idCountry) const
         {
+            std::string country = _vCountry[idCountry];
+
             std::map<ign::geometry::Point, ign::math::Vec2d> mDisplacements;
             //Patch pour gérer les pertes de continuité entre les cl
             // map<point déplacement, geometry de la cl cible>
             std::map<ign::geometry::Point, ign::geometry::LineString> mDisplacementCls;
 
-            _computeClDisplacements(mDisplacements, mDisplacementCls, country);
+            _computeClDisplacements(mDisplacements, mDisplacementCls, idCountry);
 
             // on charge le graph
             GraphType graph;
@@ -563,7 +562,7 @@ namespace app
 
             // patience
             size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsCp, filterCp);
-            boost::progress_display display(numFeatures, std::cout, "[ cp_connection % complete ]\n");
+            boost::progress_display display(numFeatures, std::cout, "[ connecting edges to CPs % complete ]\n");
 
             // pour garder le lien entre les CP et les edges nouvellement créés
             bimap_t mParentChilds;
@@ -576,20 +575,12 @@ namespace app
 
                 ign::geometry::Point const& cpGeom = fCp.getGeometry().asPoint();
                 std::string const linkedFeatureId = fCp.getAttribute(linkedFeatureIdName).toString();
-                std::string const countryCode = fCp.getAttribute(countryCodeName).toString();
 
-                std::pair<bool, std::string> foundFeatureId = _getSingleValue(linkedFeatureId, countryCode, country);
-                if (!foundFeatureId.first)
-                {
-                    _logger->log(epg::log::ERROR, "Feature id not found [connecting point id] " + fCp.getId());
-                    continue;
-                }
-
-                std::pair<bool, ign::feature::Feature> foundEdge = _getNearestChild(cpGeom, foundFeatureId.second, mParentChilds);
+                std::pair<bool, ign::feature::Feature> foundEdge = _getNearestChild(cpGeom, linkedFeatureId, mParentChilds);
                 std::string edgeId = foundEdge.second.getId();
                 if (!foundEdge.first)
                 {
-                    _logger->log(epg::log::ERROR, "No candidate edge found [" + linkedFeatureIdName + "] " + foundFeatureId.second);
+                    _logger->log(epg::log::ERROR, "No candidate edge found [" + linkedFeatureIdName + "] " + linkedFeatureId);
                     continue;
                 }
 
@@ -599,7 +590,8 @@ namespace app
                 // peut-on connecter l'edge au connecting point ?
                 double dCpStart = edgeGeom.startPoint().distance(cpGeom);
                 double dCpEnd = edgeGeom.endPoint().distance(cpGeom);
-                if (std::min(dCpStart, dCpEnd) > snapDistance) {
+                if (std::min(dCpStart, dCpEnd) > snapDistance)
+                {
                     epg::tools::geometry::projectZ(edgeGeom, cpGeom, startPoint);
                     dCpStart = edgeGeom.startPoint().distance(startPoint);
                     dCpEnd = edgeGeom.endPoint().distance(startPoint);
@@ -618,7 +610,8 @@ namespace app
                         startPoint = edgeGeom.startPoint().distance(cpGeom) < edgeGeom.endPoint().distance(cpGeom) ? edgeGeom.startPoint() : edgeGeom.endPoint();
                     }
 
-                    if (vNewEdgeGeom.size() > 1) {
+                    if (vNewEdgeGeom.size() > 1)
+                    {
                         _fsEdge->deleteFeature(edgeId);
 
                         //DEBUG
@@ -631,7 +624,8 @@ namespace app
                         auto r_mit = mParentChilds.right.find(edgeId);
                         std::string parentId = r_mit != mParentChilds.right.end() ? r_mit->second : edgeId;
                         if (r_mit != mParentChilds.right.end()) mParentChilds.right.erase(r_mit);
-                        for (size_t i = 0 ; i < vNewEdgeGeom.size() ; ++i) {
+                        for (size_t i = 0 ; i < vNewEdgeGeom.size() ; ++i)
+                        {
                             foundEdge.second.setGeometry(vNewEdgeGeom[i]);
                             
                             _fsEdge->createFeature(foundEdge.second);
@@ -720,7 +714,7 @@ namespace app
                 {
                     ign::feature::Feature fEdge = itEdge->next();
 
-                    ign::geometry::LineString const &edgeGeom = fEdge.getGeometry().asLineString();
+                    ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
                     double distance = edgeGeom.distance(refGeom);
 
                     if (distance < dMax)
@@ -789,7 +783,7 @@ namespace app
             ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterEdge);
 
             size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filterEdge);
-            boost::progress_display display(numFeatures, std::cout, "[ graph loading % complete ]\n");
+            boost::progress_display display(numFeatures, std::cout, "[ loading graph " + country + " % complete ]\n");
 
             while (itEdge->hasNext())
             {
@@ -1032,7 +1026,6 @@ namespace app
                         *vit = mit->second;
                     }
                 }
-                
             }
 
             if (_verbose)
@@ -1062,8 +1055,8 @@ namespace app
             GraphType & graph,
             std::vector<edge_descriptor> & vDeformedEdges
         ) const {
-            std::vector<edge_descriptor>::const_iterator vit;
-            for ( vit = vDeformedEdges.begin() ; vit != vDeformedEdges.end() ; ++vit ) {
+            for ( std::vector<edge_descriptor>::const_iterator  vit = vDeformedEdges.begin() ; vit != vDeformedEdges.end() ; ++vit )
+            {
                 ign::geometry::LineString edgeGeom = graph.getGeometry(*vit);
 
                 std::string edgeId = graph.origins(*vit)[0];

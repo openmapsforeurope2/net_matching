@@ -1,5 +1,7 @@
 #include <app/calcul/detail/RatioTools.h>
 
+// EPG
+#include <epg/tools/StringTools.h>
 
 namespace app
 {
@@ -22,6 +24,9 @@ namespace app
                 std::string const geomName = epgParams.getValue(GEOM).toString();
                 std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
 
+                std::set<std::string> sCountry;
+                epg::tools::StringTools::Split(country, "#", sCountry);
+
                 ign::geometry::GeometryPtr unionPtr(new ign::geometry::Polygon());
 
                 ign::feature::FeatureFilter filter;
@@ -33,7 +38,12 @@ namespace app
                     std::string const& featCountry = feat.getAttribute(countryCodeName).toString();
                     ign::geometry::Geometry const& geom = feat.getGeometry();
 
-                    if( featCountry.find(country) == std::string::npos )
+                    bool hasCommonCountry = false;
+                    for ( std::set<std::string>::const_iterator sit = sCountry.begin() ; sit != sCountry.end() ; ++sit )
+                        if( featCountry.find(*sit) != std::string::npos )
+                            hasCommonCountry = true;
+
+                    if( !hasCommonCountry )
                         continue;
 
                     if( !geom.intersects(ls) )
@@ -51,7 +61,12 @@ namespace app
                         std::string const& featCountry = feat.getAttribute(countryCodeName).toString();
                         ign::geometry::Geometry const& geom = feat.getGeometry();
 
-                        if( featCountry.find(country) == std::string::npos )
+                        bool hasCommonCountry = false;
+                        for ( std::set<std::string>::const_iterator sit = sCountry.begin() ; sit != sCountry.end() ; ++sit )
+                            if( featCountry.find(*sit) != std::string::npos )
+                                hasCommonCountry = true;
+
+                        if( !hasCommonCountry )
                             continue;
 
                         if( !geom.intersects(ls) )

@@ -19,8 +19,11 @@ namespace params{
 		_initParameter( WORKING_SCHEMA, "WORKING_SCHEMA" );
 		_initParameter( EDGE_TABLE_INIT, "EDGE_TABLE_INIT" );
 		_initParameter( EDGE_TABLE_INIT_BASE, "EDGE_TABLE_INIT_BASE" );
+		_initParameter( ALL_EDGE_TABLE, "ALL_EDGE_TABLE" );
 		_initParameter( W_TAG_NAME, "W_TAG_NAME" );
 		_initParameter( EDGE_FICTITIOUS_NAME, "EDGE_FICTITIOUS_NAME" );
+		_initParameter( ALL_WATERCOURSE_AREA_TABLE, "ALL_WATERCOURSE_AREA_TABLE" );
+		_initParameter( ALL_STANDING_WATER_TABLE, "ALL_STANDING_WATER_TABLE" );
 		_initParameter( WATERCOURSE_AREA_TABLE, "WATERCOURSE_AREA_TABLE" );
 		_initParameter( WATERCOURSE_AREA_TABLE_BASE, "WATERCOURSE_AREA_TABLE_BASE" );
 		_initParameter( STANDING_WATER_TABLE, "STANDING_WATER_TABLE" );
@@ -68,6 +71,7 @@ namespace params{
 		_initParameter( CP_BUFFER_DIST, "CP_BUFFER_DIST");
 		_initParameter( CP_FROM_CL_FROM_BORDER_PAIRING_DIST, "CP_FROM_CL_FROM_BORDER_PAIRING_DIST");
 		_initParameter( CP_UNDERSHOOT_DIST, "CP_UNDERSHOOT_DIST");
+		_initParameter( CP_OVERSHOOT_MAX_LENTH, "CP_OVERSHOOT_MAX_LENTH");
 		_initParameter( CP_CP_2_CL_SNAP_DIST, "CP_CP_2_CL_SNAP_DIST");
 
 		_initParameter( CL_BUFFER_DIST, "CL_BUFFER_DIST");
@@ -86,6 +90,7 @@ namespace params{
 
 		_initParameter( LIST_ATTR_JSON, "LIST_ATTR_JSON");
 		_initParameter( LIST_ATTR_W, "LIST_ATTR_W");
+		_initParameter( LIST_ATTR_SEPARATOR, "LIST_ATTR_SEPARATOR");
 
 		_initParameter( SQL_FILTER_EDGES_2_GENERATE_CF, "SQL_FILTER_EDGES_2_GENERATE_CF");
 

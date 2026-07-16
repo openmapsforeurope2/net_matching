@@ -35,10 +35,10 @@ namespace calcul{
         typedef typename GraphType::edge_iterator edge_iterator;
 
 		/// @brief Constructeur
-		/// @param countryCode Code pays simple
+		/// @param borderCode Code pays double
 		/// @param verbose Mode verbeux
 		CFeatConnectionOp( 
-            std::string countryCode, 
+            std::string borderCode, 
             bool verbose 
         );
 
@@ -47,27 +47,27 @@ namespace calcul{
 
 
 		/// @brief Reconnecte les arcs du réseau aux connecting points
-		/// @param countryCode Code pays simple
+		/// @param borderCode Code pays double
 		/// @param verbose Mode verbeux
 		static void ComputeCp( 
-            std::string countryCode, 
+            std::string borderCode, 
             bool verbose 
         );
 
 		/// @brief Reconnecte les arcs du réseau aux connectings lines et ajoute des arcs (segments) entre
 		/// les connecting lines déconnectées
-		/// @param countryCode Code pays simple
+		/// @param borderCode Code pays double
 		/// @param verbose Mode verbeux
 		static void ComputeCl( 
-            std::string countryCode, 
+            std::string borderCode, 
             bool verbose 
         );
 
 		/// @brief Importe les connecting lines dans le réseau
-		/// @param countryCode Code pays simple
+		/// @param borderCode Code pays double
 		/// @param verbose Mode verbeux
 		static void ComputeClImport( 
-            std::string countryCode, 
+            std::string borderCode, 
             bool verbose 
         );
 
@@ -96,7 +96,11 @@ namespace calcul{
 		//--
 		epg::log::ShapeLogger*                             _shapeLogger;
 		//--
-		std::string                                        _countryCode;
+		std::string                                        _borderCode;
+		//--
+		std::vector<std::string>                           _vCountry;
+		//--
+		std::string                                        _isClStatement;
 		//--
 		bool                                               _verbose;
 
@@ -116,14 +120,14 @@ namespace calcul{
 		void _computeClDisplacements(
 			std::map<ign::geometry::Point, ign::math::Vec2d> & mDisplacements, 
 			std::map<ign::geometry::Point, ign::geometry::LineString> & mDisplacementCls,
-			std::string const& country
+			size_t idCountry
 		) const;
 
 		//--
 		void _computeCp(std::string const& country) const;
 
 		//--
-		void _computeCl(std::string const& country) const;
+		void _computeCl(size_t idCountry) const;
 
 		//--
 		void _addDisplacement(

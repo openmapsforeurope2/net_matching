@@ -25,7 +25,7 @@ namespace app {
 		void JunctionMatching::onCompute(bool verbose = false)
 		{
 			//--
-			std::string countryCodeW = _themeParams.getParameter(COUNTRY_CODE_W).getValue().toString();
+			std::string countryCodeW = _themeParams.getValue(COUNTRY_CODE_W).toString();
 
 			//--
 			_epgParams.setParameter(EDGE_TABLE, ign::data::String(getCurrentWorkingTableName(EDGE_TABLE_INIT)));

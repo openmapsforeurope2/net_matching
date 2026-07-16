@@ -94,6 +94,8 @@ namespace calcul{
 		//--
 		ign::feature::sql::FeatureStorePostgis*              _fsEdge;
 		//--
+		ign::feature::sql::FeatureStorePostgis*              _fsAllEdge;
+		//--
 		std::map<std::string, ign::geometry::GeometryPtr>    _mCountryGeomPtr;
 		//--
 		std::map<std::string, ign::geometry::GeometryPtr>    _mCountryGeomWithBuffPtr;
@@ -102,7 +104,9 @@ namespace calcul{
 		//--
 		epg::log::ShapeLogger*                               _shapeLogger;
 		//--
-		std::string                                          _countryCode;
+		std::string                                          _borderCode;
+		//--
+		std::vector<std::string>                             _vCountry;
 		//--
 		bool                                                 _verbose;
 		//--
@@ -145,19 +149,22 @@ namespace calcul{
 		) const;
 
 		//--
+		bool _isCl(std::string const& country) const;
+
+		//--
 		template < typename ContainerType >
 		double _getRatio(
 			GraphType const& graph, 
 			std::string country,
 			ContainerType const& container
 		) const {
-			bool isCl = country.find("#") != std::string::npos;
-			if (isCl) return 1;
+			if (_isCl(country)) return 1;
 			
             double lengthInCountry = 0;
             double length = 0;
             typename ContainerType::const_iterator lit = container.begin();
-            for ( ; lit != container.end() ; ++lit) {
+            for ( ; lit != container.end() ; ++lit)
+			{
                 ign::geometry::LineString edgeGeom = graph.getGeometry(*lit);
                 _addLengths(country, edgeGeom, lengthInCountry, length);
             }
@@ -177,7 +184,7 @@ namespace calcul{
 		) const;
 
 		//--
-		std::pair<bool, std::string> _isAllFromCountry(
+		std::set<std::string> _isAllFromCountry(
             detail::EdgeCleaningGraphManager & graphManager,
             face_descriptor fd
         ) const;
@@ -231,13 +238,16 @@ namespace calcul{
 		) const;
 
 		//--
+		bool _haveCommonCountry(
+            std::string const& country1,
+            std::string const& country2
+        ) const;
+
+		//--
 		bool _vertexIsConnected2Cl(
 			detail::EdgeCleaningGraphManager const& graphManager,
 			vertex_descriptor v
 		) const;
-
-		//--
-		// bool _vertexIsCp(GraphType const& graph, vertex_descriptor v) const;
 
 		//--
 		bool _cleanAntenna(
@@ -320,6 +330,17 @@ namespace calcul{
             std::set<vertex_descriptor> const& sVertices,
 			std::string const& country
         ) const;
+
+		bool _isConnected2ThirdCountry(
+            ign::geometry::Point const& vertexGeom,
+            std::string const& countryCode
+        ) const;
+
+		//--
+		std::set<std::string> _getThirdCountry(std::string const& country) const;
+
+        //--
+        bool _isThirdCountry(std::string const& singleCountry) const;
 
 		//--
 		std::string _getOtherCountry(

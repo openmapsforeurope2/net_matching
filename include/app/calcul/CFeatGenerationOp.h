@@ -125,19 +125,23 @@ namespace calcul{
 		//--
 		std::string                              _borderCode;
 		//--
-		std::vector<std::string>                 _vCountryCode;
+		std::vector<std::string>                 _vCountry;
 		//--
 		epg::sql::tools::IdGeneratorInterfacePtr _idGeneratorCP;
 		//--
 		epg::sql::tools::IdGeneratorInterfacePtr _idGeneratorCL;
 		//--
-		ome2::calcul::utils::AttributeMerger     _attrMergerOnBorder;
+		ome2::calcul::utils::AttributeMerger*    _attrMerger;
 		//--
 		epg::tools::MultiLineStringTool*         _mlsBorderSmoothed;
 		//--
 		std::set<std::string>                    _sFormOfWayException;
 		//--
 		std::string                              _tagFromCl;
+		//--
+		std::string                              _isClStatement;
+		//--
+		std::map<std::string, std::string>       _mIsCountryStatement;
 		//--
 		bool                                     _verbose;
 		
@@ -209,11 +213,6 @@ namespace calcul{
 			size_t idLast
 		) const;
 
-		// //--
-		// void _addToUndershootNearBorder(
-		// 	ign::geometry::LineString const& lsBorder
-		// ) const;
-
 		//--
 		void _getCPfromCl() const;
 
@@ -252,11 +251,6 @@ namespace calcul{
 			ign::feature::Feature const& linkedEdgeFeat,
 			std::string tag = ""
 		) const;
-
-		// //--
-		// void _getCPfromIntersectBorder(
-		// 	ign::geometry::LineString const& lsBorder
-		// ) const;
 
 		//--
 		void _snapCl2Cl(double distMaxClClosest) const;
@@ -330,23 +324,6 @@ namespace calcul{
 			ign::geometry::Geometry const& geom
 		) const;
 
-		// //--
-		// bool _isEdgeConnected2cl(
-		// 	ign::geometry::Geometry const& geomObjNearCl,
-		// 	ign::feature::Feature & fCl2SnapOn,
-		// 	double distMinCl
-		// ) const;
-
-		// //--
-		// void _snapCpOnClNearBy(
-		// 	std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> & mClSplitedByCp
-		// ) const;
-
-		// //--
-		// void _cutClByCp(
-		// 	std::map<std::string, std::pair<ign::feature::Feature, ign::geometry::MultiPoint>> const& mClSplittedByCp
-		// ) const;
-
 		//--
 		void _cutClByCp() const;
 
@@ -372,14 +349,6 @@ namespace calcul{
 			double snapProjCl2edge
 		) const;
 
-		// //--
-		// bool _isNextEdgeInAntennas(
-		// 	ign::feature::Feature const& fEdge,
-		// 	ign::geometry::Point const& ptCurr,
-		// 	ign::feature::Feature & edgeNext,
-		// 	ign::geometry::Point & ptNext
-		// ) const;
-
 		//--
 		void _updateGeomCL(double snapOnVertex) const;
 
@@ -404,7 +373,7 @@ namespace calcul{
 
 		//--
 		void _loadGraphEdges(
-			std::string const& countryCodeSimple,
+			std::string const& country,
 			GraphType & graphEdges
 		) const;
 

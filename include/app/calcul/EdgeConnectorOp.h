@@ -58,6 +58,8 @@ namespace calcul{
 		//--
 		std::string                                        _borderCode;
 		//--
+		std::vector<std::string>                           _vCountry;
+		//--
 		bool                                               _verbose;
 
 	private:
@@ -88,6 +90,9 @@ namespace calcul{
             app::calcul::detail::EdgeCleaningGraphManager & graphManager,
             vertex_descriptor v
         ) const;
+
+        //--
+        bool _isCl(std::string const& country) const;
 
 		//--
 		void _loadGraph(

@@ -32,9 +32,8 @@ namespace app {
 			std::string geomName = _epgParams.getValue( GEOM ).toString();
 
 			//--
-			params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
-			std::string countryCodeW = _themeParams.getParameter(COUNTRY_CODE_W).getValue().toString();
-			std::string cpRefTableName = _themeParams.getParameter(CP_TABLE).getValue().toString();
+			std::string countryCodeW = _themeParams.getValue(COUNTRY_CODE_W).toString();
+			std::string cpRefTableName = _themeParams.getValue(CP_TABLE).toString();
 
 			//--
 			epg::utils::CopyTableUtils::copyTable(

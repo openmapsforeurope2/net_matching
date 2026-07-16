@@ -177,6 +177,9 @@ int main(int argc, char *argv[])
         context->getDataBaseManager().setSearchPath(themeParameters->getValue(WORKING_SCHEMA).toString());
         ome2::utils::setTableName<app::params::ThemeParametersS>(LANDMASK_TABLE);
         ome2::utils::setTableName<app::params::ThemeParametersS>(BOUNDARY_SMOOTHED_TABLE);
+        ome2::utils::setTableName<app::params::ThemeParametersS>(ALL_WATERCOURSE_AREA_TABLE);
+        ome2::utils::setTableName<app::params::ThemeParametersS>(ALL_STANDING_WATER_TABLE);
+        ome2::utils::setTableName<app::params::ThemeParametersS>(ALL_EDGE_TABLE);
         ome2::utils::setTableName<epg::params::EpgParametersS>(TARGET_BOUNDARY_TABLE);
 
         //créer les tables CP et CL vides si elles n'existent pas

@@ -116,7 +116,7 @@ namespace app
             //--
             params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
             double const distThreshold = themeParameters->getValue(CC_DIST_THRESHOLD).toDouble();
-            std::string const natIdName = themeParameters->getParameter(NATIONAL_IDENTIFIER_NAME).getValue().toString();
+            std::string const natIdName = themeParameters->getValue(NATIONAL_IDENTIFIER_NAME).toString();
 
             //--
             ign::geometry::index::QuadTree< std::string > qTreeEdges;

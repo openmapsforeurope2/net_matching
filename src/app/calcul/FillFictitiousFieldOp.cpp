@@ -110,7 +110,7 @@ namespace app
             std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS_NAME).toString();
 
             //DEBUG
-            std::string const wTagName = themeParameters->getParameter(W_TAG_NAME).getValue().toString();
+            std::string const wTagName = themeParameters->getValue(W_TAG_NAME).toString();
 
             //--
             ign::feature::FeatureFilter filter;
@@ -129,7 +129,8 @@ namespace app
 
                 double ratio = detail::RatioTools::GetRatio(ls, country, _fsAreaRam, _fsStandingRam);
 
-                if (ratio >= minRatio && fictitious != "true") {
+                if (ratio >= minRatio && fictitious != "true")
+                {
                     ign::feature::Feature fEdge_ = fEdge;
                     fEdge_.setAttribute(fictitiousFieldName, ign::data::String("true"));
 
@@ -148,6 +149,5 @@ namespace app
                 }
             }
         }
-
     }
 }

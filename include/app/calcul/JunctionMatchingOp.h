@@ -28,9 +28,9 @@ namespace calcul{
 		typedef app::calcul::detail::OriginEdgeProperties                  OriginEdgeProperties;
 
 		/// @brief Constructeur
-		/// @param countryCodeDouble Code pays double
+		/// @param borderCode Code pays double
 		/// @param verbose Mode verbeux
-		JunctionMatchingOp(std::string const& countryCodeDouble, bool verbose = false);
+		JunctionMatchingOp(std::string const& borderCode, bool verbose = false);
 
 		/// @brief Destructeur
 		~JunctionMatchingOp();
@@ -38,9 +38,9 @@ namespace calcul{
 		/// @brief Appairage des carrefours. Si l'un des deux carrefours appairés est fictif, sa position est conservée 
 		/// et c'est l'autre  carrefour qui est déplacé. Sinon les deux carrefours A et B sont déplacés au milieu 
 		/// du segment [AB].
-		/// @param countryCodeDouble Code pays double
+		/// @param borderCode Code pays double
 		/// @param verbose Mode verbeux
-		static void Compute(std::string const& countryCodeDouble, bool verbose = false);
+		static void Compute(std::string const& borderCode, bool verbose = false);
 
 
 	private:
@@ -57,9 +57,9 @@ namespace calcul{
 		//--
 		bool                                               _verbose;
 		//--
-		std::string                                        _countryCodeDouble;
+		std::string                                        _borderCode;
 		//--
-		std::vector<std::string>						   _vCountriesCodeName;
+		std::vector<std::string>						   _vCountry;
 
 		
 	private:
@@ -75,7 +75,7 @@ namespace calcul{
 
 		//--
 		void _loadGraph(
-			std::string const& countryCodeSimple,
+			std::string const& countryCode,
 			app::calcul::detail::EdgeCleaningGraphManager & graphManager
 		) const;
 
@@ -91,18 +91,18 @@ namespace calcul{
 		) const;
 
 		//--
-		void _getMatchedJunctBest(
-			std::map< vertex_descriptor, vertex_descriptor> & mMatchedJuncRefWithBestJuncMatched,
-			GraphType const& graphRef,
-			GraphType const& graph2match
+		void _computeOrientedMatching(
+			std::map< vertex_descriptor,vertex_descriptor> & mJunct1Junct2,
+			GraphType const& graph1,
+			GraphType const& graph2
 		) const;
 
 		//--
-		void _setNewGeomJunction(
+		void _moveVertex(
 			GraphType const& graph,
-			vertex_descriptor vJunction,
-			ign::geometry::Point const& ptNewGeomJunction,
-			std::map<std::string, ign::feature::Feature> & mEdgesModifiedGeom
+			vertex_descriptor v,
+			ign::geometry::Point const& newVertexGeom,
+			std::map<std::string, ign::feature::Feature> & mEdges2Modify
 		) const;
 
 	};

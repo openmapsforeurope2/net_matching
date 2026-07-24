@@ -36,6 +36,7 @@ namespace detail{
         std::string   country;
         std::string   wTag;
         std::string   natId;
+        std::string   fictitious;
     };
 
     /// @brief Classe utilitaire facilitant la manipulation du graph de travail
@@ -273,6 +274,25 @@ namespace detail{
         std::string getNatId(std::string const& id) const {
             std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(id);
             if ( mit != _mEdges.end() ) return mit->second.natId;
+            return "";
+        };
+
+        /// @brief Retourne la valeur du champ fictitious de l'arc
+        /// @param e Identifiant de l'arc
+        /// @return Valeur du champ fictitious
+        std::string getFictitious(edge_descriptor e) const {
+            std::vector< std::string > const& vOrigins = _graph.origins(e);
+            std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(vOrigins.front());
+            if ( mit != _mEdges.end() ) return mit->second.fictitious;
+            return "";
+        };
+
+        /// @brief Retourne la valeur du champ fictitious du linéaire
+        /// @param id Identifiant du linéaire
+        /// @return Valeur du champ fictitious
+        std::string getFictitious(std::string const& id) const {
+            std::map<std::string, OriginEdgeProperties>::const_iterator mit = _mEdges.find(id);
+            if ( mit != _mEdges.end() ) return mit->second.fictitious;
             return "";
         };
 

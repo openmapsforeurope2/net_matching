@@ -298,9 +298,40 @@ namespace calcul{
         ) const;
 
 		//--
-		bool _fictitiousWithinArea(
-			ign::feature::Feature const& feat
-		) const;
+		double _getRatio(
+            std::list<ign::feature::Feature> const& lFeature
+        ) const;
+
+        //--
+        double _getRatio(
+            detail::EdgeCleaningGraphManager & graphManager,
+            std::list<oriented_edge_descriptor> const& path
+        ) const;
+
+        //--
+        double _getRatio(
+            ign::geometry::LineString const& edgeGeom,
+            std::string const& country,
+            std::string const& fictitious
+        ) const;
+
+		//--
+		void _setEndingPoints(
+            GraphType const& graph,
+            std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> const& vpCountryEdges,
+            ign::geometry::LineString & ls
+        ) const;
+
+        //--
+        std::pair<bool, ign::geometry::Point> _isEnding(
+            GraphType const& graph,
+            vertex_descriptor v
+        ) const;
+
+		//--
+		// bool _fictitiousWithinArea(
+		// 	ign::feature::Feature const& feat
+		// ) const;
 
 		//--
 		bool _haveCommonCountry(

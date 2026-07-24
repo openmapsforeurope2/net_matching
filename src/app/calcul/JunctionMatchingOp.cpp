@@ -177,7 +177,7 @@ bool app::calcul::JunctionMatchingOp::_isFictitious(
 	typename std::vector< edge_descriptor >::const_iterator eit;
 	for( eit = vIncidentEdges.begin() ; eit != vIncidentEdges.end() ; ++eit )
 	{
-		if ( graphManager.getWTag(*eit) == "true" ) return true;
+		if ( graphManager.getWTag(*eit).find("true") != std::string::npos ) return true;
 	}
 	return false;
 }

@@ -2313,8 +2313,8 @@ namespace app
 					continue;
 				}
 
-				bool isFictEdg1 = fEdg1.getAttribute(fictitiousFieldName).toString() == "true" ? true : false;
-				bool isFictEdg2 = fEdg2.getAttribute(fictitiousFieldName).toString() == "true" ? true : false;
+				bool isFictEdg1 = fEdg1.getAttribute(fictitiousFieldName).toString().find("true") != std::string::npos ? true : false;
+				bool isFictEdg2 = fEdg2.getAttribute(fictitiousFieldName).toString().find("true") != std::string::npos ? true : false;
 
 				if ( isFictEdg1 && geomEdg1->isPoint() || isFictEdg2 && geomEdg2->isPoint() ) {
 					_logger->log(epg::log::WARN, "Suppression CL (géometrie cible ponctuelle)" + fCL.getId());

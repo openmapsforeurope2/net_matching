@@ -298,9 +298,9 @@ namespace app
                         }
                     }
 
-                    if ( vpCountryEdges[i].first.find(_vCountry.front()) ) {
+                    if ( vpCountryEdges[i].first.find(_vCountry.front()) != std::string::npos ) {
                         vpCountryEdges[i] = std::make_pair(_vCountry.front(), vpCountryEdges[i].second );
-                    } else if ( vpCountryEdges[i].first.find(_vCountry.back()) ) {
+                    } else if ( vpCountryEdges[i].first.find(_vCountry.back()) != std::string::npos ) {
                         vpCountryEdges[i] = std::make_pair(_vCountry.back(), vpCountryEdges[i].second );
                     } else {
                         return -1;
@@ -762,9 +762,9 @@ namespace app
             for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
 			{
                 //DEBUG
-                // if( graph.getGeometry(*fit).distance(ign::geometry::Point(4039769.080, 3012153.785)) < 1 ) {
+                // if( graph.getGeometry(*fit).distance(ign::geometry::Point(4057805.85, 2934128.19)) < 1 ) {
                 //     bool test = true;
-                // }
+                // }                  
 
                 std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> vpCountryEdges;
                 std::vector<ign::geometry::LineString> vPathsGeom;
@@ -784,7 +784,8 @@ namespace app
             for( std::multimap< double, face_descriptor>::const_iterator mmit = mWidthFace.begin() ; mmit != mWidthFace.end() ; ++mmit, ++display )
 			{
                 //DEBUG
-                // if( graph.getGeometry( mmit->second ).distance(ign::geometry::Point(4018634.114, 2945852.700)) < 1 ) {
+                // ign::geometry::Polygon faceGeom = graph.getGeometry( mmit->second );
+                // if( graph.getGeometry( mmit->second ).distance(ign::geometry::Point(4057805.85, 2934128.19)) < 1 ) {
                 //     bool test = true;
                 // }
                 
@@ -830,6 +831,9 @@ namespace app
                         pathBackgeomMeanGeomLink
                     );
                 }
+
+                // on corrige les décalages créés par le snap rounding
+                _setEndingPoints(graph, vpCountryEdges, meanGeom);
 
                 // enregistrement temporaire des résultats en cas d'abandon
                 bool aborded = false;
@@ -894,28 +898,45 @@ namespace app
 
                     //--
                     ign::feature::Feature featMerged = _attrMerger->merge(featFront, featBack);
-                    std::string wTagValue = _attrMerger->mergeAttribute(featFront, featBack, idName);
+                    std::string wTagValue = featFront.getId() + "#" + featBack.getId();
                     featMerged.setAttribute(wTagName, ign::data::String(wTagValue));
                     featMerged.setGeometry(lsNew);
 
-                    if( isFictitiousFront && isFictitiousBack ) 
-                    {
-                        // on est dans le cas ou une géométrie moyenne a été calculé (et que les chemins sont fictifs)
-                        // il faut vérifier que les objects fictifs sont toujours bien inclus dans une (des) surface(s) du (des) bon(s) pays
-                        if ( !_fictitiousWithinArea(featMerged) ) 
-                        {
-                            aborded = true;
-                            break;
-                        }
-                    }
+                    // if( isFictitiousFront && isFictitiousBack ) 
+                    // {
+                    //     if ( !_fictitiousWithinArea(featMerged) ) 
+                    //     {
+                    //         aborded = true;
+                    //         break;
+                    //     }
+                    // }
 
                     lMergedEdge.push_back(featMerged);
 
                     meanIndexStart = meanIndexTarget;
                 } while(mMeanIndexEdgeFront.size() > 0 && mMeanIndexEdgeBack.size() > 0);
 
-                if( aborded )
-                    continue;
+                // if( aborded )
+                //     continue;
+
+                if( isFictitiousFront && isFictitiousBack ) 
+                {
+                    // on est dans le cas ou une géométrie moyenne a été calculé (et que les chemins sont fictifs)
+                    // il faut vérifier que les objects fictifs sont toujours bien inclus dans une (des) surface(s) du (des) bon(s) pays
+
+                    double ratioFront = _getRatio(graphManager, vpCountryEdges.front().second);
+                    double ratioBack = _getRatio(graphManager, vpCountryEdges.back().second);
+                    double ratioMin = std::min(ratioFront, ratioBack);
+
+                    double ratioMeanGeom = _getRatio(lMergedEdge);
+
+                    if( ratioMin > 0.99 && ratioMeanGeom < 0.99 )
+                        continue;
+
+                    if( ratioMin < 0.9*ratioMeanGeom )
+                        continue;
+
+                }
 
                 mergingOccured = true;
 
@@ -938,7 +959,9 @@ namespace app
         ///
         ///
         ///
-        bool CLInAreaGenerationOp::_fictitiousWithinArea( ign::feature::Feature const& feat ) const {
+        double CLInAreaGenerationOp::_getRatio(
+            std::list<ign::feature::Feature> const& lFeature
+        ) const {
             //--
 			epg::Context *context = epg::ContextS::getInstance();
 
@@ -950,18 +973,68 @@ namespace app
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
             std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS_NAME).toString();
 
-            //--
-            ign::geometry::LineString const& featGeom = feat.getGeometry().asLineString();
+            double fullLength = 0;
+            double fictLength = 0;
+            for (std::list<ign::feature::Feature>::const_iterator lit = lFeature.begin() ; lit != lFeature.end() ; ++lit)
+            {
+                std::string country = lit->getAttribute(countryCodeName).toString();
+                std::string fictitious = lit->getAttribute(fictitiousFieldName).toString();
+                ign::geometry::LineString const& featGeom = lit->getGeometry().asLineString();
 
-            std::string countryValue = feat.getAttribute(countryCodeName).toString();
+                double length = featGeom.length();
+                double ratio = _getRatio(featGeom, country, fictitious);
+
+                fullLength += length;
+                fictLength += ratio*length;
+            }
+
+            return fullLength == 0 ? 0 : fictLength/fullLength;
+        }
+
+        ///
+        ///
+        ///
+        double CLInAreaGenerationOp::_getRatio(
+            detail::EdgeCleaningGraphManager & graphManager,
+            std::list<oriented_edge_descriptor> const& path
+        ) const {
+            //--
+            GraphType const& graph = graphManager.getGraph();
+
+            double fullLength = 0;
+            double fictLength = 0;
+            for (std::list<oriented_edge_descriptor>::const_iterator lit = path.begin() ; lit != path.end() ; ++lit)
+            {
+                std::string country = graphManager.getCountry(lit->descriptor);
+                std::string fictitious = graphManager.getFictitious(lit->descriptor);
+                ign::geometry::LineString edgeGeom = graph.getGeometry(lit->descriptor);
+
+                double length = edgeGeom.length();
+                double ratio = _getRatio(edgeGeom, country, fictitious);
+
+                fullLength += length;
+                fictLength += ratio*length;
+            }
+
+            return fullLength == 0 ? 0 : fictLength/fullLength;
+        }
+
+        ///
+        ///
+        ///
+        double CLInAreaGenerationOp::_getRatio(
+            ign::geometry::LineString const& edgeGeom,
+            std::string const& country,
+            std::string const& fictitious
+        ) const {
+            double ratioMin = 1;
+
             std::vector<std::string> vCountry;
-            epg::tools::StringTools::Split(countryValue, "#", vCountry);
-            
-            std::string fictitiousValue = feat.getAttribute(fictitiousFieldName).toString();
-            std::vector<std::string> vFictitious;
-            epg::tools::StringTools::Split(fictitiousValue, "#", vFictitious);
+            epg::tools::StringTools::Split(country, "#", vCountry);
 
-            //--
+            std::vector<std::string> vFictitious;
+            epg::tools::StringTools::Split(fictitious, "#", vFictitious);
+
             for ( size_t i = 0 ; i < vCountry.size() ; ++i )
             {
                 if( vFictitious[i] == "true" )
@@ -969,17 +1042,113 @@ namespace app
                     double ratio = 0;
                     if( _borderCode.find(vCountry[i]) != std::string::npos ) 
                     {
-                        ratio = detail::RatioTools::GetRatio(featGeom, vCountry[i], _fsAreaRam, _fsStandingRam);
+                        ratio = detail::RatioTools::GetRatio(edgeGeom, vCountry[i], _fsAreaRam, _fsStandingRam);
                     } else {
-                        ratio = detail::RatioTools::GetRatio(featGeom, vCountry[i], _fsAllArea, _fsAllStanding);
+                        ratio = detail::RatioTools::GetRatio(edgeGeom, vCountry[i], _fsAllArea, _fsAllStanding);
                     }
                     
-                    if( ratio < 0.999 )
-                        return false;
+                    if( ratio < ratioMin )
+                        ratioMin = ratio;
                 }
             }
 
-            return true;
+            return ratioMin;
+        }
+
+        ///
+        ///
+        ///
+        // bool CLInAreaGenerationOp::_fictitiousWithinArea( 
+        //     ign::feature::Feature const& feat
+        // ) const {
+        //     //--
+		// 	epg::Context *context = epg::ContextS::getInstance();
+
+        //     //--
+        //     epg::params::EpgParameters const& epgParams = context->getEpgParameters();
+        //     std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
+
+        //     //--
+        //     params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
+        //     std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS_NAME).toString();
+
+        //     //--
+        //     ign::geometry::LineString const& featGeom = feat.getGeometry().asLineString();
+
+        //     std::string countryValue = feat.getAttribute(countryCodeName).toString();
+        //     std::vector<std::string> vCountry;
+        //     epg::tools::StringTools::Split(countryValue, "#", vCountry);
+            
+        //     std::string fictitiousValue = feat.getAttribute(fictitiousFieldName).toString();
+        //     std::vector<std::string> vFictitious;
+        //     epg::tools::StringTools::Split(fictitiousValue, "#", vFictitious);
+
+        //     //--
+        //     for ( size_t i = 0 ; i < vCountry.size() ; ++i )
+        //     {
+        //         if( vFictitious[i] == "true" )
+        //         {
+        //             double ratio = 0;
+        //             if( _borderCode.find(vCountry[i]) != std::string::npos ) 
+        //             {
+        //                 ratio = detail::RatioTools::GetRatio(featGeom, vCountry[i], _fsAreaRam, _fsStandingRam);
+        //             } else {
+        //                 ratio = detail::RatioTools::GetRatio(featGeom, vCountry[i], _fsAllArea, _fsAllStanding);
+        //             }
+                    
+        //             if( ratio < 0.999 )
+        //                 return false;
+        //         }
+        //     }
+
+        //     return true;
+        // }
+
+        ///
+        ///
+        ///
+        void CLInAreaGenerationOp::_setEndingPoints(
+            GraphType const& graph,
+            std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> const& vpCountryEdges,
+            ign::geometry::LineString & ls
+        ) const {
+            //vpCountryEdges.front et vpCountryEdges.back ont les mêmes vertices extrèmes, on travaille arbitrairement avec vpCountryEdges.front
+
+            std::pair<bool, ign::geometry::Point> sourceIsEnding = _isEnding(graph, graph.source(*vpCountryEdges.front().second.begin()));
+            if( sourceIsEnding.first )
+                ls.startPoint() = sourceIsEnding.second;
+
+            std::pair<bool, ign::geometry::Point> targetIsEnding = _isEnding(graph, graph.target(*vpCountryEdges.front().second.rbegin()));
+            if( targetIsEnding.first )
+                ls.endPoint() = targetIsEnding.second;
+        }
+
+        ///
+        ///
+        ///
+        std::pair<bool, ign::geometry::Point> CLInAreaGenerationOp::_isEnding(
+            GraphType const& graph,
+            vertex_descriptor v
+        ) const {
+            std::vector< edge_descriptor > vIncidentEdges = graph.incidentEdges( v );
+            for ( size_t i = 0 ; i < vIncidentEdges.size() ; ++i )
+            {
+                std::vector<std::string> vOrigins = graph.origins(vIncidentEdges[i]);
+                for ( size_t j = 0 ; j < vOrigins.size() ; ++j )
+                {
+                    std::pair< bool, std::vector< oriented_edge_descriptor >> foundInducedEdges = graph.getInducedEdges( vOrigins[j] );
+                    if( foundInducedEdges.first ) {
+                        if( graph.source(*foundInducedEdges.second.begin()) == v || graph.target(*foundInducedEdges.second.rbegin()) == v ) {
+                            ign::feature::Feature feat;
+                            _fsEdge->getFeatureById(vOrigins[j], feat);
+                            ign::geometry::LineString const& featGeom = feat.getGeometry().asLineString();
+
+                            return std::make_pair(true, graph.source(*foundInducedEdges.second.begin()) == v ? featGeom.startPoint() : featGeom.endPoint() );
+                        }
+                    }
+                }
+            }
+            return std::make_pair(false, ign::geometry::Point());
         }
 
         ///
@@ -1234,7 +1403,7 @@ namespace app
 
                 //--
                 ign::feature::Feature featMerged = _attrMerger->merge(featFront, featBack);
-                std::string wTagValue = _attrMerger->mergeAttribute(featFront, featBack, idName);
+                std::string wTagValue = featFront.getId() + "#" + featBack.getId();
                 featMerged.setAttribute(wTagName, ign::data::String(wTagValue));
  
 
@@ -1596,8 +1765,8 @@ namespace app
 
             std::set<std::string> sIncident2delete;
             std::vector<detail::IncidentFeature> vIncident2Create;
-            for( std::map<std::string, std::set<edge_descriptor>>::const_iterator mit = mFeatMergedEdges.begin() ; mit != mFeatMergedEdges.end() ; ++mit, ++display2 ) {
-
+            for( std::map<std::string, std::set<edge_descriptor>>::const_iterator mit = mFeatMergedEdges.begin() ; mit != mFeatMergedEdges.end() ; ++mit, ++display2 )
+            {
                 ign::feature::Feature featOrigin;
                 _fsEdge->getFeatureById(mit->first, featOrigin);
 
@@ -1608,7 +1777,8 @@ namespace app
 
                 std::vector<std::list<oriented_edge_descriptor>> vPaths;
                 std::list<oriented_edge_descriptor> path;
-			    for( std::vector<oriented_edge_descriptor>::const_iterator vit = foundInducedEdges.second.begin() ; vit != foundInducedEdges.second.end() ; ++vit ) {
+			    for( std::vector<oriented_edge_descriptor>::const_iterator vit = foundInducedEdges.second.begin() ; vit != foundInducedEdges.second.end() ; ++vit )
+                {
                     if (mit->second.find(vit->descriptor) == mit->second.end() ) {
                         path.push_back(*vit);
                     } else {
@@ -1624,7 +1794,8 @@ namespace app
                 if (mmIncidentFeatures.find(mit->first) != mmIncidentFeatures.end())
                     sIncident2delete.insert(mit->first);
 
-                for( size_t i = 0 ; i < vPaths.size() ; ++i ) {
+                for( size_t i = 0 ; i < vPaths.size() ; ++i )
+                {
                     ign::geometry::LineString newGeom = _convertPathToLineString(graph, originCountry, vPaths[i]);
 
                     // assurer la cohérence avec les données sources aux extrémités
@@ -1645,7 +1816,8 @@ namespace app
                     _fsEdge->createFeature(featOrigin);
 
                     //gestion incident edges
-                    if ( i == 0 || i == vPaths.size()-1 ) {
+                    if ( i == 0 || i == vPaths.size()-1 )
+                    {
                         std::pair < m_iterator, m_iterator > bounds = mmIncidentFeatures.equal_range( mit->first );
                         for ( m_iterator it = bounds.first ; it != bounds.second ; ++it )
                         {
@@ -1692,11 +1864,11 @@ namespace app
             }
 
             //--
-            _cleanOverLappingCl();
-
-            //--
             for( std::map<std::string, std::set<edge_descriptor>>::const_iterator mit = mFeatMergedEdges.begin() ; mit != mFeatMergedEdges.end() ; ++mit )
                 _fsEdge->deleteFeature(mit->first);
+
+            //--
+            _cleanOverLappingCl();
 
             //--
             std::string const mergingAttName = themeParameters->getValue(NATIONAL_IDENTIFIER_NAME).toString();
@@ -2239,6 +2411,7 @@ namespace app
             app::params::ThemeParameters* themeParameters = app::params::ThemeParametersS::getInstance();
 			std::string const wTagName = themeParameters->getValue(W_TAG_NAME).toString();
             std::string const natIdName = themeParameters->getValue(NATIONAL_IDENTIFIER_NAME).toString();
+            std::string const fictitiousName = themeParameters->getValue(EDGE_FICTITIOUS_NAME).toString();
 
             // chargement des edges
             size_t numFeatures = ome2::feature::sql::NotDestroyedTools::NumFeatures(*_fsEdge, filter);
@@ -2257,6 +2430,7 @@ namespace app
                 OriginEdgeProperties edgeProp(country, isCl);
                 if (planarize) {
                     edgeProp.natId = fEdge.getAttribute(natIdName).toString();
+                    edgeProp.fictitious = fEdge.getAttribute(fictitiousName).toString();
                     graphManager.addEdge(ls, edgeId, edgeProp);
                 } else {
                     edgeProp.natId = fEdge.getAttribute(natIdName).toString();

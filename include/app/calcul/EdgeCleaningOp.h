@@ -152,6 +152,9 @@ namespace calcul{
 		bool _isCl(std::string const& country) const;
 
 		//--
+		bool _isCurrentBorderCl(std::string const& country) const;
+
+		//--
 		template < typename ContainerType >
 		double _getRatio(
 			GraphType const& graph, 
@@ -331,9 +334,16 @@ namespace calcul{
 			std::string const& country
         ) const;
 
-		bool _isConnected2ThirdCountry(
+		//--
+		bool _hasConnectedThirdCountry(
             ign::geometry::Point const& vertexGeom,
             std::string const& countryCode
+        ) const;
+
+		//--
+		bool _isConnected2ThirdCountry(
+            ign::geometry::Point const& vertexGeom,
+            std::string const& thirdCountryCode
         ) const;
 
 		//--
@@ -348,7 +358,7 @@ namespace calcul{
         ) const;
 
         //--
-        bool _isConnected2Country(
+        bool _isConnected2OtherCountry(
             ign::geometry::Point const pt,
             std::string const& country
         ) const;

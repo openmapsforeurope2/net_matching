@@ -127,6 +127,10 @@ namespace app
                 std::string country = fEdge.getAttribute(countryCodeName).toString();
                 std::string fictitious = fEdge.getAttribute(fictitiousFieldName).toString();
 
+                if( fictitious.find("#") != std::string::npos ) { //déjà traité (conserver la valeur double du champ fictitious)
+                    continue;
+                }
+
                 double ratio = detail::RatioTools::GetRatio(ls, country, _fsAreaRam, _fsStandingRam);
 
                 if (ratio >= minRatio && fictitious != "true")

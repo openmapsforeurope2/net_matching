@@ -762,8 +762,8 @@ namespace app
             for( graph.faces( fit, fend ) ; fit != fend ; ++fit )
 			{
                 //DEBUG
-                ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
-                _logger->log(epg::log::DEBUG, faceGeom.exteriorRing().startPoint().toString());
+                // ign::geometry::Polygon faceGeom = graph.getGeometry( *fit );
+                // _logger->log(epg::log::DEBUG, faceGeom.exteriorRing().startPoint().toString());
                 // if( graph.getGeometry(*fit).distance(ign::geometry::Point(4057805.85, 2934128.19)) < 1 ) {
                 //     bool test = true;
                 // }                  
@@ -786,11 +786,11 @@ namespace app
             for( std::multimap< double, face_descriptor>::const_iterator mmit = mWidthFace.begin() ; mmit != mWidthFace.end() ; ++mmit, ++display )
 			{
                 //DEBUG
-                ign::geometry::Polygon faceGeom = graph.getGeometry( mmit->second );
-                _logger->log(epg::log::DEBUG, "coucou : " + faceGeom.exteriorRing().startPoint().toString());
-                if( graph.getGeometry( mmit->second ).distance(ign::geometry::Point(4018527.9, 2945671.4)) < 1 ) {
-                    bool test = true;
-                }
+                // ign::geometry::Polygon faceGeom = graph.getGeometry( mmit->second );
+                // _logger->log(epg::log::DEBUG, "coucou : " + faceGeom.exteriorRing().startPoint().toString());
+                // if( graph.getGeometry( mmit->second ).distance(ign::geometry::Point(4018527.9, 2945671.4)) < 1 ) {
+                //     bool test = true;
+                // }
                 
                 //--
                 std::vector<std::pair<std::string, std::list<oriented_edge_descriptor>>> const& vpCountryEdges = mvpCountryEdges[mmit->second] ;

@@ -237,6 +237,15 @@ namespace calcul{
 		) const;
 
 		//--
+		bool _isconnectedToOtherCountry(
+			ign::feature::Feature const& fEdge,
+			CFeatGenerationOp::ENDING ending
+		) const;
+
+		//--
+		bool _isCurrentBorderCl(std::string const& country) const;
+
+		//--
 		void _removeDuplicateCP() const;
 
 		//--
@@ -364,9 +373,6 @@ namespace calcul{
 			ign::geometry::LineString const& lsEdge,
 			double snapOnVertex
 		) const;
-
-		// //--
-		// void _getClDoublonGeom() const;
 
 		//--
 		void _loadGraphCL(GraphType & graphCL) const;

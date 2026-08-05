@@ -783,6 +783,15 @@ namespace app
 				ign::feature::Feature fEdge = itEdge->next();
 				ign::geometry::LineString const& lsEdge = fEdge.getGeometry().asLineString();
 
+				//DEBUG
+				std::string edgeId = fEdge.getId();
+				if(lsEdge.distance(ign::geometry::Point(4019406.092, 2946109.372)) < 0.1) {
+					bool test = true;
+				}
+				if(lsEdge.distance(ign::geometry::Point(4019416.207, 2946109.300)) < 0.1) {
+					bool test = true;
+				} 
+
 				// est ce qu'un overshoot précède l'undershoot ?
 				std::vector<ign::geometry::LineString> vBorderCuttingParts;
 				segIndexBorder.getSegments( lsEdge.getEnvelope(), vBorderCuttingParts );
@@ -873,7 +882,7 @@ namespace app
 			std::string const geomName = context->getEpgParameters().getValue(GEOM).toString();
 
 			//--
-			ign::feature::FeatureFilter filterEdge("ST_INTERSECTS(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + borderGeom.toString() + "'),3035))");
+			ign::feature::FeatureFilter filterEdge("ST_DISTANCE(" + geomName + ", ST_SetSRID(ST_GeomFromText('" + borderGeom.toString() + "'),3035)) < 10");
 			if (_sqlFilterForCpGeneration != "")
 				epg::tools::FilterTools::addAndConditions(filterEdge, _sqlFilterForCpGeneration);
 			epg::tools::FilterTools::addAndConditions(filterEdge, "((" + _mIsCountryStatement.begin()->second + ") OR (" + _mIsCountryStatement.rbegin()->second + "))");
@@ -889,13 +898,86 @@ namespace app
 
 				ign::feature::Feature fEdge = itEdge->next();
 				ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
-				
+
+				//DEBUG
+				std::string edgeId = fEdge.getId();
+				if(edgeGeom.distance(ign::geometry::Point(4019406.092, 2946109.372)) < 0.1) {
+					bool test = true;
+				}
+				if(edgeGeom.distance(ign::geometry::Point(4019416.207, 2946109.300)) < 0.1) {
+					bool test = true;
+				} 
+
+				if( _isconnectedToOtherCountry(fEdge, START) )
+					_recordCp(edgeGeom.startPoint(), fEdge);
+
+				if( _isconnectedToOtherCountry(fEdge, END) )
+					_recordCp(edgeGeom.endPoint(), fEdge);
+				 
 				//TODO : optimisation possible en utilisant segIndexBorder
 				ign::geometry::GeometryPtr intersectionGeomPtr(edgeGeom.Intersection(borderGeom));
+
+				//DEBUG
+				std::string test = intersectionGeomPtr->toString();
 
 				_recordCp(*intersectionGeomPtr, fEdge);
 			}
 		}
+
+		///
+		///
+		///
+		bool CFeatGenerationOp::_isconnectedToOtherCountry(
+			ign::feature::Feature const& fEdge,
+			CFeatGenerationOp::ENDING ending
+		) const {
+			//--
+			epg::Context* context = epg::ContextS::getInstance();
+			std::string const countryCodeName = context->getEpgParameters().getValue(COUNTRY_CODE).toString();
+
+			//--
+			ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
+			ign::geometry::Point const& endingPoint = ending == START ? edgeGeom.startPoint() : edgeGeom.endPoint();
+			std::string const country = fEdge.getAttribute(countryCodeName).toString();
+
+			if( _isCurrentBorderCl(country) )
+				return false;
+
+			//--
+			ign::feature::FeatureFilter filterEdge;
+			if (_sqlFilterForCpGeneration != "")
+				filterEdge.setPropertyConditions(_sqlFilterForCpGeneration);
+			filterEdge.setExtent(endingPoint.getEnvelope().expandBy(1));
+
+			std::string otherCoutry = country.find(_vCountry.front()) != std::string::npos ? _vCountry.back() : _vCountry.front();
+			epg::tools::FilterTools::addAndConditions(filterEdge, _mIsCountryStatement.at(otherCoutry));
+			
+			//--
+			ign::feature::FeatureIteratorPtr itEdge = ome2::feature::sql::NotDestroyedTools::GetFeatures(*_fsEdge, filterEdge);
+			while (itEdge->hasNext())
+			{
+				ign::feature::Feature fEdgeAround = itEdge->next();
+				ign::geometry::LineString const& edgeAroundGeom = fEdgeAround.getGeometry().asLineString();
+
+				//DEBUG
+				std::string test = fEdgeAround.getId();
+
+				double distStart = edgeAroundGeom.startPoint().distance(endingPoint);
+				double distEnd = edgeAroundGeom.endPoint().distance(endingPoint);
+
+				if( std::min(distStart, distEnd) < 1e-5 )
+					return true;
+			}
+			return false;
+		}
+
+		///
+        ///
+        ///
+        bool CFeatGenerationOp::_isCurrentBorderCl(std::string const& country) const 
+        {
+            return country.find(_vCountry.front()) != std::string::npos && country.find(_vCountry.back()) != std::string::npos;
+        }
 
 		///
 		///

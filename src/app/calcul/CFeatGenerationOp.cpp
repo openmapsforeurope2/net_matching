@@ -900,34 +900,72 @@ namespace app
 				ign::geometry::LineString const& edgeGeom = fEdge.getGeometry().asLineString();
 
 				//DEBUG
-				std::string edgeId = fEdge.getId();
-				if(edgeGeom.distance(ign::geometry::Point(4019406.092, 2946109.372)) < 0.1) {
-					bool test = true;
-				}
-				if(edgeGeom.distance(ign::geometry::Point(4019416.207, 2946109.300)) < 0.1) {
-					bool test = true;
-				} 
+				// std::string edgeId = fEdge.getId();
+				// if(edgeGeom.distance(ign::geometry::Point(4019313.966, 2946072.809)) < 0.1) {
+				// 	bool test = true;
+				// }
+				// if(edgeGeom.distance(ign::geometry::Point(4019406.092, 2946109.372)) < 0.1) {
+				// 	bool test = true;
+				// }
+				// if(edgeGeom.distance(ign::geometry::Point(4019416.207, 2946109.300)) < 0.1) {
+				// 	bool test = true;
+				// } 
 
-				if( _isconnectedToOtherCountry(fEdge, START) )
-					_recordCp(edgeGeom.startPoint(), fEdge);
+				ign::geometry::MultiPoint mpConnectionPoints;
+				if( _isConnectedToOtherCountry(fEdge, START) )
+					mpConnectionPoints.addGeometry(edgeGeom.startPoint());
 
-				if( _isconnectedToOtherCountry(fEdge, END) )
-					_recordCp(edgeGeom.endPoint(), fEdge);
+				if( _isConnectedToOtherCountry(fEdge, END) )
+					mpConnectionPoints.addGeometry(edgeGeom.endPoint());
 				 
 				//TODO : optimisation possible en utilisant segIndexBorder
 				ign::geometry::GeometryPtr intersectionGeomPtr(edgeGeom.Intersection(borderGeom));
 
-				//DEBUG
-				std::string test = intersectionGeomPtr->toString();
+				ign::geometry::MultiPoint mpIntersectionPoints = _removeConnectionPointDuplicates(*intersectionGeomPtr, mpConnectionPoints);
 
-				_recordCp(*intersectionGeomPtr, fEdge);
+				_recordCp(mpIntersectionPoints, fEdge);
 			}
 		}
 
 		///
 		///
 		///
-		bool CFeatGenerationOp::_isconnectedToOtherCountry(
+		ign::geometry::MultiPoint CFeatGenerationOp::_removeConnectionPointDuplicates(
+			ign::geometry::Geometry const& cpGeom,
+			ign::geometry::MultiPoint const& mpConnectionPoints
+		) const {
+			ign::geometry::MultiPoint mpIntersectionPoints;
+
+			params::ThemeParameters* themeParameters = params::ThemeParametersS::getInstance();
+			double const distMergeCP = themeParameters->getValue(CP_MERGE_DIST_CP).toDouble();
+
+			if (cpGeom.isPoint())
+			{
+				//DEBUG
+				// double d = cpGeom.asPoint().distance(mpConnectionPoints);
+
+				if( mpConnectionPoints.isEmpty() || cpGeom.asPoint().distance(mpConnectionPoints) > distMergeCP )
+					mpIntersectionPoints.addGeometry(cpGeom.asPoint());
+			}
+			else if (cpGeom.isGeometryCollection())
+			{
+				ign::geometry::GeometryCollection const& geomCollect = cpGeom.asGeometryCollection();
+				for (size_t i = 0 ; i < geomCollect.numGeometries() ; ++i)
+				{
+					if (geomCollect.geometryN(i).isPoint())
+					{
+						if( mpConnectionPoints.isEmpty() || geomCollect.geometryN(i).asPoint().distance(mpConnectionPoints) > distMergeCP )
+							mpIntersectionPoints.addGeometry(geomCollect.geometryN(i).asPoint());
+					}
+				}
+			}
+			return mpIntersectionPoints;
+		}
+
+		///
+		///
+		///
+		bool CFeatGenerationOp::_isConnectedToOtherCountry(
 			ign::feature::Feature const& fEdge,
 			CFeatGenerationOp::ENDING ending
 		) const {

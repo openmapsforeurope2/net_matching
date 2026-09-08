@@ -237,7 +237,13 @@ namespace calcul{
 		) const;
 
 		//--
-		bool _isconnectedToOtherCountry(
+		ign::geometry::MultiPoint _removeConnectionPointDuplicates(
+			ign::geometry::Geometry const& cpGeom,
+			ign::geometry::MultiPoint const& mpConnectionPoints
+		) const;
+
+		//--
+		bool _isConnectedToOtherCountry(
 			ign::feature::Feature const& fEdge,
 			CFeatGenerationOp::ENDING ending
 		) const;

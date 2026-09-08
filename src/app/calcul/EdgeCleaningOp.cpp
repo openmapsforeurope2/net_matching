@@ -906,6 +906,11 @@ namespace app
                 ign::geometry::Point const * p1 = 0;
                 ign::geometry::Point const * p2 = 0;
 
+                //DEBUG
+                // if(faceGeom.distance(ign::geometry::Point(4019304.6235, 2946071.5972)) == 0) {
+                //     bool test = true;
+                // }
+
 				if (
                     faceGeom.exteriorRing().numPoints() < slimSurfaceMaxNbPoints && //optimisation
                     faceGeom.area() < slimSurfaceMaxArea && //optimisation

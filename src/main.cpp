@@ -150,26 +150,26 @@ int main(int argc, char *argv[])
         //tables des surfaces
         if ( !areaSuffix.empty() && table == "watercourse_link" ) {
             std::string watercourseTableBaseName = themeParameters->getValue(WATERCOURSE_AREA_TABLE_BASE).toString();
-            std::string watercourseTableName = watercourseTableBaseName + "_" + countries.front() + "_" + countries.back() + "_" + areaSuffix;
+            std::string watercourseTableName = watercourseTableBaseName + "_" + areaSuffix;
             themeParameters->setParameter(WATERCOURSE_AREA_TABLE, ign::data::String(watercourseTableName));
 
             std::string standingWaterTableBaseName = themeParameters->getValue(STANDING_WATER_TABLE_BASE).toString();
-            std::string standingWaterTableName = standingWaterTableBaseName + "_" + countries.front() + "_" + countries.back() + "_" + areaSuffix;
+            std::string standingWaterTableName = standingWaterTableBaseName + "_" + areaSuffix;
             themeParameters->setParameter(STANDING_WATER_TABLE, ign::data::String(standingWaterTableName));
 
             std::string matchedWatercourseTableBaseName = themeParameters->getValue(MATCHED_WATERCOURSE_AREA_TABLE_BASE).toString();
-            std::string matchedWatercourseTableName = matchedWatercourseTableBaseName + "_" + countries.front() + "_" + countries.back() + "_" + areaSuffix;
+            std::string matchedWatercourseTableName = matchedWatercourseTableBaseName + "_" + areaSuffix;
             themeParameters->setParameter(MATCHED_WATERCOURSE_AREA_TABLE, ign::data::String(matchedWatercourseTableName));
 
             std::string matchedStandingWaterTableBaseName = themeParameters->getValue(MATCHED_STANDING_WATER_TABLE_BASE).toString();
-            std::string matchedStandingWaterTableName = matchedStandingWaterTableBaseName + "_" + countries.front() + "_" + countries.back() + "_" + areaSuffix;
+            std::string matchedStandingWaterTableName = matchedStandingWaterTableBaseName + "_" + areaSuffix;
             themeParameters->setParameter(MATCHED_STANDING_WATER_TABLE, ign::data::String(matchedStandingWaterTableName));
         }
         
         //tables de travail
         if ( !suffix.empty() ) {
             std::string tableBaseName = themeParameters->getValue(EDGE_TABLE_INIT_BASE).toString();
-            std::string tableName = tableBaseName + "_" + countries.front() + "_" + countries.back() + "_" + suffix;
+            std::string tableName = tableBaseName + "_" + suffix;
             themeParameters->setParameter(EDGE_TABLE_INIT, ign::data::String(tableName));
         }
         if ( themeParameters->getValue(CL_TABLE).toString() == "" )

@@ -1,3 +1,35 @@
+## [1.2.0] - 2026-09-18
+### Added
+- Added support for collapsing connecting lines (CL), including iterative and small CL collapsing.
+- Added support for generating connecting points (CP) from undershoot detection.
+- Added support for generating CP from CL using an improved geometry computation method.
+- Added support for managing multiple connecting features between more than two countries.
+- Added support for detecting and managing connections to a third country.
+- Added support for managing multiple fictitious values in connecting line processing.
+- Added support for managing existing connections close to international borders.
+- Added a command-line parameter to specify the target database name.
+- Added the `CL_MIN_LENGTH` parameter for watercourse links.
+
+### Changed
+- Improved the handling of connecting lines inside areas, including fictitious edges and incident edges.
+- Improved the merging of connecting points, including CPs originating from the same CL and different merging distances.
+- Changed the CP and vertex border snapping distances.
+- Changed the output table suffix so that it no longer includes country codes and is based only on the user-defined suffix.
+- Improved the processing of clean faces and antenna features.
+- Consolidated connecting lines inside areas.
+- Added in-memory storage of selected tables to reduce the number of SQL queries and improve processing performance.
+- Updated the application for the new SOCLE version.
+- Updated the Docker build and runtime environment.
+- Adapted the application to the IGN-MUT deployment environment.
+
+### Fixed
+- Fixed cases where the projection of a connecting line onto an edge results in a point.
+- Fixed issues related to SRID handling for CP and CL tables.
+- Fixed issues in CP generation and merging.
+- Fixed an infinite loop in connecting line processing inside areas.
+- Fixed issues occurring when processing already matched data.
+
+
 ## [1.1.0] - 2025-06-17
 ### Added
 - [configuration] configuration extended to new countries

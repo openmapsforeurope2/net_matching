@@ -784,13 +784,13 @@ namespace app
 				ign::geometry::LineString const& lsEdge = fEdge.getGeometry().asLineString();
 
 				//DEBUG
-				std::string edgeId = fEdge.getId();
-				if(lsEdge.distance(ign::geometry::Point(4019406.092, 2946109.372)) < 0.1) {
-					bool test = true;
-				}
-				if(lsEdge.distance(ign::geometry::Point(4019416.207, 2946109.300)) < 0.1) {
-					bool test = true;
-				} 
+				// std::string edgeId = fEdge.getId();
+				// if(lsEdge.distance(ign::geometry::Point(4019406.092, 2946109.372)) < 0.1) {
+				// 	bool test = true;
+				// }
+				// if(lsEdge.distance(ign::geometry::Point(4019416.207, 2946109.300)) < 0.1) {
+				// 	bool test = true;
+				// } 
 
 				// est ce qu'un overshoot précède l'undershoot ?
 				std::vector<ign::geometry::LineString> vBorderCuttingParts;
@@ -998,7 +998,7 @@ namespace app
 				ign::geometry::LineString const& edgeAroundGeom = fEdgeAround.getGeometry().asLineString();
 
 				//DEBUG
-				std::string test = fEdgeAround.getId();
+				// std::string test = fEdgeAround.getId();
 
 				double distStart = edgeAroundGeom.startPoint().distance(endingPoint);
 				double distEnd = edgeAroundGeom.endPoint().distance(endingPoint);
@@ -2242,7 +2242,7 @@ namespace app
 			}
 
 			//suppression des CL sans #
-			std::string query = "DELETE  FROM " + _fsCL->getTableName() + " WHERE NOT ("+_isClStatement+")";
+			std::string query = "DELETE FROM " + _fsCL->getTableName() + " WHERE NOT ("+_isClStatement+")";
 
 			context->getDataBaseManager().getConnection()->update(query);
 

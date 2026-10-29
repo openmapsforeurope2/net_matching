@@ -35,6 +35,7 @@ int main(int argc, char *argv[])
     std::string     stepCode = "";
     std::string     borderCode = "";
     std::string     table = "";
+    bool            update = false;
     bool            verbose = true;
 
     epg::step::StepSuite< app::params::ThemeParametersS > stepSuiteWaterCourseLink, stepSuiteRoadLink, stepSuiteRailwayLink;
@@ -59,6 +60,7 @@ int main(int argc, char *argv[])
         ("t" , po::value< std::string >(&table)                 , "table" )
         ("s" , po::value< std::string >(&suffix)                , "working table suffix" )
         ("as", po::value< std::string >(&areaSuffix)            , "area working tables suffix" )
+        ("u" , "update process type" )
         ("sp", po::value< std::string >(&stepCode), OperatorDetail.str().c_str())
     ;
 
@@ -89,21 +91,24 @@ int main(int argc, char *argv[])
         std::vector<std::string> countries = po::collect_unrecognized(parsed.options, po::include_positional);
 
         if ( countries.size() != 2 ) {
-            std::string mError = "spécifier au moins deux et seulement deux pays en argument";
+            std::string mError = "specify two and only two country code";
             IGN_THROW_EXCEPTION(mError);
         }
         if( countries.front() > countries.back() )
             std::swap(countries.front(), countries.back());
         borderCode = countries.front()+"#"+countries.back();
 
+        update = vm.count( "u" );
+
         epg::step::StepSuite< app::params::ThemeParametersS >* stepSuitePtr = 0;
-        if (table == "watercourse_link")
+        if (table == "watercourse_link") {
 			stepSuitePtr = &stepSuiteWaterCourseLink;
-		else if (table == "road_link")
-			stepSuitePtr = &stepSuiteRoadLink;
-        else if (table == "railway_link")
+		} else if (table == "road_link") {
+            if (update) app::step::tools::initStepsRoadLink(stepSuiteRoadLink, update);
+            stepSuitePtr = &stepSuiteRoadLink;
+        } else if (table == "railway_link") {
 			stepSuitePtr = &stepSuiteRailwayLink;
-        else {
+        } else {
             std::string mError = "unknown table " + table;
             IGN_THROW_EXCEPTION(mError);
         }
@@ -176,6 +181,9 @@ int main(int argc, char *argv[])
             themeParameters->setParameter(CL_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CL_TABLE_SUFFIX).toString()));
         if ( themeParameters->getValue(CP_TABLE).toString() == "" ) 
             themeParameters->setParameter(CP_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(CP_TABLE_SUFFIX).toString()));
+
+        if( update && themeParameters->getValue(OFUA_TABLE).toString() == "" )
+            themeParameters->setParameter(OFUA_TABLE, ign::data::String(themeParameters->getValue(EDGE_TABLE_INIT).toString() + themeParameters->getValue(OFUA_SUFFIX).toString()));
 
         //set BDD search path
         context->getDataBaseManager().setSearchPath(themeParameters->getValue(WORKING_SCHEMA).toString());

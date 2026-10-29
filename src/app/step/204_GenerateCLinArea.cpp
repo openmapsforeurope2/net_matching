@@ -34,7 +34,7 @@ namespace app {
 			ome2::utils::CopyTableUtils::copyEdgeTable(getLastWorkingTableName(EDGE_TABLE_INIT), "", false, true);
 
 			//--
-			app::calcul::CLInAreaGenerationOp::Compute(countryCodeW, clMinRatio, clMinLength, verbose);
+			app::calcul::CLInAreaGenerationOp::Compute(countryCodeW, clMinRatio, clMinLength, false, verbose);
 		}
 
 	}

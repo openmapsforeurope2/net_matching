@@ -147,6 +147,9 @@ namespace calcul{
 		
 	private:
 
+	//DEBUG
+		std::vector<std::string> split(std::string const& str, std::string const& delimiter) const;
+
 		//--
 		void _computeCL() const;
 

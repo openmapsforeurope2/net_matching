@@ -58,7 +58,7 @@
         {
             "label": "run the code",
             "type": "shell",
-            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching_dev ./bin/net_matching --c config/epg_parameters.ini --t watercourse_link --s sami_20260907 --as sami_20260907 lu fr",
+            "command": "docker run --privileged -v ${workspaceFolder}:/usr/local/src/net_matching net_matching_dev ./bin/net_matching --c config/epg_parameters_bduni.ini --s 20261029_matching --t road_link ch fr",
             "group": "build",
             "problemMatcher": []
         },

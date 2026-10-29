@@ -44,9 +44,10 @@ namespace app
             std::string const& borderCode,
             double clMinRatio,
             double clMinLength,
+            bool bWatercourse,
             bool verbose
         ) {
-            CLInAreaGenerationOp cLInAreaGenerationOp(borderCode, clMinRatio, clMinLength, verbose);
+            CLInAreaGenerationOp cLInAreaGenerationOp(borderCode, clMinRatio, clMinLength, bWatercourse, verbose);
             cLInAreaGenerationOp._computeByIteration();
         }
 
@@ -57,8 +58,10 @@ namespace app
             std::string const& borderCode,
             double clMinRatio,
             double clMinLength,
+            bool bWatercourse,
             bool verbose
-        ) : _verbose(verbose),
+        ) : _bWatercourse(bWatercourse),
+            _verbose(verbose),
             _borderCode(borderCode),
             _clMinRatio(clMinRatio),
             _clMinLength(clMinLength),
@@ -103,10 +106,6 @@ namespace app
 
             // app parameters
             params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
-            std::string const allAreaTableName = themeParameters->getValue(ALL_WATERCOURSE_AREA_TABLE).toString();
-            std::string const allStandingTableName = themeParameters->getValue(ALL_STANDING_WATER_TABLE).toString();
-            std::string const areaTableName = themeParameters->getValue(MATCHED_WATERCOURSE_AREA_TABLE).toString();
-            std::string const standingTableName = themeParameters->getValue(MATCHED_STANDING_WATER_TABLE).toString();
             std::string const wTagName = themeParameters->getValue(W_TAG_NAME).toString();
             std::string const listAttrSeparator = themeParameters->getValue(LIST_ATTR_SEPARATOR).toString();
 			std::string const listAttrJsonName = themeParameters->getValue(LIST_ATTR_JSON).toString();
@@ -118,19 +117,27 @@ namespace app
             //--
             _fsEdge = context->getDataBaseManager().getFeatureStore(edgeTableName, idName, geomName);
 
-            //--
-            _fsAllArea = context->getDataBaseManager().getFeatureStore(allAreaTableName, idName, geomName);
+            if (_bWatercourse) {
+                //--
+                std::string const allAreaTableName = themeParameters->getValue(ALL_WATERCOURSE_AREA_TABLE).toString();
+                std::string const allStandingTableName = themeParameters->getValue(ALL_STANDING_WATER_TABLE).toString();
+                std::string const areaTableName = themeParameters->getValue(MATCHED_WATERCOURSE_AREA_TABLE).toString();
+                std::string const standingTableName = themeParameters->getValue(MATCHED_STANDING_WATER_TABLE).toString();
 
-            //--
-            _fsAllStanding = context->getDataBaseManager().getFeatureStore(allStandingTableName, idName, geomName);
+                //--
+                _fsAllArea = context->getDataBaseManager().getFeatureStore(allAreaTableName, idName, geomName);
 
-            //--
-            _fsAreaRam = context->getDataBaseManager().getFeatureStoreRam(areaTableName, idName, geomName); // veiller a ce que la table soit bien issu d'une extraction (et non table complete)
-            ome2::feature::sql::NotDestroyedTools::RemoveDestroyed(_fsAreaRam);
+                //--
+                _fsAllStanding = context->getDataBaseManager().getFeatureStore(allStandingTableName, idName, geomName);
 
-            //--
-            _fsStandingRam = context->getDataBaseManager().getFeatureStoreRam(standingTableName, idName, geomName); // veiller a ce que la table soit bien issu d'une extraction (et non table complete)
-            ome2::feature::sql::NotDestroyedTools::RemoveDestroyed(_fsStandingRam);
+                //--
+                _fsAreaRam = context->getDataBaseManager().getFeatureStoreRam(areaTableName, idName, geomName); // veiller a ce que la table soit bien issu d'une extraction (et non table complete)
+                ome2::feature::sql::NotDestroyedTools::RemoveDestroyed(_fsAreaRam);
+
+                //--
+                _fsStandingRam = context->getDataBaseManager().getFeatureStoreRam(standingTableName, idName, geomName); // veiller a ce que la table soit bien issu d'une extraction (et non table complete)
+                ome2::feature::sql::NotDestroyedTools::RemoveDestroyed(_fsStandingRam);
+            }
 
             //--
             context->getDataBaseManager().resetColumn(_fsEdge->getTableName(), wTagName);
@@ -801,8 +808,12 @@ namespace app
                     continue;
 
                 //--
-                bool isFictitiousFront = _isFictitious(graph, vpCountryEdges.front().first, vpCountryEdges.front().second);
-                bool isFictitiousBack = _isFictitious(graph, vpCountryEdges.back().first, vpCountryEdges.back().second);
+                bool isFictitiousFront = false;
+                bool isFictitiousBack = false;
+                if (_bWatercourse ) {
+                    isFictitiousFront = _isFictitious(graph, vpCountryEdges.front().first, vpCountryEdges.front().second);
+                    isFictitiousBack = _isFictitious(graph, vpCountryEdges.back().first, vpCountryEdges.back().second);
+                }
 
                 std::vector<int> pathFrontgeomMeanGeomLink;
                 std::vector<int> pathBackgeomMeanGeomLink;
@@ -1057,55 +1068,6 @@ namespace app
 
             return ratioMin;
         }
-
-        ///
-        ///
-        ///
-        // bool CLInAreaGenerationOp::_fictitiousWithinArea( 
-        //     ign::feature::Feature const& feat
-        // ) const {
-        //     //--
-		// 	epg::Context *context = epg::ContextS::getInstance();
-
-        //     //--
-        //     epg::params::EpgParameters const& epgParams = context->getEpgParameters();
-        //     std::string const countryCodeName = epgParams.getValue(COUNTRY_CODE).toString();
-
-        //     //--
-        //     params::ThemeParameters *themeParameters = params::ThemeParametersS::getInstance();
-        //     std::string const fictitiousFieldName = themeParameters->getValue(EDGE_FICTITIOUS_NAME).toString();
-
-        //     //--
-        //     ign::geometry::LineString const& featGeom = feat.getGeometry().asLineString();
-
-        //     std::string countryValue = feat.getAttribute(countryCodeName).toString();
-        //     std::vector<std::string> vCountry;
-        //     epg::tools::StringTools::Split(countryValue, "#", vCountry);
-            
-        //     std::string fictitiousValue = feat.getAttribute(fictitiousFieldName).toString();
-        //     std::vector<std::string> vFictitious;
-        //     epg::tools::StringTools::Split(fictitiousValue, "#", vFictitious);
-
-        //     //--
-        //     for ( size_t i = 0 ; i < vCountry.size() ; ++i )
-        //     {
-        //         if( vFictitious[i] == "true" )
-        //         {
-        //             double ratio = 0;
-        //             if( _borderCode.find(vCountry[i]) != std::string::npos ) 
-        //             {
-        //                 ratio = detail::RatioTools::GetRatio(featGeom, vCountry[i], _fsAreaRam, _fsStandingRam);
-        //             } else {
-        //                 ratio = detail::RatioTools::GetRatio(featGeom, vCountry[i], _fsAllArea, _fsAllStanding);
-        //             }
-                    
-        //             if( ratio < 0.999 )
-        //                 return false;
-        //         }
-        //     }
-
-        //     return true;
-        // }
 
         ///
         ///

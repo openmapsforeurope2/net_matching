@@ -7,4 +7,3 @@ gmon.out
 core
 config/db_conf*
 !config/db_conf.ini.template
-package/*

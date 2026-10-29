@@ -89,11 +89,13 @@ namespace calcul{
 		/// @param borderCode double country code of the border to treat
 		/// @param clMinRatio Maximum ratio of connecting line in face exterior ring to enable cl collapsing
 		/// @param clMinLength Maximum length for collapsable connecting line
+		/// @param bWatercourse Data is of type watercourse
 		/// @param verbose Mode verbeux
 		static void Compute(
 			std::string const& borderCode,
 			double clMinRatio,
             double clMinLength,
+			bool bWatercourse = true,
 			bool verbose = false
 		);
 
@@ -112,6 +114,8 @@ namespace calcul{
 		epg::log::EpgLogger*                               _logger;
 		//--
 		epg::log::ShapeLogger*                             _shapeLogger;
+		//--
+		bool                                               _bWatercourse;
 		//--
 		bool                                               _verbose;
 		//--
@@ -132,6 +136,7 @@ namespace calcul{
 			std::string const& borderCode,
 			double clMinRatio,
             double clMinLength,
+			bool bWatercourse = true,
 			bool verbose = false
 		);
 

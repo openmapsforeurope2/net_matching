@@ -59,8 +59,8 @@ namespace tools{
 		stepSuite.clear();
 
 		// test BDUNI
-		stepSuite.addStep( epg::step::factoryNew< JunctionMatching >() );
-		stepSuite.addStep( epg::step::factoryNew< GenerateCLinArea >() );
+		// stepSuite.addStep( epg::step::factoryNew< JunctionMatching >() );
+		// stepSuite.addStep( epg::step::factoryNew< GenerateCLinArea >() );
 
 		stepSuite.addStep( epg::step::factoryNew< GenerateConnectingLinesByCountry >());
 		stepSuite.addStep( epg::step::factoryNew< MergeConnectingLinesOnBorder >());
